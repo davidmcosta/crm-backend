@@ -134,7 +134,7 @@ export async function updateOrder(id: string, data: UpdateOrderInput, userId: st
   const existing = await prisma.order.findUnique({ where: { id } })
   if (!existing) throw { statusCode: 404, message: 'Encomenda não encontrada' }
 
-  if ([OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(existing.status)) {
+  if (existing.status === OrderStatus.DELIVERED || existing.status === OrderStatus.CANCELLED) {
     throw { statusCode: 400, message: 'Não é possível editar uma encomenda entregue ou cancelada' }
   }
 
