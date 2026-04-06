@@ -4,7 +4,7 @@ export declare function listUsers(): Promise<{
     id: string;
     name: string;
     role: import(".prisma/client").$Enums.UserRole;
-    active: boolean;
+    isActive: boolean;
     createdAt: Date;
 }[]>;
 export declare function getUserById(id: string): Promise<{
@@ -12,7 +12,7 @@ export declare function getUserById(id: string): Promise<{
     id: string;
     name: string;
     role: import(".prisma/client").$Enums.UserRole;
-    active: boolean;
+    isActive: boolean;
     createdAt: Date;
     _count: {
         orders: number;
@@ -23,7 +23,7 @@ export declare function createUser(data: CreateUserInput): Promise<{
     id: string;
     name: string;
     role: import(".prisma/client").$Enums.UserRole;
-    active: boolean;
+    isActive: boolean;
     createdAt: Date;
 }>;
 export declare function updateUser(id: string, data: UpdateUserInput): Promise<{
@@ -31,7 +31,7 @@ export declare function updateUser(id: string, data: UpdateUserInput): Promise<{
     id: string;
     name: string;
     role: import(".prisma/client").$Enums.UserRole;
-    active: boolean;
+    isActive: boolean;
 }>;
 export declare function updateUserRole(id: string, data: UpdateRoleInput): Promise<{
     email: string;
@@ -42,7 +42,7 @@ export declare function updateUserRole(id: string, data: UpdateRoleInput): Promi
 export declare function deactivateUser(id: string, requestingUserId: string): Promise<{
     id: string;
     name: string;
-    active: boolean;
+    isActive: boolean;
 }>;
 export declare function changePassword(id: string, data: ChangePasswordInput): Promise<{
     message: string;

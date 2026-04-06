@@ -14,21 +14,34 @@ class ProdutoItem {
   });
 
   factory ProdutoItem.fromJson(Map<String, dynamic> j) => ProdutoItem(
-        nome:      j['nome']     as String,
-        qty:       (j['qty']      as num).toDouble(),
+        nome:      j['nome']      as String,
+        qty:       (j['qty']       as num).toDouble(),
         precoUnit: (j['precoUnit'] as num).toDouble(),
-        total:     (j['total']    as num).toDouble(),
+        total:     (j['total']     as num).toDouble(),
       );
 
   Map<String, dynamic> toJson() => {
-        'nome':      nome,
-        'qty':       qty,
-        'precoUnit': precoUnit,
-        'total':     total,
+        'nome': nome, 'qty': qty, 'precoUnit': precoUnit, 'total': total,
       };
 }
 
-// ── Sub-modelos ──────────────────────────────────────────────────────────────
+// ── Extra ─────────────────────────────────────────────────────────────────────
+
+class ExtraItem {
+  final String descricao;
+  final double valor;
+
+  const ExtraItem({required this.descricao, required this.valor});
+
+  factory ExtraItem.fromJson(Map<String, dynamic> j) => ExtraItem(
+        descricao: j['descricao'] as String,
+        valor:     (j['valor']    as num).toDouble(),
+      );
+
+  Map<String, dynamic> toJson() => {'descricao': descricao, 'valor': valor};
+}
+
+// ── Sub-modelos ───────────────────────────────────────────────────────────────
 
 class OrderCustomer {
   final String id;
@@ -71,15 +84,15 @@ class StatusHistoryEntry {
 
   factory StatusHistoryEntry.fromJson(Map<String, dynamic> j) =>
       StatusHistoryEntry(
-        id:             j['id']     as String,
-        status:         j['status'] as String,
-        changedByName:  (j['changedBy'] as Map<String, dynamic>)['name'] as String,
-        notes:          j['notes']  as String?,
-        createdAt:      DateTime.parse(j['createdAt'] as String),
+        id:            j['id']     as String,
+        status:        j['status'] as String,
+        changedByName: (j['changedBy'] as Map<String, dynamic>)['name'] as String,
+        notes:         j['notes']  as String?,
+        createdAt:     DateTime.parse(j['createdAt'] as String),
       );
 }
 
-// ── Modelo principal ─────────────────────────────────────────────────────────
+// ── Modelo principal ──────────────────────────────────────────────────────────
 
 class OrderModel {
   final String id;
@@ -98,6 +111,7 @@ class OrderModel {
   final String? fotoPessoa;
   final String? nomeFalecido;
   final String? datasFalecido;
+  final String? dedicatoria;
 
   // Produtos
   final List<ProdutoItem> produtos;
@@ -108,8 +122,7 @@ class OrderModel {
   final double portagens;
   final double refeicoes;
   final double deslocacaoMontagem;
-  final String? extrasDescricao;
-  final double extrasValor;
+  final List<ExtraItem> extras;
   final double valorTotal;
 
   // Requerente
@@ -135,14 +148,14 @@ class OrderModel {
     this.fotoPessoa,
     this.nomeFalecido,
     this.datasFalecido,
+    this.dedicatoria,
     this.produtos = const [],
     required this.valorSepultura,
     this.km,
     required this.portagens,
     required this.refeicoes,
     required this.deslocacaoMontagem,
-    this.extrasDescricao,
-    required this.extrasValor,
+    this.extras = const [],
     required this.valorTotal,
     required this.requerente,
     required this.contacto,
@@ -154,27 +167,31 @@ class OrderModel {
     required this.updatedAt,
   });
 
+  double get extrasValor => extras.fold(0.0, (s, e) => s + e.valor);
+
   factory OrderModel.fromJson(Map<String, dynamic> j) => OrderModel(
-        id:           j['id']          as String,
-        orderNumber:  j['orderNumber'] as String,
-        status:       j['status']      as String,
-        trabalho:     j['trabalho']    as String? ?? '',
-        cemiterio:    j['cemiterio']   as String?,
-        talhao:       j['talhao']      as String?,
+        id:          j['id']          as String,
+        orderNumber: j['orderNumber'] as String,
+        status:      j['status']      as String,
+        trabalho:    j['trabalho']    as String? ?? '',
+        cemiterio:       j['cemiterio']       as String?,
+        talhao:          j['talhao']          as String?,
         numeroSepultura: j['numeroSepultura'] as String?,
-        fotoPessoa:   j['fotoPessoa']  as String?,
-        nomeFalecido: j['nomeFalecido'] as String?,
-        datasFalecido: j['datasFalecido'] as String?,
+        fotoPessoa:      j['fotoPessoa']      as String?,
+        nomeFalecido:    j['nomeFalecido']    as String?,
+        datasFalecido:   j['datasFalecido']   as String?,
+        dedicatoria:     j['dedicatoria']     as String?,
         produtos: (j['produtos'] as List<dynamic>? ?? [])
             .map((e) => ProdutoItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        extras: (j['extras'] as List<dynamic>? ?? [])
+            .map((e) => ExtraItem.fromJson(e as Map<String, dynamic>))
             .toList(),
         valorSepultura:    _d(j['valorSepultura']),
         km: j['km'] != null ? (j['km'] as num).toDouble() : null,
         portagens:         _d(j['portagens']),
         refeicoes:         _d(j['refeicoes']),
         deslocacaoMontagem: _d(j['deslocacaoMontagem']),
-        extrasDescricao:   j['extrasDescricao'] as String?,
-        extrasValor:       _d(j['extrasValor']),
         valorTotal:        _d(j['valorTotal']),
         requerente:  j['requerente'] as String? ?? '',
         contacto:    j['contacto']   as String? ?? '',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/customers_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../shared/widgets/app_drawer.dart';
 
 class CustomersListScreen extends ConsumerStatefulWidget {
   const CustomersListScreen({super.key});
@@ -28,6 +29,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
     final canCreate = auth.user?.isOperator ?? false;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Clientes'),
         actions: [

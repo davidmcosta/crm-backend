@@ -24,10 +24,10 @@ export async function listOrders(query: ListOrdersQuery) {
   if (customerId) where.customerId = customerId
   if (search) {
     where.OR = [
-      { orderNumber:   { contains: search, mode: 'insensitive' } },
-      { nomeFalecido:  { contains: search, mode: 'insensitive' } },
-      { requerente:    { contains: search, mode: 'insensitive' } },
-      { cemiterio:     { contains: search, mode: 'insensitive' } },
+      { orderNumber:  { contains: search, mode: 'insensitive' } },
+      { nomeFalecido: { contains: search, mode: 'insensitive' } },
+      { requerente:   { contains: search, mode: 'insensitive' } },
+      { cemiterio:    { contains: search, mode: 'insensitive' } },
       { customer: { name: { contains: search, mode: 'insensitive' } } },
     ]
   }
@@ -74,6 +74,7 @@ export async function createOrder(data: CreateOrderInput, userId: string) {
   }
 
   const orderNumber = await generateOrderNumber()
+  const extrasTotal = (data.extras ?? []).reduce((sum, e) => sum + e.valor, 0)
 
   return prisma.order.create({
     data: {
@@ -87,20 +88,21 @@ export async function createOrder(data: CreateOrderInput, userId: string) {
       talhao:          data.talhao ?? null,
       numeroSepultura: data.numeroSepultura ?? null,
 
-      fotoPessoa:    data.fotoPessoa ?? null,
-      nomeFalecido:  data.nomeFalecido ?? null,
+      fotoPessoa:    data.fotoPessoa    ?? null,
+      nomeFalecido:  data.nomeFalecido  ?? null,
       datasFalecido: data.datasFalecido ?? null,
+      dedicatoria:   data.dedicatoria   ?? null,
 
       produtos: data.produtos ?? [],
+      extras:   data.extras   ?? [],
 
-      valorSepultura:     data.valorSepultura ?? 0,
-      km:                 data.km ?? null,
-      portagens:          data.portagens ?? 0,
-      refeicoes:          data.refeicoes ?? 0,
+      valorSepultura:     data.valorSepultura     ?? 0,
+      km:                 data.km                 ?? null,
+      portagens:          data.portagens          ?? 0,
+      refeicoes:          data.refeicoes          ?? 0,
       deslocacaoMontagem: data.deslocacaoMontagem ?? 0,
-      extrasDescricao:    data.extrasDescricao ?? null,
-      extrasValor:        data.extrasValor ?? 0,
-      valorTotal:         data.valorTotal ?? 0,
+      extrasValor:        extrasTotal,
+      valorTotal:         data.valorTotal         ?? 0,
 
       requerente:  data.requerente,
       contacto:    data.contacto,
@@ -121,9 +123,16 @@ export async function updateOrder(id: string, data: UpdateOrderInput, userId: st
   if (existing.status === OrderStatus.CANCELLED) {
     throw { statusCode: 400, message: 'Não é possível editar uma encomenda cancelada' }
   }
+
+  // Recalcular extrasValor se extras for fornecido
+  const updateData: any = { ...data, updatedAt: new Date() }
+  if (data.extras !== undefined) {
+    updateData.extrasValor = data.extras.reduce((sum, e) => sum + e.valor, 0)
+  }
+
   return prisma.order.update({
     where: { id },
-    data:  { ...data, updatedAt: new Date() },
+    data:  updateData,
     include: { customer: { select: { id: true, name: true } } },
   })
 }

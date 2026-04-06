@@ -6,13 +6,40 @@ export declare const createOrderSchema: z.ZodObject<{
     talhao: z.ZodOptional<z.ZodString>;
     numeroSepultura: z.ZodOptional<z.ZodString>;
     fotoPessoa: z.ZodOptional<z.ZodString>;
-    nomeFalecido: z.ZodString;
+    nomeFalecido: z.ZodOptional<z.ZodString>;
     datasFalecido: z.ZodOptional<z.ZodString>;
+    dedicatoria: z.ZodOptional<z.ZodString>;
+    produtos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+        nome: z.ZodString;
+        qty: z.ZodNumber;
+        precoUnit: z.ZodNumber;
+        total: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }, {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }>, "many">>>;
     valorSepultura: z.ZodDefault<z.ZodNumber>;
     km: z.ZodOptional<z.ZodNumber>;
     portagens: z.ZodDefault<z.ZodNumber>;
+    refeicoes: z.ZodDefault<z.ZodNumber>;
     deslocacaoMontagem: z.ZodDefault<z.ZodNumber>;
-    extrasDescricao: z.ZodOptional<z.ZodString>;
+    extras: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+        descricao: z.ZodString;
+        valor: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        descricao: string;
+        valor: number;
+    }, {
+        descricao: string;
+        valor: number;
+    }>, "many">>>;
     extrasValor: z.ZodDefault<z.ZodNumber>;
     valorTotal: z.ZodDefault<z.ZodNumber>;
     requerente: z.ZodString;
@@ -20,10 +47,20 @@ export declare const createOrderSchema: z.ZodObject<{
     observacoes: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     trabalho: string;
-    nomeFalecido: string;
+    produtos: {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }[];
     valorSepultura: number;
     portagens: number;
+    refeicoes: number;
     deslocacaoMontagem: number;
+    extras: {
+        descricao: string;
+        valor: number;
+    }[];
     extrasValor: number;
     valorTotal: number;
     requerente: string;
@@ -33,13 +70,13 @@ export declare const createOrderSchema: z.ZodObject<{
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;
     fotoPessoa?: string | undefined;
+    nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
+    dedicatoria?: string | undefined;
     km?: number | undefined;
-    extrasDescricao?: string | undefined;
     observacoes?: string | undefined;
 }, {
     trabalho: string;
-    nomeFalecido: string;
     requerente: string;
     contacto: string;
     customerId?: string | undefined;
@@ -47,12 +84,24 @@ export declare const createOrderSchema: z.ZodObject<{
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;
     fotoPessoa?: string | undefined;
+    nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
+    dedicatoria?: string | undefined;
+    produtos?: {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }[] | undefined;
     valorSepultura?: number | undefined;
     km?: number | undefined;
     portagens?: number | undefined;
+    refeicoes?: number | undefined;
     deslocacaoMontagem?: number | undefined;
-    extrasDescricao?: string | undefined;
+    extras?: {
+        descricao: string;
+        valor: number;
+    }[] | undefined;
     extrasValor?: number | undefined;
     valorTotal?: number | undefined;
     observacoes?: string | undefined;
@@ -65,11 +114,38 @@ export declare const updateOrderSchema: z.ZodObject<{
     fotoPessoa: z.ZodOptional<z.ZodString>;
     nomeFalecido: z.ZodOptional<z.ZodString>;
     datasFalecido: z.ZodOptional<z.ZodString>;
+    dedicatoria: z.ZodOptional<z.ZodString>;
+    produtos: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        nome: z.ZodString;
+        qty: z.ZodNumber;
+        precoUnit: z.ZodNumber;
+        total: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }, {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }>, "many">>;
     valorSepultura: z.ZodOptional<z.ZodNumber>;
     km: z.ZodOptional<z.ZodNumber>;
     portagens: z.ZodOptional<z.ZodNumber>;
+    refeicoes: z.ZodOptional<z.ZodNumber>;
     deslocacaoMontagem: z.ZodOptional<z.ZodNumber>;
-    extrasDescricao: z.ZodOptional<z.ZodString>;
+    extras: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        descricao: z.ZodString;
+        valor: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        descricao: string;
+        valor: number;
+    }, {
+        descricao: string;
+        valor: number;
+    }>, "many">>;
     extrasValor: z.ZodOptional<z.ZodNumber>;
     valorTotal: z.ZodOptional<z.ZodNumber>;
     requerente: z.ZodOptional<z.ZodString>;
@@ -85,11 +161,22 @@ export declare const updateOrderSchema: z.ZodObject<{
     fotoPessoa?: string | undefined;
     nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
+    dedicatoria?: string | undefined;
+    produtos?: {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }[] | undefined;
     valorSepultura?: number | undefined;
     km?: number | undefined;
     portagens?: number | undefined;
+    refeicoes?: number | undefined;
     deslocacaoMontagem?: number | undefined;
-    extrasDescricao?: string | undefined;
+    extras?: {
+        descricao: string;
+        valor: number;
+    }[] | undefined;
     extrasValor?: number | undefined;
     valorTotal?: number | undefined;
     requerente?: string | undefined;
@@ -104,11 +191,22 @@ export declare const updateOrderSchema: z.ZodObject<{
     fotoPessoa?: string | undefined;
     nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
+    dedicatoria?: string | undefined;
+    produtos?: {
+        nome: string;
+        qty: number;
+        precoUnit: number;
+        total: number;
+    }[] | undefined;
     valorSepultura?: number | undefined;
     km?: number | undefined;
     portagens?: number | undefined;
+    refeicoes?: number | undefined;
     deslocacaoMontagem?: number | undefined;
-    extrasDescricao?: string | undefined;
+    extras?: {
+        descricao: string;
+        valor: number;
+    }[] | undefined;
     extrasValor?: number | undefined;
     valorTotal?: number | undefined;
     requerente?: string | undefined;
@@ -121,16 +219,15 @@ export declare const updateStatusSchema: z.ZodObject<{
         CONFIRMED: "CONFIRMED";
         IN_PRODUCTION: "IN_PRODUCTION";
         READY: "READY";
-        SHIPPED: "SHIPPED";
         DELIVERED: "DELIVERED";
         CANCELLED: "CANCELLED";
     }>;
     notes: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED";
     notes?: string | undefined;
 }, {
-    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED";
     notes?: string | undefined;
 }>;
 export declare const listOrdersQuerySchema: z.ZodObject<{
@@ -141,7 +238,6 @@ export declare const listOrdersQuerySchema: z.ZodObject<{
         CONFIRMED: "CONFIRMED";
         IN_PRODUCTION: "IN_PRODUCTION";
         READY: "READY";
-        SHIPPED: "SHIPPED";
         DELIVERED: "DELIVERED";
         CANCELLED: "CANCELLED";
     }>>;
@@ -150,11 +246,11 @@ export declare const listOrdersQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     page: number;
     limit: number;
-    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED" | undefined;
+    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED" | undefined;
     search?: string | undefined;
     customerId?: string | undefined;
 }, {
-    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "SHIPPED" | "DELIVERED" | "CANCELLED" | undefined;
+    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED" | undefined;
     search?: string | undefined;
     customerId?: string | undefined;
     page?: number | undefined;

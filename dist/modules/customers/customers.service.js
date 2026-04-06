@@ -39,7 +39,7 @@ async function getCustomerById(id) {
         where: { id },
         include: { _count: { select: { orders: true } } },
     });
-    if (!customer || !customer.active) {
+    if (!customer || !customer.isActive) {
         throw { statusCode: 404, message: 'Cliente não encontrado' };
     }
     return customer;
@@ -61,7 +61,7 @@ async function createCustomer(data) {
 }
 async function updateCustomer(id, data) {
     const customer = await prisma.customer.findUnique({ where: { id } });
-    if (!customer || !customer.active) {
+    if (!customer || !customer.isActive) {
         throw { statusCode: 404, message: 'Cliente não encontrado' };
     }
     return prisma.customer.update({ where: { id }, data });

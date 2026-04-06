@@ -9,7 +9,7 @@ import '../models/order_model.dart';
 import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
 
-// ── Linha de produto no formulário ───────────────────────────────────────────
+// ── Linha de produto ──────────────────────────────────────────────────────────
 
 class _ProdRow {
   final nomeCtrl  = TextEditingController();
@@ -27,7 +27,21 @@ class _ProdRow {
   double get total => qty * preco;
 }
 
-// ── Screen ───────────────────────────────────────────────────────────────────
+// ── Linha de extra ────────────────────────────────────────────────────────────
+
+class _ExtraRow {
+  final descCtrl  = TextEditingController();
+  final valorCtrl = TextEditingController(text: '0,00');
+
+  void dispose() {
+    descCtrl.dispose();
+    valorCtrl.dispose();
+  }
+
+  double get valor => double.tryParse(valorCtrl.text.replaceAll(',', '.')) ?? 0;
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 class CreateOrderScreen extends ConsumerStatefulWidget {
   /// Se fornecido, entra em modo edição
@@ -40,22 +54,21 @@ class CreateOrderScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
-  final _formKey   = GlobalKey<FormState>();
-  bool _isLoading  = false;
+  final _formKey  = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   bool get _isEdit => widget.initialOrder != null;
 
-  // ── Controllers ─────────────────────────────────────────────────────────────
+  // ── Controllers ──────────────────────────────────────────────────────────────
   final _trabalhoCtrl        = TextEditingController();
   final _cemiterioCtrl       = TextEditingController();
   final _talhaoCtrl          = TextEditingController();
   final _numeroSepulturaCtrl = TextEditingController();
   final _nomeFalecidoCtrl    = TextEditingController();
   final _datasFalecidoCtrl   = TextEditingController();
+  final _dedicatoriaCtrl     = TextEditingController();
   final _kmCtrl              = TextEditingController();
   final _portagensCtrl       = TextEditingController(text: '0');
-  final _extrasDescCtrl      = TextEditingController();
-  final _extrasValorCtrl     = TextEditingController(text: '0');
   final _requerenteCtrl      = TextEditingController();
   final _contactoCtrl        = TextEditingController();
   final _observacoesCtrl     = TextEditingController();
@@ -63,7 +76,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   String?    _selectedCustomerId;
   String?    _fotoPessoaBase64;
   Uint8List? _fotoPessoaBytes;
-  List<_ProdRow> _produtos = [_ProdRow()];
+  List<_ProdRow>  _produtos = [_ProdRow()];
+  List<_ExtraRow> _extras   = [];
 
   // Calculados
   double _refeicoes       = 0;
@@ -86,13 +100,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _trabalhoCtrl.text        = o.trabalho;
     _cemiterioCtrl.text       = o.cemiterio       ?? '';
     _talhaoCtrl.text          = o.talhao          ?? '';
-    _numeroSepulturaCtrl.text = o.numeroSepultura  ?? '';
-    _nomeFalecidoCtrl.text    = o.nomeFalecido     ?? '';
-    _datasFalecidoCtrl.text   = o.datasFalecido    ?? '';
-    _kmCtrl.text              = o.km?.toString()   ?? '';
+    _numeroSepulturaCtrl.text = o.numeroSepultura ?? '';
+    _nomeFalecidoCtrl.text    = o.nomeFalecido    ?? '';
+    _datasFalecidoCtrl.text   = o.datasFalecido   ?? '';
+    _dedicatoriaCtrl.text     = o.dedicatoria     ?? '';
+    _kmCtrl.text              = o.km?.toString()  ?? '';
     _portagensCtrl.text       = o.portagens.toStringAsFixed(2);
-    _extrasDescCtrl.text      = o.extrasDescricao  ?? '';
-    _extrasValorCtrl.text     = o.extrasValor.toStringAsFixed(2);
     _requerenteCtrl.text      = o.requerente;
     _contactoCtrl.text        = o.contacto;
     _observacoesCtrl.text     = o.observacoes ?? '';
@@ -110,13 +123,23 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       _produtos = o.produtos.map((p) {
         final r = _ProdRow();
         r.nomeCtrl.text  = p.nome;
-        r.qtyCtrl.text   = p.qty.toStringAsFixed(p.qty == p.qty.truncate() ? 0 : 2);
+        r.qtyCtrl.text   =
+            p.qty % 1 == 0 ? p.qty.toInt().toString() : p.qty.toStringAsFixed(2);
         r.precoCtrl.text = p.precoUnit.toStringAsFixed(2);
         return r;
       }).toList();
     }
 
-    _refeicoes = o.refeicoes;
+    if (o.extras.isNotEmpty) {
+      _extras = o.extras.map((e) {
+        final r = _ExtraRow();
+        r.descCtrl.text  = e.descricao;
+        r.valorCtrl.text = e.valor.toStringAsFixed(2);
+        return r;
+      }).toList();
+    }
+
+    _refeicoes  = o.refeicoes;
     _deslocacao = o.deslocacaoMontagem;
     _recalcDeslocacao();
   }
@@ -129,34 +152,32 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _numeroSepulturaCtrl.dispose();
     _nomeFalecidoCtrl.dispose();
     _datasFalecidoCtrl.dispose();
+    _dedicatoriaCtrl.dispose();
     _kmCtrl.dispose();
     _portagensCtrl.dispose();
-    _extrasDescCtrl.dispose();
-    _extrasValorCtrl.dispose();
     _requerenteCtrl.dispose();
     _contactoCtrl.dispose();
     _observacoesCtrl.dispose();
     for (final r in _produtos) r.dispose();
+    for (final r in _extras)   r.dispose();
     super.dispose();
   }
 
-  // ── Cálculos ─────────────────────────────────────────────────────────────────
+  // ── Cálculos ──────────────────────────────────────────────────────────────────
   double get _subtotalProdutos =>
       _produtos.fold(0, (s, r) => s + r.total);
 
   double get _subtotalExtras =>
-      double.tryParse(_extrasValorCtrl.text.replaceAll(',', '.')) ?? 0;
+      _extras.fold(0, (s, r) => s + r.valor);
 
   double get _valorTotal =>
       _subtotalProdutos + _deslocacao + _subtotalExtras;
 
   void _recalcDeslocacao() {
-    final km        = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))      ?? 0;
+    final km        = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))        ?? 0;
     final portagens = double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0;
 
-    // Classe 2 (carrinha): €0,40/km × km ida e volta
-    final custokm    = km * 2 * 0.40;
-    // Tempo de viagem (ida e volta) a ~80 km/h
+    final custokm     = km * 2 * 0.40;
     final horasViagem = (km * 2) / 80;
     _precisaRefeicao  = horasViagem > 4.0;
     _refeicoes        = _precisaRefeicao ? 2 * 10.20 : 0;
@@ -165,14 +186,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     setState(() {});
   }
 
-  // ── Foto ─────────────────────────────────────────────────────────────────────
+  // ── Foto ──────────────────────────────────────────────────────────────────────
   Future<void> _pickPhoto() async {
     try {
       final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 75,
+        maxWidth: 800, maxHeight: 800, imageQuality: 75,
       );
       if (file == null) return;
       final bytes = await file.readAsBytes();
@@ -194,15 +213,20 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         _fotoPessoaBase64 = null;
       });
 
-  // ── Produtos ─────────────────────────────────────────────────────────────────
+  // ── Produtos / Extras ─────────────────────────────────────────────────────────
   void _addProduto() => setState(() => _produtos.add(_ProdRow()));
-
   void _removeProduto(int i) {
     _produtos[i].dispose();
     setState(() => _produtos.removeAt(i));
   }
 
-  // ── Guardar ──────────────────────────────────────────────────────────────────
+  void _addExtra() => setState(() => _extras.add(_ExtraRow()));
+  void _removeExtra(int i) {
+    _extras[i].dispose();
+    setState(() => _extras.removeAt(i));
+  }
+
+  // ── Guardar ───────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -211,11 +235,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       final produtosJson = _produtos
           .where((r) => r.nomeCtrl.text.trim().isNotEmpty)
           .map((r) => {
-                'nome':      r.nomeCtrl.text.trim(),
-                'qty':       r.qty,
-                'precoUnit': r.preco,
-                'total':     r.total,
+                'nome': r.nomeCtrl.text.trim(),
+                'qty':  r.qty, 'precoUnit': r.preco, 'total': r.total,
               })
+          .toList();
+
+      final extrasJson = _extras
+          .where((r) => r.descCtrl.text.trim().isNotEmpty)
+          .map((r) => {'descricao': r.descCtrl.text.trim(), 'valor': r.valor})
           .toList();
 
       final body = <String, dynamic>{
@@ -223,6 +250,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         'requerente':         _requerenteCtrl.text.trim(),
         'contacto':           _contactoCtrl.text.trim(),
         'produtos':           produtosJson,
+        'extras':             extrasJson,
         'valorSepultura':     _subtotalProdutos,
         'portagens':          double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0,
         'refeicoes':          _refeicoes,
@@ -231,7 +259,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         'valorTotal':         _valorTotal,
       };
 
-      if (_selectedCustomerId != null) body['customerId']       = _selectedCustomerId;
+      if (_selectedCustomerId != null) body['customerId'] = _selectedCustomerId;
       if (_kmCtrl.text.trim().isNotEmpty)
         body['km'] = double.tryParse(_kmCtrl.text.replaceAll(',', '.')) ?? 0;
       if (_cemiterioCtrl.text.trim().isNotEmpty)
@@ -246,8 +274,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         body['nomeFalecido']    = _nomeFalecidoCtrl.text.trim();
       if (_datasFalecidoCtrl.text.trim().isNotEmpty)
         body['datasFalecido']   = _datasFalecidoCtrl.text.trim();
-      if (_extrasDescCtrl.text.trim().isNotEmpty)
-        body['extrasDescricao'] = _extrasDescCtrl.text.trim();
+      if (_dedicatoriaCtrl.text.trim().isNotEmpty)
+        body['dedicatoria']     = _dedicatoriaCtrl.text.trim();
       if (_observacoesCtrl.text.trim().isNotEmpty)
         body['observacoes']     = _observacoesCtrl.text.trim();
 
@@ -277,7 +305,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
+  // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final customersState = ref.watch(customersProvider);
@@ -307,9 +335,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 1. CLIENTE
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _section(Icons.business_outlined, 'Cliente', optional: true),
             customersState.isLoading
                 ? const Padding(
@@ -327,9 +355,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     onChanged: (v) => setState(() => _selectedCustomerId = v),
                   ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 2. TRABALHO
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.construction, 'Trabalho'),
             _field(
@@ -341,9 +369,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
             ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 3. CEMITÉRIO
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.location_on_outlined, 'Cemitério', optional: true),
             _field(
@@ -366,9 +394,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               )),
             ]),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 4. FALECIDO(A)
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.person, 'Falecido(a)', optional: true),
 
@@ -411,10 +439,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               child: TextButton.icon(
                 onPressed: _pickPhoto,
                 icon: const Icon(Icons.upload, size: 16),
-                label: const Text('Carregar foto', style: TextStyle(fontSize: 13)),
+                label: const Text('Carregar foto',
+                    style: TextStyle(fontSize: 13)),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
             _field(
               ctrl: _nomeFalecidoCtrl,
@@ -427,10 +456,17 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               label: 'Datas (ex: 01/01/1950 – 15/03/2026)',
               icon: Icons.date_range_outlined,
             ),
+            const SizedBox(height: 10),
+            _field(
+              ctrl: _dedicatoriaCtrl,
+              label: 'Dedicatória / Epitáfio',
+              icon: Icons.format_quote_outlined,
+              maxLines: 3,
+            ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 5. PRODUTOS
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.inventory_2_outlined, 'Produtos'),
 
@@ -453,7 +489,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: r.nomeCtrl,
-                            decoration: _deco('Nome do produto', Icons.label_outline),
+                            decoration: _deco('Nome do produto',
+                                Icons.label_outline),
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
@@ -461,7 +498,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           const SizedBox(width: 8),
                           IconButton(
                             onPressed: () => _removeProduto(i),
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
                             visualDensity: VisualDensity.compact,
                           ),
                         ],
@@ -472,7 +510,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           child: TextFormField(
                             controller: r.qtyCtrl,
                             decoration: _deco('Qtd', Icons.numbers),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
@@ -481,19 +520,23 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           flex: 2,
                           child: TextFormField(
                             controller: r.precoCtrl,
-                            decoration: _deco('Preço unit. (€)', Icons.euro_outlined),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration:
+                                _deco('Preço unit. (€)', Icons.euro_outlined),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 14),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                              border:
+                                  Border.all(color: const Color(0xFFBFDBFE)),
                             ),
                             child: Text(
                               _currency.format(r.total),
@@ -519,16 +562,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 44)),
             ),
-
             if (_subtotalProdutos > 0) ...[
               const SizedBox(height: 10),
               _totalRow('Subtotal produtos', _subtotalProdutos,
                   highlight: false),
             ],
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 6. DESLOCAÇÃO E MONTAGEM
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.drive_eta_outlined, 'Deslocação e Montagem'),
 
@@ -538,7 +580,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   ctrl: _kmCtrl,
                   label: 'Km (ida)',
                   icon: Icons.route_outlined,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true),
                   onChanged: (_) => _recalcDeslocacao(),
                 ),
               ),
@@ -548,14 +591,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   ctrl: _portagensCtrl,
                   label: 'Portagens (€)',
                   icon: Icons.toll_outlined,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true),
                   onChanged: (_) => _recalcDeslocacao(),
                 ),
               ),
             ]),
             const SizedBox(height: 10),
 
-            // Breakdown automático
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
@@ -572,14 +615,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF166534))),
                   const SizedBox(height: 6),
-                  _calcRow('Veículo classe 2  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €0,40',
+                  _calcRow(
+                      'Veículo classe 2  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €0,40',
                       (double.tryParse(_kmCtrl.text) ?? 0) * 2 * 0.40),
                   _calcRow('Portagens',
                       double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0),
-                  if (_precisaRefeicao) ...[
+                  if (_precisaRefeicao)
                     _calcRow('Refeições (2 colaboradores)', _refeicoes,
                         note: 'viagem > 4h'),
-                  ],
                   const Divider(height: 14),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -596,28 +639,76 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               ),
             ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 7. EXTRAS
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.add_circle_outline, 'Extras', optional: true),
-            _field(
-              ctrl: _extrasDescCtrl,
-              label: 'Descrição dos extras',
-              icon: Icons.notes,
-            ),
-            const SizedBox(height: 10),
-            _field(
-              ctrl: _extrasValorCtrl,
-              label: 'Valor dos extras (€)',
-              icon: Icons.euro_outlined,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) => setState(() {}),
+
+            if (_extras.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('Nenhum extra adicionado',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              ),
+
+            ..._extras.asMap().entries.map((e) {
+              final i = e.key;
+              final r = e.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Card(
+                  elevation: 0,
+                  color: const Color(0xFFFFFBF5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: const BorderSide(color: Color(0xFFFDE68A)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          controller: r.descCtrl,
+                          decoration: _deco('Descrição', Icons.notes),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: TextFormField(
+                          controller: r.valorCtrl,
+                          decoration: _deco('Valor (€)', Icons.euro_outlined),
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        onPressed: () => _removeExtra(i),
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ]),
+                  ),
+                ),
+              );
+            }),
+
+            OutlinedButton.icon(
+              onPressed: _addExtra,
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar extra'),
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 44)),
             ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 8. REQUERENTE
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.person_outline, 'Requerente'),
             _field(
@@ -637,9 +728,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
             ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // 9. OBSERVAÇÕES
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             _section(Icons.notes_outlined, 'Observações', optional: true),
             _field(
@@ -649,9 +740,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               maxLines: 3,
             ),
 
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             // RESUMO FINANCEIRO
-            // ════════════════════════════════════════════
+            // ═══════════════════════════════════════
             _gap(),
             Container(
               padding: const EdgeInsets.all(16),
@@ -700,7 +791,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     );
   }
 
-  // ── Helpers de UI ────────────────────────────────────────────────────────────
+  // ── Helpers de UI ─────────────────────────────────────────────────────────────
 
   Widget _gap() => const SizedBox(height: 28);
 
@@ -725,7 +816,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           if (optional) ...[
             const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(4),
@@ -739,10 +831,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         ]),
       );
 
-  InputDecoration _deco(String label, IconData icon) => InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-      );
+  InputDecoration _deco(String label, IconData icon) =>
+      InputDecoration(labelText: label, prefixIcon: Icon(icon));
 
   Widget _field({
     required TextEditingController ctrl,
@@ -770,12 +860,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             Expanded(
               child: Text(
                 note != null ? '$label ($note)' : label,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF166534)),
+                style: const TextStyle(
+                    fontSize: 12, color: Color(0xFF166534)),
               ),
             ),
             Text(
               NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value),
-              style: const TextStyle(fontSize: 12, color: Color(0xFF166534)),
+              style: const TextStyle(
+                  fontSize: 12, color: Color(0xFF166534)),
             ),
           ],
         ),
@@ -787,10 +879,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(
-                color: Colors.grey.shade700, fontSize: 13)),
+            Text(label,
+                style: TextStyle(
+                    color: Colors.grey.shade700, fontSize: 13)),
             Text(
-              NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value),
+              NumberFormat.currency(locale: 'pt_PT', symbol: '€')
+                  .format(value),
               style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,

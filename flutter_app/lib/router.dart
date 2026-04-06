@@ -10,6 +10,7 @@ import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/create_order_screen.dart';
 import 'features/customers/screens/customers_list_screen.dart';
 import 'features/customers/screens/create_customer_screen.dart';
+import 'features/users/screens/users_list_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -73,6 +74,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const CreateCustomerScreen(),
           ),
         ],
+      ),
+
+      // ── Utilizadores ───────────────────────────────────────────────────────
+      GoRoute(
+        path: '/users',
+        builder: (_, __) => const UsersListScreen(),
       ),
     ],
   );

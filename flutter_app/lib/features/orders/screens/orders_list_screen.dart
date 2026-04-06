@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/order_card.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../shared/widgets/app_drawer.dart';
 
 const _statuses = [
   null,
@@ -60,6 +61,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     final canCreate = auth.user?.isOperator ?? false;
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Encomendas'),
         actions: [

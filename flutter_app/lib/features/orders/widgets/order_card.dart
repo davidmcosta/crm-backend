@@ -11,7 +11,7 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat    = DateFormat('dd/MM/yyyy', 'pt');
+    final dateFormat = DateFormat('dd/MM/yyyy', 'pt');
     final currencyFormat = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
     return Card(
@@ -39,16 +39,19 @@ class OrderCard extends StatelessWidget {
               const SizedBox(height: 8),
 
               // Nome do falecido (destaque)
-              if (order.nomeFalecido.isNotEmpty)
+              if (order.nomeFalecido?.isNotEmpty ?? false)
                 Row(
                   children: [
-                    const Icon(Icons.person, size: 15, color: Color(0xFF475569)),
+                    const Icon(Icons.person,
+                        size: 15, color: Color(0xFF475569)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        order.nomeFalecido,
+                        order.nomeFalecido ?? '',
                         style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w500),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -66,8 +69,8 @@ class OrderCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         order.cemiterio!,
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 13, color: Colors.grey),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -85,8 +88,7 @@ class OrderCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'Req: ${order.requerente}',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -105,8 +107,8 @@ class OrderCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         dateFormat.format(order.createdAt),
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),

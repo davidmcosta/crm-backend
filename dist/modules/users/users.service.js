@@ -17,7 +17,7 @@ async function listUsers() {
             name: true,
             email: true,
             role: true,
-            active: true,
+            isActive: true,
             createdAt: true,
         },
         orderBy: { name: 'asc' },
@@ -31,7 +31,7 @@ async function getUserById(id) {
             name: true,
             email: true,
             role: true,
-            active: true,
+            isActive: true,
             createdAt: true,
             _count: { select: { orders: true } },
         },
@@ -47,7 +47,7 @@ async function createUser(data) {
     const hashedPassword = await (0, hash_1.hashPassword)(data.password);
     return prisma.user.create({
         data: { ...data, password: hashedPassword },
-        select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
+        select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
     });
 }
 async function updateUser(id, data) {
@@ -62,7 +62,7 @@ async function updateUser(id, data) {
     return prisma.user.update({
         where: { id },
         data,
-        select: { id: true, name: true, email: true, role: true, active: true },
+        select: { id: true, name: true, email: true, role: true, isActive: true },
     });
 }
 async function updateUserRole(id, data) {
@@ -84,8 +84,8 @@ async function deactivateUser(id, requestingUserId) {
         throw { statusCode: 404, message: 'Utilizador não encontrado' };
     return prisma.user.update({
         where: { id },
-        data: { active: false },
-        select: { id: true, name: true, active: true },
+        data: { isActive: false },
+        select: { id: true, name: true, isActive: true },
     });
 }
 async function changePassword(id, data) {

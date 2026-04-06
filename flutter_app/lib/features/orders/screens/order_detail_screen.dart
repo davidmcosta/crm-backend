@@ -26,7 +26,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED'
   ];
 
-  // ── Alterar estado ───────────────────────────────────────────────────────────
+  // ── Alterar estado ────────────────────────────────────────────────────────────
   Future<void> _changeStatus(String currentStatus) async {
     final available = _allStatuses
         .where((s) => s != currentStatus && s != 'CANCELLED')
@@ -60,8 +60,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   return ChoiceChip(
                     label: Text(AppTheme.statusLabel(s)),
                     selected: isSelected,
-                    selectedColor: AppTheme.statusColor(s).withOpacity(0.2),
-                    onSelected: (_) => setModal(() => selected = s),
+                    selectedColor:
+                        AppTheme.statusColor(s).withOpacity(0.2),
+                    onSelected: (_) =>
+                        setModal(() => selected = s),
                   );
                 }).toList(),
               ),
@@ -82,9 +84,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       : () async {
                           Navigator.pop(ctx);
                           try {
-                            await updateOrderStatus(
-                                widget.orderId, selected!, notesCtrl.text.isEmpty ? null : notesCtrl.text);
-                            ref.invalidate(orderDetailProvider(widget.orderId));
+                            await updateOrderStatus(widget.orderId, selected!,
+                                notesCtrl.text.isEmpty ? null : notesCtrl.text);
+                            ref.invalidate(
+                                orderDetailProvider(widget.orderId));
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -112,7 +115,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
+  // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final orderAsync = ref.watch(orderDetailProvider(widget.orderId));
@@ -123,17 +126,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       appBar: AppBar(
         title: const Text('Detalhe da Encomenda'),
         actions: [
-          orderAsync.whenData((order) {
-            if (canEdit && order.status != 'CANCELLED') {
+          if (canEdit)
+            orderAsync.whenData((order) {
+              if (order.status == 'CANCELLED') return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Editar encomenda',
                 onPressed: () =>
                     context.push('/orders/${order.id}/edit', extra: order),
               );
-            }
-            return const SizedBox.shrink();
-          }).value ?? const SizedBox.shrink(),
+            }).value ?? const SizedBox.shrink(),
         ],
       ),
       body: orderAsync.when(
@@ -143,7 +145,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           padding: const EdgeInsets.all(16),
           children: [
 
-            // ── Cabeçalho ──────────────────────────────────────────────────
+            // ── Cabeçalho ─────────────────────────────────────────────────────
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -153,11 +155,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Encomenda ${order.orderNumber}',
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
+                        Text('Encomenda ${order.orderNumber}',
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
                         StatusBadge(status: order.status, large: true),
                       ],
                     ),
@@ -166,7 +166,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                         _dateFormat.format(order.createdAt)),
                     if (order.createdBy != null) ...[
                       const SizedBox(height: 8),
-                      _row(Icons.person, 'Criada por', order.createdBy!.name),
+                      _row(Icons.person, 'Criada por',
+                          order.createdBy!.name),
                     ],
                     if (order.customer != null) ...[
                       const SizedBox(height: 8),
@@ -179,7 +180,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // ── Trabalho ────────────────────────────────────────────────────
+            // ── Trabalho ──────────────────────────────────────────────────────
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -196,7 +197,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // ── Cemitério ───────────────────────────────────────────────────
+            // ── Cemitério ─────────────────────────────────────────────────────
             if (order.cemiterio != null ||
                 order.talhao != null ||
                 order.numeroSepultura != null) ...[
@@ -225,10 +226,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Falecido ────────────────────────────────────────────────────
+            // ── Falecido ──────────────────────────────────────────────────────
             if (order.fotoPessoa != null ||
                 order.nomeFalecido != null ||
-                order.datasFalecido != null) ...[
+                order.datasFalecido != null ||
+                order.dedicatoria != null) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -238,7 +240,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       _cardTitle(Icons.person, 'Falecido(a)'),
                       const SizedBox(height: 12),
 
-                      // Foto
                       if (order.fotoPessoa != null &&
                           order.fotoPessoa!.isNotEmpty)
                         Center(
@@ -246,9 +247,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                             borderRadius: BorderRadius.circular(8),
                             child: Image.memory(
                               _decodePhoto(order.fotoPessoa!),
-                              width: 160,
-                              height: 160,
-                              fit: BoxFit.cover,
+                              width: 160, height: 160, fit: BoxFit.cover,
                             ),
                           ),
                         ),
@@ -265,6 +264,40 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                         _row(Icons.date_range_outlined, 'Datas',
                             order.datasFalecido),
                       ],
+                      if (order.dedicatoria != null &&
+                          order.dedicatoria!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F4FF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: const Color(0xFFE9D5FF)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                const Icon(Icons.format_quote_outlined,
+                                    size: 14, color: Color(0xFF7C3AED)),
+                                const SizedBox(width: 4),
+                                const Text('Dedicatória',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF7C3AED))),
+                              ]),
+                              const SizedBox(height: 6),
+                              Text(order.dedicatoria!,
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontStyle: FontStyle.italic)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -272,7 +305,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Produtos ────────────────────────────────────────────────────
+            // ── Produtos ──────────────────────────────────────────────────────
             if (order.produtos.isNotEmpty) ...[
               Card(
                 child: Padding(
@@ -282,91 +315,62 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     children: [
                       _cardTitle(Icons.inventory_2_outlined, 'Produtos'),
                       const SizedBox(height: 12),
-
-                      // Cabeçalho da tabela
+                      // Cabeçalho
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: const [
-                            Expanded(
-                                flex: 4,
-                                child: Text('Descrição',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey))),
-                            SizedBox(
-                                width: 50,
-                                child: Text('Qty',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey))),
-                            SizedBox(
-                                width: 70,
-                                child: Text('Preço',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey))),
-                            SizedBox(
-                                width: 70,
-                                child: Text('Total',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey))),
-                          ],
-                        ),
+                        child: Row(children: const [
+                          Expanded(flex: 4, child: Text('Descrição',
+                              style: TextStyle(fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey))),
+                          SizedBox(width: 50, child: Text('Qty',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey))),
+                          SizedBox(width: 70, child: Text('Preço',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey))),
+                          SizedBox(width: 70, child: Text('Total',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey))),
+                        ]),
                       ),
                       const Divider(height: 4),
-
-                      // Linhas de produto
                       ...order.produtos.map((p) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                    flex: 4,
-                                    child: Text(p.nome,
-                                        style:
-                                            const TextStyle(fontSize: 14))),
-                                SizedBox(
-                                    width: 50,
-                                    child: Text(
-                                        p.qty % 1 == 0
-                                            ? p.qty.toInt().toString()
-                                            : p.qty.toStringAsFixed(2),
-                                        textAlign: TextAlign.center,
-                                        style:
-                                            const TextStyle(fontSize: 14))),
-                                SizedBox(
-                                    width: 70,
-                                    child: Text(
-                                        _currency.format(p.precoUnit),
-                                        textAlign: TextAlign.right,
-                                        style:
-                                            const TextStyle(fontSize: 14))),
-                                SizedBox(
-                                    width: 70,
-                                    child: Text(
-                                        _currency.format(p.total),
-                                        textAlign: TextAlign.right,
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500))),
-                              ],
-                            ),
+                            child: Row(children: [
+                              Expanded(flex: 4,
+                                  child: Text(p.nome,
+                                      style: const TextStyle(fontSize: 14))),
+                              SizedBox(width: 50,
+                                  child: Text(
+                                      p.qty % 1 == 0
+                                          ? p.qty.toInt().toString()
+                                          : p.qty.toStringAsFixed(2),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 14))),
+                              SizedBox(width: 70,
+                                  child: Text(_currency.format(p.precoUnit),
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(fontSize: 14))),
+                              SizedBox(width: 70,
+                                  child: Text(_currency.format(p.total),
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500))),
+                            ]),
                           )),
-
                       const Divider(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          const Text('Subtotal produtos: ',
+                          const Text('Subtotal: ',
                               style: TextStyle(fontWeight: FontWeight.w500)),
                           Text(_currency.format(order.valorSepultura),
                               style: const TextStyle(
@@ -380,7 +384,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Deslocação e Montagem ───────────────────────────────────────
+            // ── Deslocação e Montagem ─────────────────────────────────────────
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -390,7 +394,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     _cardTitle(Icons.drive_eta_outlined,
                         'Deslocação e Montagem'),
                     const SizedBox(height: 12),
-
                     if (order.km != null) ...[
                       _row(Icons.route_outlined, 'Distância',
                           '${order.km!.toStringAsFixed(1)} km'),
@@ -402,11 +405,12 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       const SizedBox(height: 8),
                     ],
                     if (order.refeicoes > 0) ...[
-                      _row(Icons.restaurant_outlined, 'Refeições (2 col.)',
+                      _row(Icons.restaurant_outlined,
+                          'Refeições (2 col.)',
                           _currency.format(order.refeicoes)),
                       const SizedBox(height: 8),
                     ],
-                    _row(Icons.euro_outlined, 'Total deslocação/montagem',
+                    _row(Icons.euro_outlined, 'Total',
                         _currency.format(order.deslocacaoMontagem)),
                   ],
                 ),
@@ -414,8 +418,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // ── Extras ──────────────────────────────────────────────────────
-            if (order.extrasValor > 0) ...[
+            // ── Extras ────────────────────────────────────────────────────────
+            if (order.extras.isNotEmpty) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -424,14 +428,35 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     children: [
                       _cardTitle(Icons.add_circle_outline, 'Extras'),
                       const SizedBox(height: 12),
-                      if (order.extrasDescricao != null &&
-                          order.extrasDescricao!.isNotEmpty) ...[
-                        Text(order.extrasDescricao!,
-                            style: const TextStyle(fontSize: 14)),
-                        const SizedBox(height: 8),
+                      ...order.extras.map((e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                    child: Text(e.descricao,
+                                        style: const TextStyle(fontSize: 14))),
+                                Text(_currency.format(e.valor),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14)),
+                              ],
+                            ),
+                          )),
+                      if (order.extras.length > 1) ...[
+                        const Divider(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text('Subtotal extras: ',
+                                style: TextStyle(fontWeight: FontWeight.w500)),
+                            Text(_currency.format(order.extrasValor),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ],
-                      _row(Icons.euro_outlined, 'Valor extras',
-                          _currency.format(order.extrasValor)),
                     ],
                   ),
                 ),
@@ -439,7 +464,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Total geral ─────────────────────────────────────────────────
+            // ── Total geral ───────────────────────────────────────────────────
             Card(
               color: const Color(0xFF1E40AF).withOpacity(0.05),
               shape: RoundedRectangleBorder(
@@ -448,8 +473,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     color: Color(0xFF1E40AF), width: 1.5),
               ),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -469,7 +494,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // ── Requerente ──────────────────────────────────────────────────
+            // ── Requerente ────────────────────────────────────────────────────
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -487,7 +512,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // ── Observações ─────────────────────────────────────────────────
+            // ── Observações ───────────────────────────────────────────────────
             if (order.observacoes != null &&
                 order.observacoes!.isNotEmpty) ...[
               Card(
@@ -507,7 +532,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Histórico de estados ────────────────────────────────────────
+            // ── Histórico ─────────────────────────────────────────────────────
             if (order.statusHistory.isNotEmpty)
               Card(
                 child: Padding(
@@ -520,7 +545,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       ...order.statusHistory.map((h) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Container(
                                   width: 10, height: 10,
@@ -538,7 +564,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                     children: [
                                       Text(AppTheme.statusLabel(h.status),
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.w500)),
+                                              fontWeight:
+                                                  FontWeight.w500)),
                                       Text(
                                           '${h.changedByName} · ${_dateFormat.format(h.createdAt)}',
                                           style: const TextStyle(
@@ -548,7 +575,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         Text(h.notes!,
                                             style: const TextStyle(
                                                 fontSize: 12,
-                                                fontStyle: FontStyle.italic)),
+                                                fontStyle:
+                                                    FontStyle.italic)),
                                     ],
                                   ),
                                 ),
@@ -560,12 +588,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 ),
               ),
 
-            // ── Botões de ação ──────────────────────────────────────────────
+            // ── Botões de ação ────────────────────────────────────────────────
             if (canEdit) ...[
               const SizedBox(height: 16),
               Row(
                 children: [
-                  // Editar
                   if (order.status != 'CANCELLED')
                     Expanded(
                       child: OutlinedButton.icon(
@@ -577,7 +604,6 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       ),
                     ),
                   if (order.status != 'CANCELLED') const SizedBox(width: 12),
-                  // Alterar estado
                   if (order.status != 'DELIVERED' &&
                       order.status != 'CANCELLED')
                     Expanded(
@@ -598,7 +624,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────────
 
   Uint8List _decodePhoto(String dataUrl) {
     final base64 =

@@ -15,10 +15,10 @@ async function loginService(app, data) {
             email: true,
             password: true,
             role: true,
-            active: true,
+            isActive: true,
         },
     });
-    if (!user || !user.active) {
+    if (!user || !user.isActive) {
         throw { statusCode: 401, message: 'Credenciais inválidas' };
     }
     const passwordMatch = await (0, hash_1.comparePassword)(data.password, user.password);
@@ -55,9 +55,9 @@ async function refreshTokenService(app, refreshToken) {
     }
     const user = await prisma.user.findUnique({
         where: { id: payload.id },
-        select: { id: true, email: true, role: true, active: true },
+        select: { id: true, email: true, role: true, isActive: true },
     });
-    if (!user || !user.active) {
+    if (!user || !user.isActive) {
         throw { statusCode: 401, message: 'Utilizador não encontrado ou inativo' };
     }
     const accessToken = app.jwt.sign({ id: user.id, email: user.email, role: user.role }, { expiresIn: env_1.env.JWT_EXPIRES_IN });

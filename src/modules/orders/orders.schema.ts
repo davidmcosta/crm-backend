@@ -8,6 +8,11 @@ const produtoSchema = z.object({
   total:     z.number().min(0),
 })
 
+const extraSchema = z.object({
+  descricao: z.string().min(1),
+  valor:     z.number().min(0),
+})
+
 export const createOrderSchema = z.object({
   customerId: z.string().optional(),
 
@@ -19,23 +24,28 @@ export const createOrderSchema = z.object({
   talhao:          z.string().optional(),
   numeroSepultura: z.string().optional(),
 
-  // Falecido (nome agora opcional)
+  // Falecido (todos opcionais)
   fotoPessoa:    z.string().optional(),
   nomeFalecido:  z.string().optional(),
   datasFalecido: z.string().optional(),
+  dedicatoria:   z.string().optional(),
 
   // Produtos (lista dinâmica)
   produtos: z.array(produtoSchema).optional().default([]),
 
   // Valores financeiros
-  valorSepultura:    z.number().min(0).default(0),   // subtotal produtos
-  km:                z.number().min(0).optional(),
-  portagens:         z.number().min(0).default(0),
-  refeicoes:         z.number().min(0).default(0),
+  valorSepultura:     z.number().min(0).default(0),
+  km:                 z.number().min(0).optional(),
+  portagens:          z.number().min(0).default(0),
+  refeicoes:          z.number().min(0).default(0),
   deslocacaoMontagem: z.number().min(0).default(0),
-  extrasDescricao:   z.string().optional(),
-  extrasValor:       z.number().min(0).default(0),
-  valorTotal:        z.number().min(0).default(0),
+
+  // Extras (lista dinâmica)
+  extras:       z.array(extraSchema).optional().default([]),
+  // mantidos para compatibilidade retroactiva — calculados no service
+  extrasValor:  z.number().min(0).default(0),
+
+  valorTotal: z.number().min(0).default(0),
 
   // Requerente
   requerente:  z.string().min(1, 'Requerente é obrigatório'),
@@ -44,26 +54,27 @@ export const createOrderSchema = z.object({
 })
 
 export const updateOrderSchema = z.object({
-  trabalho:          z.string().min(1).optional(),
-  cemiterio:         z.string().optional(),
-  talhao:            z.string().optional(),
-  numeroSepultura:   z.string().optional(),
-  fotoPessoa:        z.string().optional(),
-  nomeFalecido:      z.string().optional(),
-  datasFalecido:     z.string().optional(),
-  produtos:          z.array(produtoSchema).optional(),
-  valorSepultura:    z.number().min(0).optional(),
-  km:                z.number().min(0).optional(),
-  portagens:         z.number().min(0).optional(),
-  refeicoes:         z.number().min(0).optional(),
+  trabalho:           z.string().min(1).optional(),
+  cemiterio:          z.string().optional(),
+  talhao:             z.string().optional(),
+  numeroSepultura:    z.string().optional(),
+  fotoPessoa:         z.string().optional(),
+  nomeFalecido:       z.string().optional(),
+  datasFalecido:      z.string().optional(),
+  dedicatoria:        z.string().optional(),
+  produtos:           z.array(produtoSchema).optional(),
+  valorSepultura:     z.number().min(0).optional(),
+  km:                 z.number().min(0).optional(),
+  portagens:          z.number().min(0).optional(),
+  refeicoes:          z.number().min(0).optional(),
   deslocacaoMontagem: z.number().min(0).optional(),
-  extrasDescricao:   z.string().optional(),
-  extrasValor:       z.number().min(0).optional(),
-  valorTotal:        z.number().min(0).optional(),
-  requerente:        z.string().min(1).optional(),
-  contacto:          z.string().min(1).optional(),
-  observacoes:       z.string().optional(),
-  customerId:        z.string().optional(),
+  extras:             z.array(extraSchema).optional(),
+  extrasValor:        z.number().min(0).optional(),
+  valorTotal:         z.number().min(0).optional(),
+  requerente:         z.string().min(1).optional(),
+  contacto:           z.string().min(1).optional(),
+  observacoes:        z.string().optional(),
+  customerId:         z.string().optional(),
 })
 
 export const updateStatusSchema = z.object({
