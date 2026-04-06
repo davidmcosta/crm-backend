@@ -24,7 +24,6 @@ enum OrderStatus {
   CONFIRMED
   IN_PRODUCTION
   READY
-  SHIPPED
   DELIVERED
   CANCELLED
 }
@@ -35,7 +34,7 @@ model User {
   password      String
   name          String
   role          UserRole             @default(OPERATOR)
-  active        Boolean              @default(true)
+  isActive      Boolean              @default(true)
   orders        Order[]              @relation("OrdersCreatedBy")
   statusChanges OrderStatusHistory[]
   createdAt     DateTime             @default(now())
@@ -48,9 +47,8 @@ model Customer {
   email     String?  @unique
   phone     String?
   address   String?
-  taxId     String?
   notes     String?
-  active    Boolean  @default(true)
+  isActive  Boolean  @default(true)
   orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -71,13 +69,17 @@ model Order {
 
   // Falecido
   fotoPessoa    String? @db.Text // base64 data URL
-  nomeFalecido  String
+  nomeFalecido  String? // opcional — por vezes só existe foto
   datasFalecido String? // ex: "01/01/1950 - 15/03/2026"
+
+  // Produtos (lista dinâmica de artigos)
+  produtos Json @default("[]")
 
   // Valores
   valorSepultura     Decimal @default(0) @db.Decimal(10, 2)
   km                 Float?
   portagens          Decimal @default(0) @db.Decimal(10, 2)
+  refeicoes          Decimal @default(0) @db.Decimal(10, 2) // refeições colaboradores
   deslocacaoMontagem Decimal @default(0) @db.Decimal(10, 2)
   extrasDescricao    String?
   extrasValor        Decimal @default(0) @db.Decimal(10, 2)
