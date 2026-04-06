@@ -9,40 +9,23 @@ class CustomersState {
   final bool isLoading;
   final String? error;
   final int total;
-  final String? search;
 
-  const CustomersState({
-    this.customers = const [],
-    this.isLoading = false,
-    this.error,
-    this.total = 0,
-    this.search,
-  });
+  const CustomersState({this.customers = const [], this.isLoading = false, this.error, this.total = 0});
 
-  CustomersState copyWith({
-    List<CustomerModel>? customers,
-    bool? isLoading,
-    String? error,
-    int? total,
-    String? search,
-  }) =>
+  CustomersState copyWith({List<CustomerModel>? customers, bool? isLoading, String? error, int? total}) =>
       CustomersState(
         customers: customers ?? this.customers,
         isLoading: isLoading ?? this.isLoading,
         error: error,
         total: total ?? this.total,
-        search: search ?? this.search,
       );
 }
 
 class CustomersNotifier extends StateNotifier<CustomersState> {
-  CustomersNotifier() : super(const CustomersState()) {
-    load();
-  }
+  CustomersNotifier() : super(const CustomersState());
 
   Future<void> load({String? search}) async {
-    state = state.copyWith(isLoading: true, error: null, search: search);
-
+    state = state.copyWith(isLoading: true, error: null);
     try {
       final params = <String, dynamic>{'limit': 100};
       if (search != null && search.isNotEmpty) params['search'] = search;
@@ -53,32 +36,33 @@ class CustomersNotifier extends StateNotifier<CustomersState> {
       );
 
       final data = response.data as Map<String, dynamic>;
+      final customers = (data['data'] as List)
+          .map((e) => CustomerModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
       state = state.copyWith(
-        customers: (data['data'] as List)
-            .map((e) => CustomerModel.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        customers: customers,
         isLoading: false,
         total: (data['pagination'] as Map)['total'] as int,
       );
     } on DioException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: extractErrorMessage(e),
-      );
+      final msg = e.response?.data is Map
+          ? (e.response!.data['error'] ?? 'Erro API')
+          : 'Erro de ligação: ${e.message}';
+      state = state.copyWith(isLoading: false, error: msg.toString());
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: 'Erro: $e');
     }
   }
 
-  Future<void> refresh() => load(search: state.search);
+  Future<void> refresh() => load();
 }
 
-final customersProvider =
-    StateNotifierProvider<CustomersNotifier, CustomersState>(
+final customersProvider = StateNotifierProvider<CustomersNotifier, CustomersState>(
   (_) => CustomersNotifier(),
 );
 
-final customerDetailProvider =
-    FutureProvider.family<CustomerModel, String>((ref, id) async {
-  final response =
-      await ApiClient().dio.get(ApiEndpoints.customerById(id));
+final customerDetailProvider = FutureProvider.family<CustomerModel, String>((ref, id) async {
+  final response = await ApiClient().dio.get(ApiEndpoints.customerById(id));
   return CustomerModel.fromJson(response.data as Map<String, dynamic>);
 });

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,21 +61,29 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await createOrder({
+      // Construir o body sem campos nulos (Zod rejeita null em campos opcionais)
+      final body = <String, dynamic>{
         'customerId': _selectedCustomerId,
-        'notes': _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
-        'expectedDate': _expectedDate?.toIso8601String(),
         'items': _items
-            .map((item) => {
-                  'productName': item.productCtrl.text.trim(),
-                  'description': item.descCtrl.text.trim().isEmpty
-                      ? null
-                      : item.descCtrl.text.trim(),
-                  'quantity': int.parse(item.qtyCtrl.text),
-                  'unitPrice': double.parse(item.priceCtrl.text),
-                })
+            .map((item) {
+              final price = double.parse(
+                  item.priceCtrl.text.trim().replaceAll(',', '.'));
+              final qty = int.parse(item.qtyCtrl.text.trim());
+              final itemMap = <String, dynamic>{
+                'productName': item.productCtrl.text.trim(),
+                'quantity': qty,
+                'unitPrice': price,
+              };
+              final desc = item.descCtrl.text.trim();
+              if (desc.isNotEmpty) itemMap['description'] = desc;
+              return itemMap;
+            })
             .toList(),
-      });
+      };
+      if (_notesCtrl.text.isNotEmpty) body['notes'] = _notesCtrl.text;
+      if (_expectedDate != null) body['expectedDate'] = _expectedDate!.toUtc().toIso8601String();
+
+      await createOrder(body);
 
       ref.read(ordersProvider.notifier).refresh();
       if (mounted) {
@@ -87,10 +96,17 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       }
     } on DioException catch (e) {
       if (mounted) {
+        // Mostrar o erro completo do servidor para debug
+        final responseData = e.response?.data;
+        String errorMsg = extractErrorMessage(e);
+        if (responseData is Map && responseData.containsKey('details')) {
+          errorMsg += '\nDetalhes: ${responseData['details']}';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(extractErrorMessage(e)),
-              backgroundColor: Colors.red),
+              content: Text(errorMsg),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 10)),
         );
       }
     } finally {
@@ -101,6 +117,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   @override
   Widget build(BuildContext context) {
     final customersState = ref.watch(customersProvider);
+    
+    // Carregar clientes ao abrir o ecrã
+    ref.listen(customersProvider, (_, __) {});
+    if (!customersState.isLoading && customersState.customers.isEmpty && customersState.error == null) {
+      Future.microtask(() => ref.read(customersProvider.notifier).load());
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Nova Encomenda')),

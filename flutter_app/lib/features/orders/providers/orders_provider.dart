@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
@@ -129,7 +130,11 @@ final orderHistoryProvider =
 // ── Ações ────────────────────────────────────────────────────────────────────
 
 Future<OrderModel> createOrder(Map<String, dynamic> data) async {
-  final response = await ApiClient().dio.post(ApiEndpoints.orders, data: data);
+  final response = await ApiClient().dio.post(
+    ApiEndpoints.orders,
+    data: jsonEncode(data),
+    options: Options(headers: {'Content-Type': 'application/json'}),
+  );
   return OrderModel.fromJson(response.data as Map<String, dynamic>);
 }
 

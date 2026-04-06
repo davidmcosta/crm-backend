@@ -1,6 +1,6 @@
 class ApiEndpoints {
   // Muda este URL para o endereço do teu servidor
-  static const String baseUrl = 'http://localhost:3000/api';
+  static const String baseUrl = 'https://crm-backend-production-65ef.up.railway.app/api';
 
   // Auth
   static const String login = '/auth/login';
