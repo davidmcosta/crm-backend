@@ -9,24 +9,23 @@ exports.getOrderHistory = getOrderHistory;
 exports.cancelOrder = cancelOrder;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
+// ── Gerar número de encomenda no formato 01/26, 02/26, ... ──────────────────
 async function generateOrderNumber() {
-    const year = new Date().getFullYear();
-    const prefix = `ORD-${year}-`;
+    const now = new Date();
+    const year = String(now.getFullYear()).slice(-2); // "26"
     const lastOrder = await prisma.order.findFirst({
-        where: { orderNumber: { startsWith: prefix } },
-        orderBy: { orderNumber: 'desc' },
+        where: { orderNumber: { endsWith: `/${year}` } },
+        orderBy: { createdAt: 'desc' },
         select: { orderNumber: true },
     });
-    let nextNumber = 1;
+    let nextNum = 1;
     if (lastOrder) {
-        const lastNum = parseInt(lastOrder.orderNumber.split('-')[2], 10);
-        nextNumber = lastNum + 1;
+        const seq = lastOrder.orderNumber.split('/')[0];
+        nextNum = parseInt(seq, 10) + 1;
     }
-    return `${prefix}${String(nextNumber).padStart(5, '0')}`;
+    return `${String(nextNum).padStart(2, '0')}/${year}`;
 }
-function calculateTotal(items) {
-    return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-}
+// ── Listagem ─────────────────────────────────────────────────────────────────
 async function listOrders(query) {
     const { page, limit, status, customerId, search } = query;
     const skip = (page - 1) * limit;
@@ -38,6 +37,9 @@ async function listOrders(query) {
     if (search) {
         where.OR = [
             { orderNumber: { contains: search, mode: 'insensitive' } },
+            { nomeFalecido: { contains: search, mode: 'insensitive' } },
+            { requerente: { contains: search, mode: 'insensitive' } },
+            { cemiterio: { contains: search, mode: 'insensitive' } },
             { customer: { name: { contains: search, mode: 'insensitive' } } },
         ];
     }
@@ -47,21 +49,22 @@ async function listOrders(query) {
             include: {
                 customer: { select: { id: true, name: true, email: true } },
                 createdBy: { select: { id: true, name: true } },
-                items: true,
-                _count: { select: { items: true } },
             },
         }),
         prisma.order.count({ where }),
     ]);
-    return { data: orders, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+        data: orders,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
 }
+// ── Detalhe ──────────────────────────────────────────────────────────────────
 async function getOrderById(id) {
     const order = await prisma.order.findUnique({
         where: { id },
         include: {
             customer: true,
             createdBy: { select: { id: true, name: true, email: true } },
-            items: true,
             statusHistory: {
                 include: { changedBy: { select: { id: true, name: true } } },
                 orderBy: { createdAt: 'desc' },
@@ -72,58 +75,61 @@ async function getOrderById(id) {
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
     return order;
 }
+// ── Criar encomenda ──────────────────────────────────────────────────────────
 async function createOrder(data, userId) {
-    const customer = await prisma.customer.findUnique({ where: { id: data.customerId } });
-    if (!customer)
-        throw { statusCode: 404, message: 'Cliente não encontrado' };
+    if (data.customerId) {
+        const customer = await prisma.customer.findUnique({ where: { id: data.customerId } });
+        if (!customer)
+            throw { statusCode: 404, message: 'Cliente não encontrado' };
+    }
     const orderNumber = await generateOrderNumber();
-    const totalAmount = calculateTotal(data.items);
     return prisma.order.create({
         data: {
-            orderNumber, customerId: data.customerId, createdById: userId,
-            notes: data.notes,
-            expectedDate: data.expectedDate ? new Date(data.expectedDate) : null,
-            totalAmount, status: client_1.OrderStatus.PENDING,
-            items: {
-                create: data.items.map((item) => ({
-                    productName: item.productName, description: item.description,
-                    quantity: item.quantity, unitPrice: item.unitPrice,
-                    totalPrice: item.quantity * item.unitPrice,
-                })),
-            },
+            orderNumber,
+            status: client_1.OrderStatus.PENDING,
+            createdById: userId,
+            customerId: data.customerId ?? null,
+            trabalho: data.trabalho,
+            cemiterio: data.cemiterio ?? null,
+            talhao: data.talhao ?? null,
+            numeroSepultura: data.numeroSepultura ?? null,
+            fotoPessoa: data.fotoPessoa ?? null,
+            nomeFalecido: data.nomeFalecido,
+            datasFalecido: data.datasFalecido ?? null,
+            valorSepultura: data.valorSepultura ?? 0,
+            km: data.km ?? null,
+            portagens: data.portagens ?? 0,
+            deslocacaoMontagem: data.deslocacaoMontagem ?? 0,
+            extrasDescricao: data.extrasDescricao ?? null,
+            extrasValor: data.extrasValor ?? 0,
+            valorTotal: data.valorTotal ?? 0,
+            requerente: data.requerente,
+            contacto: data.contacto,
+            observacoes: data.observacoes ?? null,
             statusHistory: {
                 create: { status: client_1.OrderStatus.PENDING, changedById: userId, notes: 'Encomenda criada' },
             },
         },
-        include: { customer: { select: { id: true, name: true } }, items: true },
+        include: {
+            customer: { select: { id: true, name: true } },
+        },
     });
 }
+// ── Atualizar encomenda ──────────────────────────────────────────────────────
 async function updateOrder(id, data, userId) {
     const existing = await prisma.order.findUnique({ where: { id } });
     if (!existing)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (existing.status === client_1.OrderStatus.DELIVERED || existing.status === client_1.OrderStatus.CANCELLED) {
-        throw { statusCode: 400, message: 'Não é possível editar uma encomenda entregue ou cancelada' };
-    }
-    const updateData = { notes: data.notes, updatedAt: new Date() };
-    if (data.expectedDate)
-        updateData.expectedDate = new Date(data.expectedDate);
-    if (data.items) {
-        updateData.totalAmount = calculateTotal(data.items);
-        await prisma.orderItem.deleteMany({ where: { orderId: id } });
-        updateData.items = {
-            create: data.items.map((item) => ({
-                productName: item.productName, description: item.description,
-                quantity: item.quantity, unitPrice: item.unitPrice,
-                totalPrice: item.quantity * item.unitPrice,
-            })),
-        };
+    if (existing.status === client_1.OrderStatus.CANCELLED) {
+        throw { statusCode: 400, message: 'Não é possível editar uma encomenda cancelada' };
     }
     return prisma.order.update({
-        where: { id }, data: updateData,
-        include: { items: true, customer: { select: { id: true, name: true } } },
+        where: { id },
+        data: { ...data, updatedAt: new Date() },
+        include: { customer: { select: { id: true, name: true } } },
     });
 }
+// ── Atualizar estado ─────────────────────────────────────────────────────────
 async function updateOrderStatus(id, data, userId) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
@@ -142,6 +148,7 @@ async function updateOrderStatus(id, data, userId) {
     ]);
     return updatedOrder;
 }
+// ── Histórico de estados ─────────────────────────────────────────────────────
 async function getOrderHistory(id) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
@@ -152,13 +159,11 @@ async function getOrderHistory(id) {
         orderBy: { createdAt: 'desc' },
     });
 }
+// ── Cancelar encomenda ───────────────────────────────────────────────────────
 async function cancelOrder(id, userId) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (order.status === client_1.OrderStatus.DELIVERED) {
-        throw { statusCode: 400, message: 'Não é possível cancelar uma encomenda já entregue' };
-    }
     if (order.status === client_1.OrderStatus.CANCELLED) {
         throw { statusCode: 400, message: 'A encomenda já está cancelada' };
     }

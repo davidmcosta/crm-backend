@@ -1,82 +1,119 @@
 import { z } from 'zod';
 export declare const createOrderSchema: z.ZodObject<{
-    customerId: z.ZodString;
-    notes: z.ZodOptional<z.ZodString>;
-    expectedDate: z.ZodOptional<z.ZodString>;
-    items: z.ZodArray<z.ZodObject<{
-        productName: z.ZodString;
-        description: z.ZodOptional<z.ZodString>;
-        quantity: z.ZodNumber;
-        unitPrice: z.ZodNumber;
-    }, "strip", z.ZodTypeAny, {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }, {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }>, "many">;
+    customerId: z.ZodOptional<z.ZodString>;
+    trabalho: z.ZodString;
+    cemiterio: z.ZodOptional<z.ZodString>;
+    talhao: z.ZodOptional<z.ZodString>;
+    numeroSepultura: z.ZodOptional<z.ZodString>;
+    fotoPessoa: z.ZodOptional<z.ZodString>;
+    nomeFalecido: z.ZodString;
+    datasFalecido: z.ZodOptional<z.ZodString>;
+    valorSepultura: z.ZodDefault<z.ZodNumber>;
+    km: z.ZodOptional<z.ZodNumber>;
+    portagens: z.ZodDefault<z.ZodNumber>;
+    deslocacaoMontagem: z.ZodDefault<z.ZodNumber>;
+    extrasDescricao: z.ZodOptional<z.ZodString>;
+    extrasValor: z.ZodDefault<z.ZodNumber>;
+    valorTotal: z.ZodDefault<z.ZodNumber>;
+    requerente: z.ZodString;
+    contacto: z.ZodString;
+    observacoes: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    customerId: string;
-    items: {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }[];
-    notes?: string | undefined;
-    expectedDate?: string | undefined;
+    trabalho: string;
+    nomeFalecido: string;
+    valorSepultura: number;
+    portagens: number;
+    deslocacaoMontagem: number;
+    extrasValor: number;
+    valorTotal: number;
+    requerente: string;
+    contacto: string;
+    customerId?: string | undefined;
+    cemiterio?: string | undefined;
+    talhao?: string | undefined;
+    numeroSepultura?: string | undefined;
+    fotoPessoa?: string | undefined;
+    datasFalecido?: string | undefined;
+    km?: number | undefined;
+    extrasDescricao?: string | undefined;
+    observacoes?: string | undefined;
 }, {
-    customerId: string;
-    items: {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }[];
-    notes?: string | undefined;
-    expectedDate?: string | undefined;
+    trabalho: string;
+    nomeFalecido: string;
+    requerente: string;
+    contacto: string;
+    customerId?: string | undefined;
+    cemiterio?: string | undefined;
+    talhao?: string | undefined;
+    numeroSepultura?: string | undefined;
+    fotoPessoa?: string | undefined;
+    datasFalecido?: string | undefined;
+    valorSepultura?: number | undefined;
+    km?: number | undefined;
+    portagens?: number | undefined;
+    deslocacaoMontagem?: number | undefined;
+    extrasDescricao?: string | undefined;
+    extrasValor?: number | undefined;
+    valorTotal?: number | undefined;
+    observacoes?: string | undefined;
 }>;
 export declare const updateOrderSchema: z.ZodObject<{
-    notes: z.ZodOptional<z.ZodString>;
-    expectedDate: z.ZodOptional<z.ZodString>;
-    items: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        productName: z.ZodString;
-        description: z.ZodOptional<z.ZodString>;
-        quantity: z.ZodNumber;
-        unitPrice: z.ZodNumber;
-    }, "strip", z.ZodTypeAny, {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }, {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }>, "many">>;
+    trabalho: z.ZodOptional<z.ZodString>;
+    cemiterio: z.ZodOptional<z.ZodString>;
+    talhao: z.ZodOptional<z.ZodString>;
+    numeroSepultura: z.ZodOptional<z.ZodString>;
+    fotoPessoa: z.ZodOptional<z.ZodString>;
+    nomeFalecido: z.ZodOptional<z.ZodString>;
+    datasFalecido: z.ZodOptional<z.ZodString>;
+    valorSepultura: z.ZodOptional<z.ZodNumber>;
+    km: z.ZodOptional<z.ZodNumber>;
+    portagens: z.ZodOptional<z.ZodNumber>;
+    deslocacaoMontagem: z.ZodOptional<z.ZodNumber>;
+    extrasDescricao: z.ZodOptional<z.ZodString>;
+    extrasValor: z.ZodOptional<z.ZodNumber>;
+    valorTotal: z.ZodOptional<z.ZodNumber>;
+    requerente: z.ZodOptional<z.ZodString>;
+    contacto: z.ZodOptional<z.ZodString>;
+    observacoes: z.ZodOptional<z.ZodString>;
+    customerId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    notes?: string | undefined;
-    expectedDate?: string | undefined;
-    items?: {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }[] | undefined;
+    customerId?: string | undefined;
+    trabalho?: string | undefined;
+    cemiterio?: string | undefined;
+    talhao?: string | undefined;
+    numeroSepultura?: string | undefined;
+    fotoPessoa?: string | undefined;
+    nomeFalecido?: string | undefined;
+    datasFalecido?: string | undefined;
+    valorSepultura?: number | undefined;
+    km?: number | undefined;
+    portagens?: number | undefined;
+    deslocacaoMontagem?: number | undefined;
+    extrasDescricao?: string | undefined;
+    extrasValor?: number | undefined;
+    valorTotal?: number | undefined;
+    requerente?: string | undefined;
+    contacto?: string | undefined;
+    observacoes?: string | undefined;
 }, {
-    notes?: string | undefined;
-    expectedDate?: string | undefined;
-    items?: {
-        productName: string;
-        quantity: number;
-        unitPrice: number;
-        description?: string | undefined;
-    }[] | undefined;
+    customerId?: string | undefined;
+    trabalho?: string | undefined;
+    cemiterio?: string | undefined;
+    talhao?: string | undefined;
+    numeroSepultura?: string | undefined;
+    fotoPessoa?: string | undefined;
+    nomeFalecido?: string | undefined;
+    datasFalecido?: string | undefined;
+    valorSepultura?: number | undefined;
+    km?: number | undefined;
+    portagens?: number | undefined;
+    deslocacaoMontagem?: number | undefined;
+    extrasDescricao?: string | undefined;
+    extrasValor?: number | undefined;
+    valorTotal?: number | undefined;
+    requerente?: string | undefined;
+    contacto?: string | undefined;
+    observacoes?: string | undefined;
 }>;
 export declare const updateStatusSchema: z.ZodObject<{
     status: z.ZodNativeEnum<{

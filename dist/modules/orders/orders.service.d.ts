@@ -1,24 +1,11 @@
 import { CreateOrderInput, UpdateOrderInput, UpdateStatusInput, ListOrdersQuery } from './orders.schema';
 export declare function listOrders(query: ListOrdersQuery): Promise<{
     data: ({
-        _count: {
-            items: number;
-        };
-        items: {
-            id: string;
-            createdAt: Date;
-            productName: string;
-            description: string | null;
-            quantity: number;
-            unitPrice: import("@prisma/client/runtime/library").Decimal;
-            orderId: string;
-            totalPrice: import("@prisma/client/runtime/library").Decimal;
-        }[];
         customer: {
             email: string | null;
             id: string;
             name: string;
-        };
+        } | null;
         createdBy: {
             id: string;
             name: string;
@@ -28,12 +15,26 @@ export declare function listOrders(query: ListOrdersQuery): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        customerId: string;
-        notes: string | null;
-        expectedDate: Date | null;
+        customerId: string | null;
+        trabalho: string;
+        cemiterio: string | null;
+        talhao: string | null;
+        numeroSepultura: string | null;
+        fotoPessoa: string | null;
+        nomeFalecido: string;
+        datasFalecido: string | null;
+        valorSepultura: import("@prisma/client/runtime/library").Decimal;
+        km: number | null;
+        portagens: import("@prisma/client/runtime/library").Decimal;
+        deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+        extrasDescricao: string | null;
+        extrasValor: import("@prisma/client/runtime/library").Decimal;
+        valorTotal: import("@prisma/client/runtime/library").Decimal;
+        requerente: string;
+        contacto: string;
+        observacoes: string | null;
         orderNumber: string;
         createdById: string;
-        totalAmount: import("@prisma/client/runtime/library").Decimal;
     })[];
     pagination: {
         total: number;
@@ -43,29 +44,6 @@ export declare function listOrders(query: ListOrdersQuery): Promise<{
     };
 }>;
 export declare function getOrderById(id: string): Promise<{
-    statusHistory: ({
-        changedBy: {
-            id: string;
-            name: string;
-        };
-    } & {
-        status: import(".prisma/client").$Enums.OrderStatus;
-        id: string;
-        createdAt: Date;
-        notes: string | null;
-        orderId: string;
-        changedById: string;
-    })[];
-    items: {
-        id: string;
-        createdAt: Date;
-        productName: string;
-        description: string | null;
-        quantity: number;
-        unitPrice: import("@prisma/client/runtime/library").Decimal;
-        orderId: string;
-        totalPrice: import("@prisma/client/runtime/library").Decimal;
-    }[];
     customer: {
         email: string | null;
         id: string;
@@ -77,89 +55,138 @@ export declare function getOrderById(id: string): Promise<{
         phone: string | null;
         address: string | null;
         taxId: string | null;
-    };
+    } | null;
     createdBy: {
         email: string;
         id: string;
         name: string;
     };
+    statusHistory: ({
+        changedBy: {
+            id: string;
+            name: string;
+        };
+    } & {
+        status: import(".prisma/client").$Enums.OrderStatus;
+        id: string;
+        createdAt: Date;
+        notes: string | null;
+        changedById: string;
+        orderId: string;
+    })[];
 } & {
     status: import(".prisma/client").$Enums.OrderStatus;
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    customerId: string;
-    notes: string | null;
-    expectedDate: Date | null;
+    customerId: string | null;
+    trabalho: string;
+    cemiterio: string | null;
+    talhao: string | null;
+    numeroSepultura: string | null;
+    fotoPessoa: string | null;
+    nomeFalecido: string;
+    datasFalecido: string | null;
+    valorSepultura: import("@prisma/client/runtime/library").Decimal;
+    km: number | null;
+    portagens: import("@prisma/client/runtime/library").Decimal;
+    deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+    extrasDescricao: string | null;
+    extrasValor: import("@prisma/client/runtime/library").Decimal;
+    valorTotal: import("@prisma/client/runtime/library").Decimal;
+    requerente: string;
+    contacto: string;
+    observacoes: string | null;
     orderNumber: string;
     createdById: string;
-    totalAmount: import("@prisma/client/runtime/library").Decimal;
 }>;
 export declare function createOrder(data: CreateOrderInput, userId: string): Promise<{
-    items: {
-        id: string;
-        createdAt: Date;
-        productName: string;
-        description: string | null;
-        quantity: number;
-        unitPrice: import("@prisma/client/runtime/library").Decimal;
-        orderId: string;
-        totalPrice: import("@prisma/client/runtime/library").Decimal;
-    }[];
     customer: {
         id: string;
         name: string;
-    };
+    } | null;
 } & {
     status: import(".prisma/client").$Enums.OrderStatus;
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    customerId: string;
-    notes: string | null;
-    expectedDate: Date | null;
+    customerId: string | null;
+    trabalho: string;
+    cemiterio: string | null;
+    talhao: string | null;
+    numeroSepultura: string | null;
+    fotoPessoa: string | null;
+    nomeFalecido: string;
+    datasFalecido: string | null;
+    valorSepultura: import("@prisma/client/runtime/library").Decimal;
+    km: number | null;
+    portagens: import("@prisma/client/runtime/library").Decimal;
+    deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+    extrasDescricao: string | null;
+    extrasValor: import("@prisma/client/runtime/library").Decimal;
+    valorTotal: import("@prisma/client/runtime/library").Decimal;
+    requerente: string;
+    contacto: string;
+    observacoes: string | null;
     orderNumber: string;
     createdById: string;
-    totalAmount: import("@prisma/client/runtime/library").Decimal;
 }>;
 export declare function updateOrder(id: string, data: UpdateOrderInput, userId: string): Promise<{
-    items: {
-        id: string;
-        createdAt: Date;
-        productName: string;
-        description: string | null;
-        quantity: number;
-        unitPrice: import("@prisma/client/runtime/library").Decimal;
-        orderId: string;
-        totalPrice: import("@prisma/client/runtime/library").Decimal;
-    }[];
     customer: {
         id: string;
         name: string;
-    };
+    } | null;
 } & {
     status: import(".prisma/client").$Enums.OrderStatus;
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    customerId: string;
-    notes: string | null;
-    expectedDate: Date | null;
+    customerId: string | null;
+    trabalho: string;
+    cemiterio: string | null;
+    talhao: string | null;
+    numeroSepultura: string | null;
+    fotoPessoa: string | null;
+    nomeFalecido: string;
+    datasFalecido: string | null;
+    valorSepultura: import("@prisma/client/runtime/library").Decimal;
+    km: number | null;
+    portagens: import("@prisma/client/runtime/library").Decimal;
+    deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+    extrasDescricao: string | null;
+    extrasValor: import("@prisma/client/runtime/library").Decimal;
+    valorTotal: import("@prisma/client/runtime/library").Decimal;
+    requerente: string;
+    contacto: string;
+    observacoes: string | null;
     orderNumber: string;
     createdById: string;
-    totalAmount: import("@prisma/client/runtime/library").Decimal;
 }>;
 export declare function updateOrderStatus(id: string, data: UpdateStatusInput, userId: string): Promise<{
     status: import(".prisma/client").$Enums.OrderStatus;
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    customerId: string;
-    notes: string | null;
-    expectedDate: Date | null;
+    customerId: string | null;
+    trabalho: string;
+    cemiterio: string | null;
+    talhao: string | null;
+    numeroSepultura: string | null;
+    fotoPessoa: string | null;
+    nomeFalecido: string;
+    datasFalecido: string | null;
+    valorSepultura: import("@prisma/client/runtime/library").Decimal;
+    km: number | null;
+    portagens: import("@prisma/client/runtime/library").Decimal;
+    deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+    extrasDescricao: string | null;
+    extrasValor: import("@prisma/client/runtime/library").Decimal;
+    valorTotal: import("@prisma/client/runtime/library").Decimal;
+    requerente: string;
+    contacto: string;
+    observacoes: string | null;
     orderNumber: string;
     createdById: string;
-    totalAmount: import("@prisma/client/runtime/library").Decimal;
 }>;
 export declare function getOrderHistory(id: string): Promise<({
     changedBy: {
@@ -171,19 +198,33 @@ export declare function getOrderHistory(id: string): Promise<({
     id: string;
     createdAt: Date;
     notes: string | null;
-    orderId: string;
     changedById: string;
+    orderId: string;
 })[]>;
 export declare function cancelOrder(id: string, userId: string): Promise<{
     status: import(".prisma/client").$Enums.OrderStatus;
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    customerId: string;
-    notes: string | null;
-    expectedDate: Date | null;
+    customerId: string | null;
+    trabalho: string;
+    cemiterio: string | null;
+    talhao: string | null;
+    numeroSepultura: string | null;
+    fotoPessoa: string | null;
+    nomeFalecido: string;
+    datasFalecido: string | null;
+    valorSepultura: import("@prisma/client/runtime/library").Decimal;
+    km: number | null;
+    portagens: import("@prisma/client/runtime/library").Decimal;
+    deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+    extrasDescricao: string | null;
+    extrasValor: import("@prisma/client/runtime/library").Decimal;
+    valorTotal: import("@prisma/client/runtime/library").Decimal;
+    requerente: string;
+    contacto: string;
+    observacoes: string | null;
     orderNumber: string;
     createdById: string;
-    totalAmount: import("@prisma/client/runtime/library").Decimal;
 }>;
 //# sourceMappingURL=orders.service.d.ts.map

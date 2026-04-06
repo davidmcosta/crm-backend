@@ -53,7 +53,6 @@ async function getCustomerOrders(id) {
         orderBy: { createdAt: 'desc' },
         include: {
             createdBy: { select: { id: true, name: true } },
-            _count: { select: { items: true } },
         },
     });
 }

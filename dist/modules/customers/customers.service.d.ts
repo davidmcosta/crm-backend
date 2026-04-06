@@ -40,9 +40,6 @@ export declare function getCustomerById(id: string): Promise<{
     taxId: string | null;
 }>;
 export declare function getCustomerOrders(id: string): Promise<({
-    _count: {
-        items: number;
-    };
     createdBy: {
         id: string;
         name: string;
@@ -52,12 +49,26 @@ export declare function getCustomerOrders(id: string): Promise<({
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    customerId: string;
-    notes: string | null;
-    expectedDate: Date | null;
+    customerId: string | null;
+    trabalho: string;
+    cemiterio: string | null;
+    talhao: string | null;
+    numeroSepultura: string | null;
+    fotoPessoa: string | null;
+    nomeFalecido: string;
+    datasFalecido: string | null;
+    valorSepultura: import("@prisma/client/runtime/library").Decimal;
+    km: number | null;
+    portagens: import("@prisma/client/runtime/library").Decimal;
+    deslocacaoMontagem: import("@prisma/client/runtime/library").Decimal;
+    extrasDescricao: string | null;
+    extrasValor: import("@prisma/client/runtime/library").Decimal;
+    valorTotal: import("@prisma/client/runtime/library").Decimal;
+    requerente: string;
+    contacto: string;
+    observacoes: string | null;
     orderNumber: string;
     createdById: string;
-    totalAmount: import("@prisma/client/runtime/library").Decimal;
 })[]>;
 export declare function createCustomer(data: CreateCustomerInput): Promise<{
     email: string | null;
