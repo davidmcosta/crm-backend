@@ -9,7 +9,7 @@ const orderItemSchema = z.object({
 })
 
 export const createOrderSchema = z.object({
-  customerId: z.string().uuid('ID do cliente inválido'),
+  customerId: z.string().min(1, 'Cliente é obrigatório'),
   notes: z.string().optional(),
   expectedDate: z.string().datetime().optional(),
   items: z.array(orderItemSchema).min(1, 'A encomenda deve ter pelo menos 1 item'),

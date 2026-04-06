@@ -36,10 +36,10 @@ async function main() {
 
   // Criar alguns clientes de exemplo
   const customer1 = await prisma.customer.upsert({
-    where: { id: 'seed-customer-1' },
+    where: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
     update: {},
     create: {
-      id: 'seed-customer-1',
+      id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Empresa ABC Lda',
       email: 'geral@empresaabc.pt',
       phone: '912345678',
@@ -49,10 +49,10 @@ async function main() {
   })
 
   const customer2 = await prisma.customer.upsert({
-    where: { id: 'seed-customer-2' },
+    where: { id: 'b1ffcd00-0d1c-5f09-cc7e-7cc0ce491b22' },
     update: {},
     create: {
-      id: 'seed-customer-2',
+      id: 'b1ffcd00-0d1c-5f09-cc7e-7cc0ce491b22',
       name: 'João Silva',
       email: 'joao.silva@email.com',
       phone: '961234567',
