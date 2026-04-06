@@ -9,14 +9,14 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
-    final user = auth.user;
+    final auth     = ref.watch(authProvider);
+    final user     = auth.user;
     final location = GoRouterState.of(context).uri.toString();
 
     return Drawer(
       child: Column(
         children: [
-          // Cabeçalho com dados do utilizador
+          // ── Cabeçalho com dados do utilizador ──────────────────────────────
           UserAccountsDrawerHeader(
             decoration: const BoxDecoration(color: Color(0xFF1E40AF)),
             accountName: Text(user?.name ?? ''),
@@ -35,21 +35,28 @@ class AppDrawer extends ConsumerWidget {
             ),
             otherAccountsPictures: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   AppTheme.roleLabel(user?.role ?? ''),
-                  style:
-                      const TextStyle(fontSize: 11, color: Colors.white),
+                  style: const TextStyle(fontSize: 11, color: Colors.white),
                 ),
               ),
             ],
           ),
 
-          // Itens de navegação
+          // ── Navegação ──────────────────────────────────────────────────────
+          _DrawerItem(
+            icon: Icons.home_outlined,
+            label: 'Início',
+            route: '/dashboard',
+            currentLocation: location,
+          ),
+          const Divider(height: 8),
           _DrawerItem(
             icon: Icons.inventory_2_outlined,
             label: 'Encomendas',
@@ -63,7 +70,7 @@ class AppDrawer extends ConsumerWidget {
             currentLocation: location,
           ),
           if (user?.isAdmin == true) ...[
-            const Divider(),
+            const Divider(height: 8),
             _DrawerItem(
               icon: Icons.manage_accounts_outlined,
               label: 'Utilizadores',
@@ -75,7 +82,7 @@ class AppDrawer extends ConsumerWidget {
           const Spacer(),
           const Divider(),
 
-          // Logout
+          // ── Logout ─────────────────────────────────────────────────────────
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text('Sair', style: TextStyle(color: Colors.red)),
@@ -106,7 +113,8 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = currentLocation.startsWith(route);
+    final isActive = currentLocation == route ||
+        (route != '/dashboard' && currentLocation.startsWith(route));
 
     return ListTile(
       leading: Icon(icon,
@@ -117,10 +125,9 @@ class _DrawerItem extends StatelessWidget {
             fontWeight: isActive ? FontWeight.w600 : null,
           )),
       selected: isActive,
-      selectedTileColor:
-          const Color(0xFF1E40AF).withOpacity(0.08),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8)),
+      selectedTileColor: const Color(0xFF1E40AF).withOpacity(0.08),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       onTap: () {
         Navigator.pop(context);
         context.go(route);

@@ -73,7 +73,17 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
       options: Options(headers: {'Content-Type': 'application/json'}),
     );
     final order = OrderModel.fromJson(response.data as Map<String, dynamic>);
-    // Atualiza a lista depois de criar
+    await load(filter: state.filter);
+    return order;
+  }
+
+  Future<OrderModel> updateOrder(String id, Map<String, dynamic> data) async {
+    final response = await ApiClient().dio.put(
+      ApiEndpoints.orderById(id),
+      data: jsonEncode(data),
+      options: Options(headers: {'Content-Type': 'application/json'}),
+    );
+    final order = OrderModel.fromJson(response.data as Map<String, dynamic>);
     await load(filter: state.filter);
     return order;
   }

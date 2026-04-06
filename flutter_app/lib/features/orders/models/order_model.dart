@@ -1,3 +1,35 @@
+// ── Produto ──────────────────────────────────────────────────────────────────
+
+class ProdutoItem {
+  final String nome;
+  final double qty;
+  final double precoUnit;
+  final double total;
+
+  const ProdutoItem({
+    required this.nome,
+    required this.qty,
+    required this.precoUnit,
+    required this.total,
+  });
+
+  factory ProdutoItem.fromJson(Map<String, dynamic> j) => ProdutoItem(
+        nome:      j['nome']     as String,
+        qty:       (j['qty']      as num).toDouble(),
+        precoUnit: (j['precoUnit'] as num).toDouble(),
+        total:     (j['total']    as num).toDouble(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'nome':      nome,
+        'qty':       qty,
+        'precoUnit': precoUnit,
+        'total':     total,
+      };
+}
+
+// ── Sub-modelos ──────────────────────────────────────────────────────────────
+
 class OrderCustomer {
   final String id;
   final String name;
@@ -5,10 +37,10 @@ class OrderCustomer {
 
   const OrderCustomer({required this.id, required this.name, this.email});
 
-  factory OrderCustomer.fromJson(Map<String, dynamic> json) => OrderCustomer(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        email: json['email'] as String?,
+  factory OrderCustomer.fromJson(Map<String, dynamic> j) => OrderCustomer(
+        id:    j['id']    as String,
+        name:  j['name']  as String,
+        email: j['email'] as String?,
       );
 }
 
@@ -18,10 +50,8 @@ class OrderCreatedBy {
 
   const OrderCreatedBy({required this.id, required this.name});
 
-  factory OrderCreatedBy.fromJson(Map<String, dynamic> json) => OrderCreatedBy(
-        id: json['id'] as String,
-        name: json['name'] as String,
-      );
+  factory OrderCreatedBy.fromJson(Map<String, dynamic> j) =>
+      OrderCreatedBy(id: j['id'] as String, name: j['name'] as String);
 }
 
 class StatusHistoryEntry {
@@ -39,16 +69,17 @@ class StatusHistoryEntry {
     required this.createdAt,
   });
 
-  factory StatusHistoryEntry.fromJson(Map<String, dynamic> json) =>
+  factory StatusHistoryEntry.fromJson(Map<String, dynamic> j) =>
       StatusHistoryEntry(
-        id: json['id'] as String,
-        status: json['status'] as String,
-        changedByName:
-            (json['changedBy'] as Map<String, dynamic>)['name'] as String,
-        notes: json['notes'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        id:             j['id']     as String,
+        status:         j['status'] as String,
+        changedByName:  (j['changedBy'] as Map<String, dynamic>)['name'] as String,
+        notes:          j['notes']  as String?,
+        createdAt:      DateTime.parse(j['createdAt'] as String),
       );
 }
+
+// ── Modelo principal ─────────────────────────────────────────────────────────
 
 class OrderModel {
   final String id;
@@ -64,14 +95,18 @@ class OrderModel {
   final String? numeroSepultura;
 
   // Falecido
-  final String? fotoPessoa; // base64
-  final String nomeFalecido;
+  final String? fotoPessoa;
+  final String? nomeFalecido;
   final String? datasFalecido;
 
+  // Produtos
+  final List<ProdutoItem> produtos;
+
   // Valores
-  final double valorSepultura;
+  final double valorSepultura;   // subtotal produtos
   final double? km;
   final double portagens;
+  final double refeicoes;
   final double deslocacaoMontagem;
   final String? extrasDescricao;
   final double extrasValor;
@@ -98,11 +133,13 @@ class OrderModel {
     this.talhao,
     this.numeroSepultura,
     this.fotoPessoa,
-    required this.nomeFalecido,
+    this.nomeFalecido,
     this.datasFalecido,
+    this.produtos = const [],
     required this.valorSepultura,
     this.km,
     required this.portagens,
+    required this.refeicoes,
     required this.deslocacaoMontagem,
     this.extrasDescricao,
     required this.extrasValor,
@@ -117,46 +154,43 @@ class OrderModel {
     required this.updatedAt,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) => OrderModel(
-        id: json['id'] as String,
-        orderNumber: json['orderNumber'] as String,
-        status: json['status'] as String,
-        trabalho: json['trabalho'] as String? ?? '',
-        cemiterio: json['cemiterio'] as String?,
-        talhao: json['talhao'] as String?,
-        numeroSepultura: json['numeroSepultura'] as String?,
-        fotoPessoa: json['fotoPessoa'] as String?,
-        nomeFalecido: json['nomeFalecido'] as String? ?? '',
-        datasFalecido: json['datasFalecido'] as String?,
-        valorSepultura: _toDouble(json['valorSepultura']),
-        km: json['km'] != null ? (json['km'] as num).toDouble() : null,
-        portagens: _toDouble(json['portagens']),
-        deslocacaoMontagem: _toDouble(json['deslocacaoMontagem']),
-        extrasDescricao: json['extrasDescricao'] as String?,
-        extrasValor: _toDouble(json['extrasValor']),
-        valorTotal: _toDouble(json['valorTotal']),
-        requerente: json['requerente'] as String? ?? '',
-        contacto: json['contacto'] as String? ?? '',
-        observacoes: json['observacoes'] as String?,
-        customer: json['customer'] != null
-            ? OrderCustomer.fromJson(
-                json['customer'] as Map<String, dynamic>)
-            : null,
-        createdBy: json['createdBy'] != null
-            ? OrderCreatedBy.fromJson(
-                json['createdBy'] as Map<String, dynamic>)
-            : null,
-        statusHistory: (json['statusHistory'] as List<dynamic>? ?? [])
-            .map((e) =>
-                StatusHistoryEntry.fromJson(e as Map<String, dynamic>))
+  factory OrderModel.fromJson(Map<String, dynamic> j) => OrderModel(
+        id:           j['id']          as String,
+        orderNumber:  j['orderNumber'] as String,
+        status:       j['status']      as String,
+        trabalho:     j['trabalho']    as String? ?? '',
+        cemiterio:    j['cemiterio']   as String?,
+        talhao:       j['talhao']      as String?,
+        numeroSepultura: j['numeroSepultura'] as String?,
+        fotoPessoa:   j['fotoPessoa']  as String?,
+        nomeFalecido: j['nomeFalecido'] as String?,
+        datasFalecido: j['datasFalecido'] as String?,
+        produtos: (j['produtos'] as List<dynamic>? ?? [])
+            .map((e) => ProdutoItem.fromJson(e as Map<String, dynamic>))
             .toList(),
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        valorSepultura:    _d(j['valorSepultura']),
+        km: j['km'] != null ? (j['km'] as num).toDouble() : null,
+        portagens:         _d(j['portagens']),
+        refeicoes:         _d(j['refeicoes']),
+        deslocacaoMontagem: _d(j['deslocacaoMontagem']),
+        extrasDescricao:   j['extrasDescricao'] as String?,
+        extrasValor:       _d(j['extrasValor']),
+        valorTotal:        _d(j['valorTotal']),
+        requerente:  j['requerente'] as String? ?? '',
+        contacto:    j['contacto']   as String? ?? '',
+        observacoes: j['observacoes'] as String?,
+        customer:  j['customer']  != null
+            ? OrderCustomer.fromJson(j['customer']  as Map<String, dynamic>) : null,
+        createdBy: j['createdBy'] != null
+            ? OrderCreatedBy.fromJson(j['createdBy'] as Map<String, dynamic>) : null,
+        statusHistory: (j['statusHistory'] as List<dynamic>? ?? [])
+            .map((e) => StatusHistoryEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        createdAt: DateTime.parse(j['createdAt'] as String),
         updatedAt: DateTime.parse(
-            json['updatedAt'] as String? ?? json['createdAt'] as String),
+            j['updatedAt'] as String? ?? j['createdAt'] as String),
       );
 
-  static double _toDouble(dynamic v) {
-    if (v == null) return 0.0;
-    return double.parse(v.toString());
-  }
+  static double _d(dynamic v) =>
+      v == null ? 0.0 : double.parse(v.toString());
 }
