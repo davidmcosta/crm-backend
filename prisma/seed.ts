@@ -44,7 +44,6 @@ async function main() {
       email: 'geral@empresaabc.pt',
       phone: '912345678',
       address: 'Rua das Flores, 123, Lisboa',
-      taxId: '509876543',
     },
   })
 
@@ -56,7 +55,6 @@ async function main() {
       name: 'João Silva',
       email: 'joao.silva@email.com',
       phone: '961234567',
-      taxId: '123456789',
     },
   })
   console.log(`✅ Clientes criados: ${customer1.name}, ${customer2.name}`)

@@ -11,7 +11,6 @@ const _statuses = [
   'CONFIRMED',
   'IN_PRODUCTION',
   'READY',
-  'SHIPPED',
   'DELIVERED',
   'CANCELLED',
 ];
@@ -20,9 +19,8 @@ const _statusLabels = [
   'Todos',
   'Pendentes',
   'Confirmadas',
-  'Em Produção',
-  'Prontas',
-  'Enviadas',
+  'Em Execução',
+  'Concluídas',
   'Entregues',
   'Canceladas',
 ];
@@ -87,7 +85,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
-                hintText: 'Pesquisar por número ou cliente...',
+                hintText: 'Pesquisar por número, falecido, requerente...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(

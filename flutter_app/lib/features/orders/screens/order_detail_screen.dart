@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,14 +17,15 @@ class OrderDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
-  final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'pt');
-  final dateShort = DateFormat('dd/MM/yyyy', 'pt');
-  final currency = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
+  final _dateFormat  = DateFormat('dd/MM/yyyy HH:mm', 'pt');
+  final _dateShort   = DateFormat('dd/MM/yyyy', 'pt');
+  final _currency    = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
   final _allStatuses = [
-    'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'SHIPPED', 'DELIVERED'
+    'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED'
   ];
 
+  // ── Alterar estado ───────────────────────────────────────────────────────────
   Future<void> _changeStatus(String currentStatus) async {
     final available = _allStatuses
         .where((s) => s != currentStatus && s != 'CANCELLED')
@@ -35,10 +38,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
+        builder: (ctx, setModal) => Padding(
           padding: EdgeInsets.only(
             left: 24, right: 24, top: 24,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
@@ -48,11 +50,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Alterar Estado',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 8, runSpacing: 8,
                 children: available.map((s) {
                   final isSelected = selected == s;
                   return ChoiceChip(
@@ -61,7 +63,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     selectedColor:
                         AppTheme.statusColor(s).withOpacity(0.2),
                     onSelected: (_) =>
-                        setModalState(() => selected = s),
+                        setModal(() => selected = s),
                   );
                 }).toList(),
               ),
@@ -69,9 +71,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               TextField(
                 controller: notesCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Nota (opcional)',
-                  hintText: 'Ex: Confirmado por telefone',
-                ),
+                    labelText: 'Nota (opcional)',
+                    hintText: 'Ex: Trabalho concluído'),
                 maxLines: 2,
               ),
               const SizedBox(height: 20),
@@ -111,21 +112,24 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 
+  // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final orderAsync = ref.watch(orderDetailProvider(widget.orderId));
-    final auth = ref.watch(authProvider);
-    final canEdit = auth.user?.isOperator ?? false;
+    final auth       = ref.watch(authProvider);
+    final canEdit    = auth.user?.isOperator ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalhe da Encomenda')),
       body: orderAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () =>
+            const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Erro: $e')),
         data: (order) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Cabeçalho
+
+            // ── Cabeçalho ──────────────────────────────────────────────────
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -135,29 +139,27 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(order.orderNumber,
-                            style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Encomenda ${order.orderNumber}',
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold),
+                        ),
                         StatusBadge(status: order.status, large: true),
                       ],
                     ),
                     const Divider(height: 24),
-                    _infoRow(Icons.person_outline, 'Cliente',
-                        order.customer?.name ?? '—'),
-                    const SizedBox(height: 8),
-                    _infoRow(Icons.calendar_today_outlined, 'Criada em',
-                        dateFormat.format(order.createdAt)),
-                    if (order.expectedDate != null) ...[
+                    _row(Icons.calendar_today_outlined, 'Criada em',
+                        _dateFormat.format(order.createdAt)),
+                    if (order.createdBy != null) ...[
                       const SizedBox(height: 8),
-                      _infoRow(Icons.access_time, 'Data prevista',
-                          dateShort.format(order.expectedDate!)),
+                      _row(Icons.person, 'Criada por',
+                          order.createdBy!.name),
                     ],
-                    const SizedBox(height: 8),
-                    _infoRow(Icons.person, 'Criada por',
-                        order.createdBy?.name ?? '—'),
-                    if (order.notes != null && order.notes!.isNotEmpty) ...[
+                    if (order.customer != null) ...[
                       const SizedBox(height: 8),
-                      _infoRow(Icons.notes, 'Notas', order.notes!),
+                      _row(Icons.business_outlined, 'Cliente',
+                          order.customer!.name),
                     ],
                   ],
                 ),
@@ -165,60 +167,148 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Itens
+            // ── Foto + Falecido ─────────────────────────────────────────────
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Itens',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    _cardTitle(Icons.person, 'Falecido(a)'),
                     const SizedBox(height: 12),
-                    ...order.items.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item.productName,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w500)),
-                                    if (item.description != null)
-                                      Text(item.description!,
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey)),
-                                    Text(
-                                        '${item.quantity} × ${currency.format(item.unitPrice)}',
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey)),
-                                  ],
-                                ),
-                              ),
-                              Text(currency.format(item.totalPrice),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600)),
-                            ],
+
+                    // Foto (se existir)
+                    if (order.fotoPessoa != null &&
+                        order.fotoPessoa!.isNotEmpty)
+                      Center(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            _decodePhoto(order.fotoPessoa!),
+                            width: 160,
+                            height: 160,
+                            fit: BoxFit.cover,
                           ),
-                        )),
-                    const Divider(),
+                        ),
+                      ),
+                    if (order.fotoPessoa != null &&
+                        order.fotoPessoa!.isNotEmpty)
+                      const SizedBox(height: 12),
+
+                    _row(Icons.badge_outlined, 'Nome',
+                        order.nomeFalecido),
+                    if (order.datasFalecido != null &&
+                        order.datasFalecido!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _row(Icons.date_range_outlined, 'Datas',
+                          order.datasFalecido!),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Trabalho ────────────────────────────────────────────────────
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _cardTitle(Icons.construction, 'Trabalho'),
+                    const SizedBox(height: 12),
+                    Text(order.trabalho),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Cemitério ───────────────────────────────────────────────────
+            if (order.cemiterio != null ||
+                order.talhao != null ||
+                order.numeroSepultura != null) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _cardTitle(
+                          Icons.location_on_outlined, 'Cemitério'),
+                      const SizedBox(height: 12),
+                      if (order.cemiterio != null)
+                        _row(Icons.place_outlined, 'Cemitério',
+                            order.cemiterio!),
+                      if (order.talhao != null) ...[
+                        const SizedBox(height: 8),
+                        _row(Icons.grid_on_outlined, 'Talhão',
+                            order.talhao!),
+                      ],
+                      if (order.numeroSepultura != null) ...[
+                        const SizedBox(height: 8),
+                        _row(Icons.tag, 'Nº Sepultura',
+                            order.numeroSepultura!),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Valores ─────────────────────────────────────────────────────
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _cardTitle(Icons.euro, 'Valores'),
+                    const SizedBox(height: 12),
+                    _row(Icons.euro_outlined, 'Sepultura',
+                        _currency.format(order.valorSepultura)),
+                    const SizedBox(height: 8),
+                    if (order.km != null) ...[
+                      _row(Icons.route_outlined, 'Km',
+                          '${order.km!.toStringAsFixed(1)} km'),
+                      const SizedBox(height: 8),
+                    ],
+                    if (order.portagens > 0) ...[
+                      _row(Icons.toll_outlined, 'Portagens',
+                          _currency.format(order.portagens)),
+                      const SizedBox(height: 8),
+                    ],
+                    _row(Icons.drive_eta_outlined,
+                        'Deslocação / Montagem',
+                        _currency.format(order.deslocacaoMontagem)),
+                    if (order.extrasValor > 0) ...[
+                      const SizedBox(height: 8),
+                      _row(
+                        Icons.add_circle_outline,
+                        order.extrasDescricao != null &&
+                                order.extrasDescricao!.isNotEmpty
+                            ? 'Extras (${order.extrasDescricao})'
+                            : 'Extras',
+                        _currency.format(order.extrasValor),
+                      ),
+                    ],
+                    const Divider(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Total',
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(currency.format(order.totalAmount),
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E40AF))),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold)),
+                        Text(
+                          _currency.format(order.valorTotal),
+                          style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E40AF)),
+                        ),
                       ],
                     ),
                   ],
@@ -227,7 +317,48 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Histórico de estados
+            // ── Requerente ──────────────────────────────────────────────────
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _cardTitle(
+                        Icons.person_outline, 'Requerente'),
+                    const SizedBox(height: 12),
+                    _row(Icons.person_outlined, 'Nome',
+                        order.requerente),
+                    const SizedBox(height: 8),
+                    _row(Icons.phone_outlined, 'Contacto',
+                        order.contacto),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Observações ─────────────────────────────────────────────────
+            if (order.observacoes != null &&
+                order.observacoes!.isNotEmpty) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _cardTitle(
+                          Icons.notes_outlined, 'Observações'),
+                      const SizedBox(height: 8),
+                      Text(order.observacoes!),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Histórico ───────────────────────────────────────────────────
             if (order.statusHistory.isNotEmpty)
               Card(
                 child: Padding(
@@ -235,22 +366,22 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Histórico',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      _cardTitle(
+                          Icons.history, 'Histórico de Estados'),
                       const SizedBox(height: 12),
                       ...order.statusHistory.map((h) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding:
+                                const EdgeInsets.only(bottom: 12),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  width: 10,
-                                  height: 10,
+                                  width: 10, height: 10,
                                   margin: const EdgeInsets.only(top: 4),
                                   decoration: BoxDecoration(
-                                    color:
-                                        AppTheme.statusColor(h.status),
+                                    color: AppTheme.statusColor(
+                                        h.status),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -261,11 +392,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                          AppTheme.statusLabel(h.status),
+                                          AppTheme.statusLabel(
+                                              h.status),
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.w500)),
+                                              fontWeight:
+                                                  FontWeight.w500)),
                                       Text(
-                                          '${h.changedByName} · ${dateFormat.format(h.createdAt)}',
+                                          '${h.changedByName} · ${_dateFormat.format(h.createdAt)}',
                                           style: const TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey)),
@@ -286,7 +419,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 ),
               ),
 
-            // Botão de alterar estado
+            // ── Botão alterar estado ────────────────────────────────────────
             if (canEdit &&
                 order.status != 'DELIVERED' &&
                 order.status != 'CANCELLED') ...[
@@ -304,13 +437,32 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) => Row(
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  Uint8List _decodePhoto(String dataUrl) {
+    final base64 =
+        dataUrl.contains(',') ? dataUrl.split(',').last : dataUrl;
+    return base64Decode(base64);
+  }
+
+  Widget _cardTitle(IconData icon, String title) => Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF1E40AF)),
+          const SizedBox(width: 8),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.bold)),
+        ],
+      );
+
+  Widget _row(IconData icon, String label, String value) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: Colors.grey),
+          Icon(icon, size: 16, color: Colors.grey),
           const SizedBox(width: 8),
           Text('$label: ',
-              style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              style: const TextStyle(
+                  color: Colors.grey, fontSize: 14)),
           Expanded(
               child: Text(value,
                   style: const TextStyle(fontSize: 14))),

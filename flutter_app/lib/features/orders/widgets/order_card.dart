@@ -11,9 +11,8 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd/MM/yyyy', 'pt');
-    final currencyFormat =
-        NumberFormat.currency(locale: 'pt_PT', symbol: '€');
+    final dateFormat    = DateFormat('dd/MM/yyyy', 'pt');
+    final currencyFormat = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -25,39 +24,84 @@ class OrderCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Número + Estado
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    order.orderNumber,
+                    'Encomenda ${order.orderNumber}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   StatusBadge(status: order.status),
                 ],
               ),
-              if (order.customer != null) ...[
-                const SizedBox(height: 8),
+              const SizedBox(height: 8),
+
+              // Nome do falecido (destaque)
+              if (order.nomeFalecido.isNotEmpty)
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 16,
-                        color: Colors.grey),
+                    const Icon(Icons.person, size: 15, color: Color(0xFF475569)),
                     const SizedBox(width: 6),
-                    Text(
-                      order.customer!.name,
-                      style: const TextStyle(fontSize: 14),
+                    Expanded(
+                      child: Text(
+                        order.nomeFalecido,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+
+              // Cemitério (se existir)
+              if (order.cemiterio != null && order.cemiterio!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.place_outlined,
+                        size: 14, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        order.cemiterio!,
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
               ],
+
+              // Requerente
+              if (order.requerente.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline,
+                        size: 14, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Req: ${order.requerente}',
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+
               const SizedBox(height: 8),
+
+              // Data + Total
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       const Icon(Icons.calendar_today_outlined,
-                          size: 14, color: Colors.grey),
+                          size: 13, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(
                         dateFormat.format(order.createdAt),
@@ -67,7 +111,7 @@ class OrderCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    currencyFormat.format(order.totalAmount),
+                    currencyFormat.format(order.valorTotal),
                     style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -75,21 +119,6 @@ class OrderCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (order.expectedDate != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 14,
-                        color: Colors.orange),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Prevista: ${dateFormat.format(order.expectedDate!)}',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.orange),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),

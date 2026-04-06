@@ -66,6 +66,18 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
     load();
   }
 
+  Future<OrderModel> createOrder(Map<String, dynamic> data) async {
+    final response = await ApiClient().dio.post(
+      ApiEndpoints.orders,
+      data: jsonEncode(data),
+      options: Options(headers: {'Content-Type': 'application/json'}),
+    );
+    final order = OrderModel.fromJson(response.data as Map<String, dynamic>);
+    // Atualiza a lista depois de criar
+    await load(filter: state.filter);
+    return order;
+  }
+
   Future<void> load({OrdersFilter? filter}) async {
     final f = filter ?? state.filter;
     state = state.copyWith(isLoading: true, error: null, filter: f);

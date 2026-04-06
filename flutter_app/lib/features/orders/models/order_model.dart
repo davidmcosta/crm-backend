@@ -1,30 +1,3 @@
-class OrderItem {
-  final String id;
-  final String productName;
-  final String? description;
-  final int quantity;
-  final double unitPrice;
-  final double totalPrice;
-
-  const OrderItem({
-    required this.id,
-    required this.productName,
-    this.description,
-    required this.quantity,
-    required this.unitPrice,
-    required this.totalPrice,
-  });
-
-  factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-        id: json['id'] as String,
-        productName: json['productName'] as String,
-        description: json['description'] as String?,
-        quantity: json['quantity'] as int,
-        unitPrice: double.parse(json['unitPrice'].toString()),
-        totalPrice: double.parse(json['totalPrice'].toString()),
-      );
-}
-
 class OrderCustomer {
   final String id;
   final String name;
@@ -81,39 +54,90 @@ class OrderModel {
   final String id;
   final String orderNumber;
   final String status;
-  final double totalAmount;
-  final String? notes;
-  final DateTime? expectedDate;
-  final DateTime createdAt;
+
+  // Trabalho
+  final String trabalho;
+
+  // Cemitério
+  final String? cemiterio;
+  final String? talhao;
+  final String? numeroSepultura;
+
+  // Falecido
+  final String? fotoPessoa; // base64
+  final String nomeFalecido;
+  final String? datasFalecido;
+
+  // Valores
+  final double valorSepultura;
+  final double? km;
+  final double portagens;
+  final double deslocacaoMontagem;
+  final String? extrasDescricao;
+  final double extrasValor;
+  final double valorTotal;
+
+  // Requerente
+  final String requerente;
+  final String contacto;
+  final String? observacoes;
+
+  // Relações
   final OrderCustomer? customer;
   final OrderCreatedBy? createdBy;
-  final List<OrderItem> items;
   final List<StatusHistoryEntry> statusHistory;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const OrderModel({
     required this.id,
     required this.orderNumber,
     required this.status,
-    required this.totalAmount,
-    this.notes,
-    this.expectedDate,
-    required this.createdAt,
+    required this.trabalho,
+    this.cemiterio,
+    this.talhao,
+    this.numeroSepultura,
+    this.fotoPessoa,
+    required this.nomeFalecido,
+    this.datasFalecido,
+    required this.valorSepultura,
+    this.km,
+    required this.portagens,
+    required this.deslocacaoMontagem,
+    this.extrasDescricao,
+    required this.extrasValor,
+    required this.valorTotal,
+    required this.requerente,
+    required this.contacto,
+    this.observacoes,
     this.customer,
     this.createdBy,
-    this.items = const [],
     this.statusHistory = const [],
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) => OrderModel(
         id: json['id'] as String,
         orderNumber: json['orderNumber'] as String,
         status: json['status'] as String,
-        totalAmount: double.parse(json['totalAmount'].toString()),
-        notes: json['notes'] as String?,
-        expectedDate: json['expectedDate'] != null
-            ? DateTime.parse(json['expectedDate'] as String)
-            : null,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        trabalho: json['trabalho'] as String? ?? '',
+        cemiterio: json['cemiterio'] as String?,
+        talhao: json['talhao'] as String?,
+        numeroSepultura: json['numeroSepultura'] as String?,
+        fotoPessoa: json['fotoPessoa'] as String?,
+        nomeFalecido: json['nomeFalecido'] as String? ?? '',
+        datasFalecido: json['datasFalecido'] as String?,
+        valorSepultura: _toDouble(json['valorSepultura']),
+        km: json['km'] != null ? (json['km'] as num).toDouble() : null,
+        portagens: _toDouble(json['portagens']),
+        deslocacaoMontagem: _toDouble(json['deslocacaoMontagem']),
+        extrasDescricao: json['extrasDescricao'] as String?,
+        extrasValor: _toDouble(json['extrasValor']),
+        valorTotal: _toDouble(json['valorTotal']),
+        requerente: json['requerente'] as String? ?? '',
+        contacto: json['contacto'] as String? ?? '',
+        observacoes: json['observacoes'] as String?,
         customer: json['customer'] != null
             ? OrderCustomer.fromJson(
                 json['customer'] as Map<String, dynamic>)
@@ -122,12 +146,17 @@ class OrderModel {
             ? OrderCreatedBy.fromJson(
                 json['createdBy'] as Map<String, dynamic>)
             : null,
-        items: (json['items'] as List<dynamic>? ?? [])
-            .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
         statusHistory: (json['statusHistory'] as List<dynamic>? ?? [])
             .map((e) =>
                 StatusHistoryEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        updatedAt: DateTime.parse(
+            json['updatedAt'] as String? ?? json['createdAt'] as String),
       );
+
+  static double _toDouble(dynamic v) {
+    if (v == null) return 0.0;
+    return double.parse(v.toString());
+  }
 }
