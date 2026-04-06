@@ -15,11 +15,11 @@ export async function loginService(app: FastifyInstance, data: LoginInput) {
       email: true,
       password: true,
       role: true,
-      active: true,
+      isActive: true,
     },
   })
 
-  if (!user || !user.active) {
+  if (!user || !user.isActive) {
     throw { statusCode: 401, message: 'Credenciais inválidas' }
   }
 
@@ -67,10 +67,10 @@ export async function refreshTokenService(app: FastifyInstance, refreshToken: st
 
   const user = await prisma.user.findUnique({
     where: { id: payload.id },
-    select: { id: true, email: true, role: true, active: true },
+    select: { id: true, email: true, role: true, isActive: true },
   })
 
-  if (!user || !user.active) {
+  if (!user || !user.isActive) {
     throw { statusCode: 401, message: 'Utilizador não encontrado ou inativo' }
   }
 

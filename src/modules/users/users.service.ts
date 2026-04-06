@@ -11,7 +11,7 @@ export async function listUsers() {
       name: true,
       email: true,
       role: true,
-      active: true,
+      isActive: true,
       createdAt: true,
     },
     orderBy: { name: 'asc' },
@@ -26,7 +26,7 @@ export async function getUserById(id: string) {
       name: true,
       email: true,
       role: true,
-      active: true,
+      isActive: true,
       createdAt: true,
       _count: { select: { orders: true } },
     },
@@ -42,7 +42,7 @@ export async function createUser(data: CreateUserInput) {
   const hashedPassword = await hashPassword(data.password)
   return prisma.user.create({
     data: { ...data, password: hashedPassword },
-    select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
   })
 }
 
@@ -58,7 +58,7 @@ export async function updateUser(id: string, data: UpdateUserInput) {
   return prisma.user.update({
     where: { id },
     data,
-    select: { id: true, name: true, email: true, role: true, active: true },
+    select: { id: true, name: true, email: true, role: true, isActive: true },
   })
 }
 
@@ -83,8 +83,8 @@ export async function deactivateUser(id: string, requestingUserId: string) {
 
   return prisma.user.update({
     where: { id },
-    data: { active: false },
-    select: { id: true, name: true, active: true },
+    data: { isActive: false },
+    select: { id: true, name: true, isActive: true },
   })
 }
 
