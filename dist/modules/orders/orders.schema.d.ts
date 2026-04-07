@@ -223,12 +223,15 @@ export declare const updateStatusSchema: z.ZodObject<{
         CANCELLED: "CANCELLED";
     }>;
     notes: z.ZodOptional<z.ZodString>;
+    fotos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
 }, "strip", z.ZodTypeAny, {
     status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED";
+    fotos: string[];
     notes?: string | undefined;
 }, {
     status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED";
     notes?: string | undefined;
+    fotos?: string[] | undefined;
 }>;
 export declare const listOrdersQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodNumber>;

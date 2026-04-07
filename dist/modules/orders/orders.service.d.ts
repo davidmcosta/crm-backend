@@ -74,6 +74,7 @@ export declare function getOrderById(id: string): Promise<{
         id: string;
         createdAt: Date;
         notes: string | null;
+        fotos: import("@prisma/client/runtime/library").JsonValue;
         changedById: string;
         orderId: string;
     })[];
@@ -217,6 +218,7 @@ export declare function getOrderHistory(id: string): Promise<({
     id: string;
     createdAt: Date;
     notes: string | null;
+    fotos: import("@prisma/client/runtime/library").JsonValue;
     changedById: string;
     orderId: string;
 })[]>;

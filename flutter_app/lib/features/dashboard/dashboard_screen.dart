@@ -5,6 +5,7 @@ import '../auth/providers/auth_provider.dart';
 import '../orders/providers/orders_provider.dart';
 import '../customers/providers/customers_provider.dart';
 import '../../shared/widgets/app_drawer.dart';
+import '../../shared/widgets/brand_logo.dart';
 import '../../core/theme/app_theme.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -29,7 +30,7 @@ class DashboardScreen extends ConsumerWidget {
           // ── Boas-vindas ────────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [AppTheme.primary, Color(0xFF3D3A35)],
@@ -41,22 +42,9 @@ class DashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.gold.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.inventory_2_rounded,
-                        color: AppTheme.gold, size: 22),
-                  ),
-                  const SizedBox(width: 10),
-                  Text('Gestão de Encomendas',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 13)),
-                ]),
+                const CasaDasCampasLogoHorizontal(light: true, iconSize: 24),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white24, height: 1),
                 const SizedBox(height: 14),
                 Text(
                   '$greeting, ${user?.name.split(' ').first ?? ''}!',

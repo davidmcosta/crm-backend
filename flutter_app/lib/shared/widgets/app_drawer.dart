@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import 'brand_logo.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -25,6 +26,13 @@ class AppDrawer extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Logo da empresa
+                const CasaDasCampasLogoHorizontal(light: true, iconSize: 26),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Divider(color: Colors.white24, height: 1),
+                ),
+
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: AppTheme.gold.withOpacity(0.25),

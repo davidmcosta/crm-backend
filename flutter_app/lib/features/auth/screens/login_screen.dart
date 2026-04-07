@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/brand_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -52,29 +53,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   // ── Cabeçalho ───────────────────────────────────────────────
                   const SizedBox(height: 32),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.gold.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.inventory_2_rounded,
-                        size: 52, color: AppTheme.gold),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Bem-vindo',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Faz login para aceder ao sistema.',
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.65),
-                        fontSize: 15),
+                  const CasaDasCampasLogo(
+                    light: true,
+                    iconSize: 56,
+                    showTagline: true,
                   ),
                   const SizedBox(height: 36),
 

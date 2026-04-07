@@ -70,6 +70,7 @@ exports.updateOrderSchema = zod_1.z.object({
 exports.updateStatusSchema = zod_1.z.object({
     status: zod_1.z.nativeEnum(client_1.OrderStatus, { errorMap: () => ({ message: 'Estado inválido' }) }),
     notes: zod_1.z.string().optional(),
+    fotos: zod_1.z.array(zod_1.z.string()).optional().default([]),
 });
 exports.listOrdersQuerySchema = zod_1.z.object({
     page: zod_1.z.coerce.number().int().positive().default(1),

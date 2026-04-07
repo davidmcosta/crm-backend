@@ -143,7 +143,13 @@ async function updateOrderStatus(id, data, userId) {
     const [updated] = await prisma.$transaction([
         prisma.order.update({ where: { id }, data: { status: data.status } }),
         prisma.orderStatusHistory.create({
-            data: { orderId: id, status: data.status, changedById: userId, notes: data.notes },
+            data: {
+                orderId: id,
+                status: data.status,
+                changedById: userId,
+                notes: data.notes,
+                fotos: data.fotos ?? [],
+            },
         }),
     ]);
     return updated;
