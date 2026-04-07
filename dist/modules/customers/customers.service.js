@@ -30,6 +30,7 @@ async function listCustomers(query) {
         prisma.customer.count({ where }),
     ]);
     return {
+        
         data: customers,
         pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
