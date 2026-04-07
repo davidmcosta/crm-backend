@@ -7,7 +7,7 @@ export async function listCustomers(query: ListCustomersQuery) {
   const { page, limit, search } = query
   const skip = (page - 1) * limit
 
-  const where: any = { active: true }
+  const where: any = { isActive: true }
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },

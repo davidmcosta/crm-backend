@@ -10,7 +10,7 @@ const prisma = new client_1.PrismaClient();
 async function listCustomers(query) {
     const { page, limit, search } = query;
     const skip = (page - 1) * limit;
-    const where = { active: true };
+    const where = { isActive: true };
     if (search) {
         where.OR = [
             { name: { contains: search, mode: 'insensitive' } },
