@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/order_model.dart';
 import '../providers/orders_provider.dart';
@@ -32,8 +33,25 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         .where((s) => s != currentStatus && s != 'CANCELLED')
         .toList();
 
-    String? selected;
+    String?          selected;
     final notesCtrl = TextEditingController();
+    final fotos      = <Uint8List>[];   // bytes para pré-visualização
+    final fotosB64   = <String>[];      // base64 para enviar
+
+    Future<void> pickPhoto(StateSetter setModal) async {
+      try {
+        final file = await ImagePicker().pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1200, maxHeight: 1200, imageQuality: 80,
+        );
+        if (file == null) return;
+        final bytes = await file.readAsBytes();
+        setModal(() {
+          fotos.add(bytes);
+          fotosB64.add('data:image/jpeg;base64,${base64Encode(bytes)}');
+        });
+      } catch (_) {}
+    }
 
     await showModalBottomSheet(
       context: context,
@@ -41,7 +59,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Padding(
+        builder: (ctx, setModal) => SingleChildScrollView(
           padding: EdgeInsets.only(
             left: 24, right: 24, top: 24,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
@@ -53,6 +71,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const Text('Alterar Estado',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
+
+              // ── Chips de estado ──────────────────────────────────────────
               Wrap(
                 spacing: 8, runSpacing: 8,
                 children: available.map((s) {
@@ -60,21 +80,84 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   return ChoiceChip(
                     label: Text(AppTheme.statusLabel(s)),
                     selected: isSelected,
-                    selectedColor:
-                        AppTheme.statusColor(s).withOpacity(0.2),
-                    onSelected: (_) =>
-                        setModal(() => selected = s),
+                    selectedColor: AppTheme.statusColor(s).withOpacity(0.2),
+                    onSelected: (_) => setModal(() => selected = s),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 16),
+
+              // ── Nota ──────────────────────────────────────────────────────
               TextField(
                 controller: notesCtrl,
                 decoration: const InputDecoration(
                     labelText: 'Nota (opcional)',
-                    hintText: 'Ex: Trabalho concluído'),
+                    hintText: 'Ex: Trabalho concluído',
+                    prefixIcon: Icon(Icons.notes_outlined)),
                 maxLines: 2,
               ),
+              const SizedBox(height: 16),
+
+              // ── Fotos ─────────────────────────────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Fotos do trabalho',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary)),
+                  TextButton.icon(
+                    onPressed: () => pickPhoto(setModal),
+                    icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+                    label: const Text('Adicionar'),
+                  ),
+                ],
+              ),
+              if (fotos.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 90,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: fotos.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) => Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(fotos[i],
+                              width: 90, height: 90, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          top: 2, right: 2,
+                          child: GestureDetector(
+                            onTap: () => setModal(() {
+                              fotos.removeAt(i);
+                              fotosB64.removeAt(i);
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                  color: AppTheme.error,
+                                  shape: BoxShape.circle),
+                              child: const Icon(Icons.close,
+                                  size: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text('Nenhuma foto adicionada',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textMuted)),
+                ),
+
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -84,15 +167,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       : () async {
                           Navigator.pop(ctx);
                           try {
-                            await updateOrderStatus(widget.orderId, selected!,
-                                notesCtrl.text.isEmpty ? null : notesCtrl.text);
-                            ref.invalidate(
-                                orderDetailProvider(widget.orderId));
+                            await updateOrderStatus(
+                              widget.orderId, selected!,
+                              notesCtrl.text.isEmpty ? null : notesCtrl.text,
+                              fotos: fotosB64,
+                            );
+                            ref.invalidate(orderDetailProvider(widget.orderId));
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text('Estado atualizado!'),
-                                    backgroundColor: Colors.green),
+                                    backgroundColor: AppTheme.success),
                               );
                             }
                           } catch (e) {
@@ -100,7 +185,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(e.toString()),
-                                    backgroundColor: Colors.red),
+                                    backgroundColor: AppTheme.error),
                               );
                             }
                           }
@@ -271,23 +356,22 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8F4FF),
+                            color: AppTheme.goldFaint,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: const Color(0xFFE9D5FF)),
+                            border: Border.all(color: AppTheme.border),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(children: [
                                 const Icon(Icons.format_quote_outlined,
-                                    size: 14, color: Color(0xFF7C3AED)),
+                                    size: 14, color: AppTheme.gold),
                                 const SizedBox(width: 4),
                                 const Text('Dedicatória',
                                     style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF7C3AED))),
+                                        color: AppTheme.gold)),
                               ]),
                               const SizedBox(height: 6),
                               Text(order.dedicatoria!,
@@ -322,22 +406,22 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                           Expanded(flex: 4, child: Text('Descrição',
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey))),
+                                  color: AppTheme.textMuted))),
                           SizedBox(width: 50, child: Text('Qty',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey))),
+                                  color: AppTheme.textMuted))),
                           SizedBox(width: 70, child: Text('Preço',
                               textAlign: TextAlign.right,
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey))),
+                                  color: AppTheme.textMuted))),
                           SizedBox(width: 70, child: Text('Total',
                               textAlign: TextAlign.right,
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey))),
+                                  color: AppTheme.textMuted))),
                         ]),
                       ),
                       const Divider(height: 4),
@@ -466,11 +550,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
 
             // ── Total geral ───────────────────────────────────────────────────
             Card(
-              color: const Color(0xFF1E40AF).withOpacity(0.05),
+              color: AppTheme.goldFaint,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(
-                    color: Color(0xFF1E40AF), width: 1.5),
+                side: const BorderSide(color: AppTheme.gold, width: 1.5),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -486,7 +569,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E40AF)),
+                          color: AppTheme.primary),
                     ),
                   ],
                 ),
@@ -570,13 +653,41 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                           '${h.changedByName} · ${_dateFormat.format(h.createdAt)}',
                                           style: const TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey)),
+                                              color: AppTheme.textMuted)),
                                       if (h.notes != null)
                                         Text(h.notes!,
                                             style: const TextStyle(
                                                 fontSize: 12,
                                                 fontStyle:
                                                     FontStyle.italic)),
+                                      if (h.fotos.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          height: 72,
+                                          child: ListView.separated(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: h.fotos.length,
+                                            separatorBuilder: (_, __) =>
+                                                const SizedBox(width: 6),
+                                            itemBuilder: (_, i) {
+                                              final b64 = h.fotos[i].contains(',')
+                                                  ? h.fotos[i].split(',').last
+                                                  : h.fotos[i];
+                                              return GestureDetector(
+                                                onTap: () => _showPhoto(context, b64),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  child: Image.memory(
+                                                    base64Decode(b64),
+                                                    width: 72, height: 72,
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -634,7 +745,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
 
   Widget _cardTitle(IconData icon, String title) => Row(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF1E40AF)),
+          Icon(icon, size: 18, color: AppTheme.gold),
           const SizedBox(width: 8),
           Text(title,
               style: const TextStyle(
@@ -645,13 +756,29 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   Widget _row(IconData icon, String label, String? value) => Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey),
+          Icon(icon, size: 16, color: AppTheme.textMuted),
           const SizedBox(width: 8),
           Text('$label: ',
-              style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
           Expanded(
               child: Text(value ?? '—',
                   style: const TextStyle(fontSize: 14))),
         ],
       );
+
+  void _showPhoto(BuildContext context, String b64) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.memory(base64Decode(b64), fit: BoxFit.contain),
+          ),
+        ),
+      ),
+    );
+  }
 }

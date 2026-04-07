@@ -72,6 +72,7 @@ class StatusHistoryEntry {
   final String status;
   final String changedByName;
   final String? notes;
+  final List<String> fotos;
   final DateTime createdAt;
 
   const StatusHistoryEntry({
@@ -79,6 +80,7 @@ class StatusHistoryEntry {
     required this.status,
     required this.changedByName,
     this.notes,
+    this.fotos = const [],
     required this.createdAt,
   });
 
@@ -88,6 +90,7 @@ class StatusHistoryEntry {
         status:        j['status'] as String,
         changedByName: (j['changedBy'] as Map<String, dynamic>)['name'] as String,
         notes:         j['notes']  as String?,
+        fotos:         (j['fotos'] as List<dynamic>? ?? []).cast<String>(),
         createdAt:     DateTime.parse(j['createdAt'] as String),
       );
 }

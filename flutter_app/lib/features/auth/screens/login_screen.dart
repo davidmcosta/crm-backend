@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -11,9 +12,9 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
+  final _formKey       = GlobalKey<FormState>();
+  final _emailCtrl     = TextEditingController();
+  final _passwordCtrl  = TextEditingController();
   bool _obscurePassword = true;
 
   @override
@@ -35,130 +36,145 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
 
-    // Redireciona após login bem-sucedido
     ref.listen<AuthState>(authProvider, (_, next) {
-      if (next.isAuthenticated) {
-        context.go('/orders');
-      }
+      if (next.isAuthenticated) context.go('/dashboard');
     });
 
     return Scaffold(
+      backgroundColor: AppTheme.primary,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Logo / Título
-                const SizedBox(height: 32),
-                const Icon(Icons.inventory_2_rounded,
-                    size: 56, color: Color(0xFF1E40AF)),
-                const SizedBox(height: 16),
-                Text(
-                  'Bem-vindo',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Faz login para aceder ao sistema.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 40),
-
-                // Formulário
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Introduz o email';
-                          if (!v.contains('@')) return 'Email inválido';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _passwordCtrl,
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined),
-                            onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword),
-                          ),
-                        ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Introduz a password';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Mensagem de erro
-                      if (auth.error != null)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.error_outline,
-                                  color: Color(0xFFDC2626), size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  auth.error!,
-                                  style: const TextStyle(
-                                      color: Color(0xFFDC2626), fontSize: 14),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: auth.isLoading ? null : _submit,
-                        child: auth.isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text('Entrar',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                children: [
+                  // ── Cabeçalho ───────────────────────────────────────────────
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gold.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded,
+                        size: 52, color: AppTheme.gold),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Bem-vindo',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Faz login para aceder ao sistema.',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.65),
+                        fontSize: 15),
+                  ),
+                  const SizedBox(height: 36),
+
+                  // ── Formulário ───────────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextFormField(
+                            controller: _emailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty)
+                                return 'Introduz o email';
+                              if (!v.contains('@'))
+                                return 'Email inválido';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _passwordCtrl,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined),
+                                onPressed: () => setState(() =>
+                                    _obscurePassword = !_obscurePassword),
+                              ),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty)
+                                return 'Introduz a password';
+                              return null;
+                            },
+                          ),
+
+                          // Erro
+                          if (auth.error != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.error.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color:
+                                        AppTheme.error.withOpacity(0.3)),
+                              ),
+                              child: Row(children: [
+                                Icon(Icons.error_outline,
+                                    color: AppTheme.error, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(auth.error!,
+                                      style: TextStyle(
+                                          color: AppTheme.error,
+                                          fontSize: 14)),
+                                ),
+                              ]),
+                            ),
+                          ],
+
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: auth.isLoading ? null : _submit,
+                            child: auth.isLoading
+                                ? const SizedBox(
+                                    height: 20, width: 20,
+                                    child: CircularProgressIndicator(
+                                        color: AppTheme.primary,
+                                        strokeWidth: 2))
+                                : const Text('Entrar'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ),

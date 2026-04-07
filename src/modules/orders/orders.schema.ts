@@ -79,7 +79,8 @@ export const updateOrderSchema = z.object({
 
 export const updateStatusSchema = z.object({
   status: z.nativeEnum(OrderStatus, { errorMap: () => ({ message: 'Estado inválido' }) }),
-  notes: z.string().optional(),
+  notes:  z.string().optional(),
+  fotos:  z.array(z.string()).optional().default([]),
 })
 
 export const listOrdersQuerySchema = z.object({

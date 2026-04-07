@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../models/order_model.dart';
 import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 // ── Linha de produto ──────────────────────────────────────────────────────────
 
@@ -289,7 +290,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(_isEdit ? 'Encomenda atualizada!' : 'Encomenda criada!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.success,
         ));
         context.pop();
       }
@@ -297,7 +298,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.error,
         ));
       }
     } finally {
@@ -405,12 +406,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               child: Stack(children: [
                 CircleAvatar(
                   radius: 56,
-                  backgroundColor: const Color(0xFFE2E8F0),
+                  backgroundColor: AppTheme.border,
                   backgroundImage: _fotoPessoaBytes != null
                       ? MemoryImage(_fotoPessoaBytes!) : null,
                   child: _fotoPessoaBytes == null
                       ? const Icon(Icons.person, size: 44,
-                          color: Color(0xFF94A3B8)) : null,
+                          color: AppTheme.textMuted) : null,
                 ),
                 Positioned(
                   right: 0, bottom: 0,
@@ -420,7 +421,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: _fotoPessoaBytes != null
-                            ? Colors.red : const Color(0xFF1E40AF),
+                            ? AppTheme.error : AppTheme.gold,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -477,10 +478,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Card(
                   elevation: 0,
-                  color: const Color(0xFFF8FAFC),
+                  color: AppTheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    side: const BorderSide(color: AppTheme.border),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -533,16 +534,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: AppTheme.goldFaint,
                               borderRadius: BorderRadius.circular(10),
-                              border:
-                                  Border.all(color: const Color(0xFFBFDBFE)),
+                              border: Border.all(color: AppTheme.border),
                             ),
                             child: Text(
                               _currency.format(r.total),
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1E40AF),
+                                  color: AppTheme.primary,
                                   fontSize: 13),
                               textAlign: TextAlign.center,
                             ),
@@ -602,9 +602,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
+                color: AppTheme.success.withOpacity(0.07),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFBBF7D0)),
+                border: Border.all(color: AppTheme.success.withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -613,7 +613,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF166534))),
+                          color: AppTheme.success)),
                   const SizedBox(height: 6),
                   _calcRow(
                       'Veículo classe 2  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €0,40',
@@ -632,7 +632,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       Text(_currency.format(_deslocacao),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF166534))),
+                              color: AppTheme.success)),
                     ],
                   ),
                 ],
@@ -648,8 +648,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             if (_extras.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text('Nenhum extra adicionado',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                child: const Text('Nenhum extra adicionado',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
               ),
 
             ..._extras.asMap().entries.map((e) {
@@ -659,10 +659,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Card(
                   elevation: 0,
-                  color: const Color(0xFFFFFBF5),
+                  color: AppTheme.goldFaint,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: const BorderSide(color: Color(0xFFFDE68A)),
+                    side: const BorderSide(color: AppTheme.border),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -747,9 +747,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: AppTheme.goldFaint,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Column(children: [
                 _totalRow('Produtos', _subtotalProdutos),
@@ -767,7 +767,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                         style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E40AF))),
+                            color: AppTheme.primary)),
                   ],
                 ),
               ]),
@@ -802,28 +802,28 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E40AF).withOpacity(0.1),
+              color: AppTheme.gold.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 18, color: const Color(0xFF1E40AF)),
+            child: Icon(icon, size: 18, color: AppTheme.gold),
           ),
           const SizedBox(width: 10),
           Text(title,
               style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E3A8A))),
+                  color: AppTheme.primary)),
           if (optional) ...[
             const SizedBox(width: 6),
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.border.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text('opcional',
-                  style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
             ),
           ],
           const SizedBox(width: 8),
@@ -861,13 +861,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               child: Text(
                 note != null ? '$label ($note)' : label,
                 style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF166534)),
+                    fontSize: 12, color: AppTheme.success),
               ),
             ),
             Text(
               NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value),
               style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF166534)),
+                  fontSize: 12, color: AppTheme.success),
             ),
           ],
         ),
@@ -880,8 +880,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label,
-                style: TextStyle(
-                    color: Colors.grey.shade700, fontSize: 13)),
+                style: const TextStyle(
+                    color: AppTheme.textMuted, fontSize: 13)),
             Text(
               NumberFormat.currency(locale: 'pt_PT', symbol: '€')
                   .format(value),
@@ -889,8 +889,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                   color: highlight
-                      ? const Color(0xFF1E40AF)
-                      : Colors.grey.shade700),
+                      ? AppTheme.primary
+                      : AppTheme.textMuted),
             ),
           ],
         ),

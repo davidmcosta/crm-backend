@@ -14,49 +14,73 @@ class AppDrawer extends ConsumerWidget {
     final location = GoRouterState.of(context).uri.toString();
 
     return Drawer(
+      backgroundColor: AppTheme.cardColor,
       child: Column(
         children: [
-          // ── Cabeçalho com dados do utilizador ──────────────────────────────
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1E40AF)),
-            accountName: Text(user?.name ?? ''),
-            accountEmail: Text(user?.email ?? ''),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                user?.name.isNotEmpty == true
-                    ? user!.name[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    fontSize: 24,
-                    color: Color(0xFF1E40AF),
-                    fontWeight: FontWeight.bold),
-              ),
+          // ── Cabeçalho ─────────────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(color: AppTheme.primary),
+            padding: const EdgeInsets.fromLTRB(16, 48, 16, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppTheme.gold.withOpacity(0.25),
+                  child: Text(
+                    user?.name.isNotEmpty == true
+                        ? user!.name[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        fontSize: 22,
+                        color: AppTheme.gold,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(user?.name ?? '',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(user?.email ?? '',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 12)),
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.gold.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppTheme.gold.withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    AppTheme.roleLabel(user?.role ?? ''),
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.gold,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
             ),
-            otherAccountsPictures: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  AppTheme.roleLabel(user?.role ?? ''),
-                  style: const TextStyle(fontSize: 11, color: Colors.white),
-                ),
-              ),
-            ],
           ),
 
-          // ── Navegação ──────────────────────────────────────────────────────
+          const SizedBox(height: 8),
+
+          // ── Navegação ─────────────────────────────────────────────────────
           _DrawerItem(
             icon: Icons.home_outlined,
             label: 'Início',
             route: '/dashboard',
             currentLocation: location,
           ),
-          const Divider(height: 8),
+          const Divider(height: 8, indent: 16, endIndent: 16),
           _DrawerItem(
             icon: Icons.inventory_2_outlined,
             label: 'Encomendas',
@@ -70,7 +94,7 @@ class AppDrawer extends ConsumerWidget {
             currentLocation: location,
           ),
           if (user?.isAdmin == true) ...[
-            const Divider(height: 8),
+            const Divider(height: 8, indent: 16, endIndent: 16),
             _DrawerItem(
               icon: Icons.manage_accounts_outlined,
               label: 'Utilizadores',
@@ -80,12 +104,13 @@ class AppDrawer extends ConsumerWidget {
           ],
 
           const Spacer(),
-          const Divider(),
+          const Divider(indent: 16, endIndent: 16),
 
-          // ── Logout ─────────────────────────────────────────────────────────
+          // ── Logout ────────────────────────────────────────────────────────
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sair', style: TextStyle(color: Colors.red)),
+            leading: const Icon(Icons.logout, color: AppTheme.error),
+            title: const Text('Sair',
+                style: TextStyle(color: AppTheme.error)),
             onTap: () async {
               Navigator.pop(context);
               await ref.read(authProvider.notifier).logout();
@@ -116,22 +141,27 @@ class _DrawerItem extends StatelessWidget {
     final isActive = currentLocation == route ||
         (route != '/dashboard' && currentLocation.startsWith(route));
 
-    return ListTile(
-      leading: Icon(icon,
-          color: isActive ? const Color(0xFF1E40AF) : null),
-      title: Text(label,
-          style: TextStyle(
-            color: isActive ? const Color(0xFF1E40AF) : null,
-            fontWeight: isActive ? FontWeight.w600 : null,
-          )),
-      selected: isActive,
-      selectedTileColor: const Color(0xFF1E40AF).withOpacity(0.08),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      onTap: () {
-        Navigator.pop(context);
-        context.go(route);
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: ListTile(
+        leading: Icon(icon,
+            color: isActive ? AppTheme.gold : AppTheme.textMuted,
+            size: 22),
+        title: Text(label,
+            style: TextStyle(
+              color: isActive ? AppTheme.primary : AppTheme.textMuted,
+              fontWeight:
+                  isActive ? FontWeight.w600 : FontWeight.normal,
+            )),
+        selected: isActive,
+        selectedTileColor: AppTheme.gold.withOpacity(0.1),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)),
+        onTap: () {
+          Navigator.pop(context);
+          context.go(route);
+        },
+      ),
     );
   }
 }

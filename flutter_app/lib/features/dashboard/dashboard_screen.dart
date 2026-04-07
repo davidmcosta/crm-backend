@@ -5,29 +5,22 @@ import '../auth/providers/auth_provider.dart';
 import '../orders/providers/orders_provider.dart';
 import '../customers/providers/customers_provider.dart';
 import '../../shared/widgets/app_drawer.dart';
+import '../../core/theme/app_theme.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth     = ref.watch(authProvider);
-    final user     = auth.user;
-    final orders   = ref.watch(ordersProvider);
+    final auth      = ref.watch(authProvider);
+    final user      = auth.user;
+    final orders    = ref.watch(ordersProvider);
     final customers = ref.watch(customersProvider);
 
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? 'Bom dia'
-        : hour < 18
-            ? 'Boa tarde'
-            : 'Boa noite';
+    const greeting = 'Bem-vindo';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Início'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Início'), centerTitle: false),
       drawer: const AppDrawer(),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -39,7 +32,7 @@ class DashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+                colors: [AppTheme.primary, Color(0xFF3D3A35)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -48,6 +41,23 @@ class DashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded,
+                        color: AppTheme.gold, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Text('Gestão de Encomendas',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 13)),
+                ]),
+                const SizedBox(height: 14),
                 Text(
                   '$greeting, ${user?.name.split(' ').first ?? ''}!',
                   style: const TextStyle(
@@ -59,8 +69,8 @@ class DashboardScreen extends ConsumerWidget {
                 Text(
                   _roleDescription(user?.role ?? ''),
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 14),
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 13),
                 ),
               ],
             ),
@@ -69,74 +79,74 @@ class DashboardScreen extends ConsumerWidget {
 
           // ── Resumo rápido ──────────────────────────────────────────────────
           const Text('Resumo',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary)),
           const SizedBox(height: 12),
 
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.inventory_2_outlined,
-                  label: 'Encomendas',
-                  value: orders.isLoading ? '…' : '${orders.total}',
-                  color: const Color(0xFF1E40AF),
-                  onTap: () => context.go('/orders'),
-                ),
+          Row(children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.inventory_2_outlined,
+                label: 'Encomendas',
+                value: orders.isLoading ? '…' : '${orders.total}',
+                color: AppTheme.primary,
+                onTap: () => context.go('/orders'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.people_outline,
-                  label: 'Clientes',
-                  value: customers.isLoading ? '…' : '${customers.total}',
-                  color: const Color(0xFF059669),
-                  onTap: () => context.go('/customers'),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.people_outline,
+                label: 'Clientes',
+                value: customers.isLoading ? '…' : '${customers.total}',
+                color: AppTheme.gold,
+                onTap: () => context.go('/customers'),
               ),
-            ],
-          ),
+            ),
+          ]),
           const SizedBox(height: 12),
-
-          // Encomendas pendentes + em produção
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.hourglass_empty_outlined,
-                  label: 'Pendentes',
-                  value: orders.isLoading
-                      ? '…'
-                      : '${orders.orders.where((o) => o.status == 'PENDING').length}',
-                  color: const Color(0xFFD97706),
-                  onTap: () => context.go('/orders'),
-                ),
+          Row(children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.hourglass_empty_outlined,
+                label: 'Pendentes',
+                value: orders.isLoading
+                    ? '…'
+                    : '${orders.orders.where((o) => o.status == 'PENDING').length}',
+                color: AppTheme.warning,
+                onTap: () => context.go('/orders'),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.precision_manufacturing_outlined,
-                  label: 'Em produção',
-                  value: orders.isLoading
-                      ? '…'
-                      : '${orders.orders.where((o) => o.status == 'IN_PRODUCTION').length}',
-                  color: const Color(0xFF7C3AED),
-                  onTap: () => context.go('/orders'),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.precision_manufacturing_outlined,
+                label: 'Em execução',
+                value: orders.isLoading
+                    ? '…'
+                    : '${orders.orders.where((o) => o.status == 'IN_PRODUCTION').length}',
+                color: const Color(0xFF8A5C2A),
+                onTap: () => context.go('/orders'),
               ),
-            ],
-          ),
+            ),
+          ]),
           const SizedBox(height: 24),
 
           // ── Acções rápidas ─────────────────────────────────────────────────
           const Text('Acções Rápidas',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary)),
           const SizedBox(height: 12),
 
           _QuickAction(
             icon: Icons.add_circle_outline,
             label: 'Nova Encomenda',
             description: 'Registar uma nova encomenda',
-            color: const Color(0xFF1E40AF),
+            color: AppTheme.gold,
             onTap: () => context.push('/orders/new'),
           ),
           const SizedBox(height: 8),
@@ -144,7 +154,7 @@ class DashboardScreen extends ConsumerWidget {
             icon: Icons.inventory_2_outlined,
             label: 'Ver Encomendas',
             description: 'Consultar e gerir encomendas',
-            color: const Color(0xFF0891B2),
+            color: AppTheme.primary,
             onTap: () => context.go('/orders'),
           ),
           const SizedBox(height: 8),
@@ -152,7 +162,7 @@ class DashboardScreen extends ConsumerWidget {
             icon: Icons.people_outline,
             label: 'Clientes',
             description: 'Gerir base de clientes',
-            color: const Color(0xFF059669),
+            color: const Color(0xFF6B6355),
             onTap: () => context.go('/customers'),
           ),
           if (user?.isAdmin == true) ...[
@@ -161,7 +171,7 @@ class DashboardScreen extends ConsumerWidget {
               icon: Icons.manage_accounts_outlined,
               label: 'Utilizadores',
               description: 'Gerir contas de utilizador',
-              color: const Color(0xFF7C3AED),
+              color: const Color(0xFF8A5C2A),
               onTap: () => context.go('/users'),
             ),
           ],
@@ -182,7 +192,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── Cartão de estatística ────────────────────────────────────────────────────
+// ── Cartão de estatística ─────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final IconData icon;
@@ -215,27 +225,25 @@ class _StatCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(icon, color: color, size: 20),
                     ),
                     Icon(Icons.arrow_forward_ios,
-                        size: 14, color: Colors.grey.shade400),
+                        size: 14, color: AppTheme.border),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  value,
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: color),
-                ),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: color)),
                 const SizedBox(height: 2),
                 Text(label,
                     style: const TextStyle(
-                        fontSize: 13, color: Colors.grey)),
+                        fontSize: 13, color: AppTheme.textMuted)),
               ],
             ),
           ),
@@ -243,7 +251,7 @@ class _StatCard extends StatelessWidget {
       );
 }
 
-// ── Acção rápida ─────────────────────────────────────────────────────────────
+// ── Acção rápida ──────────────────────────────────────────────────────────────
 
 class _QuickAction extends StatelessWidget {
   final IconData icon;
@@ -268,17 +276,18 @@ class _QuickAction extends StatelessWidget {
           leading: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 22),
           ),
           title: Text(label,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: AppTheme.primary)),
           subtitle: Text(description,
-              style: const TextStyle(fontSize: 13)),
-          trailing: Icon(Icons.chevron_right,
-              color: Colors.grey.shade400),
+              style: const TextStyle(
+                  fontSize: 13, color: AppTheme.textMuted)),
+          trailing: const Icon(Icons.chevron_right, color: AppTheme.border),
           onTap: onTap,
         ),
       );

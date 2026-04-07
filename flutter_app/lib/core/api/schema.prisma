@@ -107,6 +107,7 @@ model OrderStatusHistory {
   order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   status      OrderStatus
   notes       String?
+  fotos       Json        @default("[]")
   changedById String
   changedBy   User        @relation(fields: [changedById], references: [id])
   createdAt   DateTime    @default(now())

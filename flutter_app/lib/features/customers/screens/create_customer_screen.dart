@@ -5,6 +5,19 @@ import 'package:dio/dio.dart';
 import '../providers/customers_provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_endpoints.dart';
+import '../../../core/theme/app_theme.dart';
+
+String _extractError(dynamic e) {
+  if (e is DioException) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final msg = data['message'] ?? data['error'];
+      if (msg is List) return (msg as List).join('\n');
+      if (msg != null) return msg.toString();
+    }
+  }
+  return e.toString().replaceAll('Exception: ', '');
+}
 
 class CreateCustomerScreen extends ConsumerStatefulWidget {
   const CreateCustomerScreen({super.key});
@@ -37,14 +50,14 @@ class _CreateCustomerScreenState
     setState(() => _isLoading = true);
 
     try {
-      await ApiClient().dio.post(ApiEndpoints.customers, data: {
-        'name': _nameCtrl.text.trim(),
-        'email': _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
-        'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-        'address': _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
-        'taxId': _taxIdCtrl.text.trim().isEmpty ? null : _taxIdCtrl.text.trim(),
-        'notes': _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-      });
+      final body = <String, dynamic>{'name': _nameCtrl.text.trim()};
+      if (_emailCtrl.text.trim().isNotEmpty)   body['email']   = _emailCtrl.text.trim();
+      if (_phoneCtrl.text.trim().isNotEmpty)   body['phone']   = _phoneCtrl.text.trim();
+      if (_addressCtrl.text.trim().isNotEmpty) body['address'] = _addressCtrl.text.trim();
+      if (_taxIdCtrl.text.trim().isNotEmpty)   body['taxId']   = _taxIdCtrl.text.trim();
+      if (_notesCtrl.text.trim().isNotEmpty)   body['notes']   = _notesCtrl.text.trim();
+
+      await ApiClient().dio.post(ApiEndpoints.customers, data: body);
 
       ref.read(customersProvider.notifier).refresh();
       if (mounted) {
@@ -52,13 +65,13 @@ class _CreateCustomerScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Cliente criado com sucesso!'),
-              backgroundColor: Colors.green),
+              backgroundColor: AppTheme.success),
         );
       }
-    } on DioException catch (e) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(extractErrorMessage(e)), backgroundColor: Colors.red),
+          SnackBar(content: Text(_extractError(e)), backgroundColor: AppTheme.error),
         );
       }
     } finally {
@@ -127,7 +140,7 @@ class _CreateCustomerScreenState
                   ? const SizedBox(
                       height: 20, width: 20,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
+                          color: AppTheme.primary, strokeWidth: 2))
                   : const Text('Guardar Cliente',
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w600)),

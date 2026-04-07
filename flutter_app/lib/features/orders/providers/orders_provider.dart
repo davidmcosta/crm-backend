@@ -161,9 +161,14 @@ Future<OrderModel> createOrder(Map<String, dynamic> data) async {
 }
 
 Future<void> updateOrderStatus(
-    String id, String status, String? notes) async {
+    String id, String status, String? notes,
+    {List<String> fotos = const []}) async {
   await ApiClient().dio.patch(
     ApiEndpoints.orderStatus(id),
-    data: {'status': status, if (notes != null) 'notes': notes},
+    data: {
+      'status': status,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+      if (fotos.isNotEmpty) 'fotos': fotos,
+    },
   );
 }
