@@ -20,7 +20,7 @@ const _statusLabels = [
   'Todos',
   'Pendentes',
   'Confirmadas',
-  'Em Execução',
+  'Em Progresso',
   'Concluídas',
   'Entregues',
   'Canceladas',

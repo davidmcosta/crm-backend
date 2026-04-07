@@ -152,7 +152,7 @@ class AppTheme {
     switch (status) {
       case 'PENDING':       return 'Pendente';
       case 'CONFIRMED':     return 'Confirmada';
-      case 'IN_PRODUCTION': return 'Em Execução';
+      case 'IN_PRODUCTION': return 'Em Progresso';
       case 'READY':         return 'Concluída';
       case 'DELIVERED':     return 'Entregue';
       case 'CANCELLED':     return 'Cancelada';
