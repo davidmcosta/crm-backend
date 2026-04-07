@@ -5,6 +5,7 @@ exports.getCustomerById = getCustomerById;
 exports.getCustomerOrders = getCustomerOrders;
 exports.createCustomer = createCustomer;
 exports.updateCustomer = updateCustomer;
+exports.deleteCustomer = deleteCustomer;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 async function listCustomers(query) {
@@ -65,5 +66,25 @@ async function updateCustomer(id, data) {
         throw { statusCode: 404, message: 'Cliente não encontrado' };
     }
     return prisma.customer.update({ where: { id }, data });
+}
+async function deleteCustomer(id) {
+    const customer = await prisma.customer.findUnique({
+        where: { id },
+        include: { _count: { select: { orders: true } } },
+    });
+    if (!customer || !customer.isActive) {
+        throw { statusCode: 404, message: 'Cliente não encontrado' };
+    }
+    // Soft delete: mark as inactive and detach from orders
+    // Orders keep their data but customerId is set to null
+    await prisma.order.updateMany({
+        where: { customerId: id },
+        data: { customerId: null },
+    });
+    await prisma.customer.update({
+        where: { id },
+        data: { isActive: false },
+    });
+    return { message: 'Cliente eliminado', ordersAffected: customer._count.orders };
 }
 //# sourceMappingURL=customers.service.js.map

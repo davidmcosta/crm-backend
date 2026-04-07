@@ -183,11 +183,11 @@ class UsersListScreen extends ConsumerWidget {
                                         PopupMenuItem(
                                           value: 'deactivate',
                                           child: Row(children: [
-                                            Icon(Icons.person_off,
+                                            Icon(Icons.delete_outline,
                                                 size: 18,
                                                 color: AppTheme.error),
                                             const SizedBox(width: 8),
-                                            Text('Desativar',
+                                            Text('Eliminar',
                                                 style: TextStyle(
                                                     color: AppTheme.error)),
                                           ]),
@@ -424,10 +424,10 @@ class UsersListScreen extends ConsumerWidget {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Desativar utilizador',
+          title: const Text('Eliminar utilizador',
               style: TextStyle(color: AppTheme.primary)),
           content:
-              Text('Tem a certeza que quer desativar "${user.name}"?'),
+              Text('Tem a certeza que quer eliminar "${user.name}"?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -439,7 +439,7 @@ class UsersListScreen extends ConsumerWidget {
                   foregroundColor: Colors.white,
                   minimumSize: const Size(100, 42)),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Desativar'),
+              child: const Text('Eliminar'),
             ),
           ],
         ),
@@ -449,7 +449,7 @@ class UsersListScreen extends ConsumerWidget {
           await ref.read(usersProvider.notifier).deactivate(user.id);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Utilizador desativado')),
+              const SnackBar(content: Text('Utilizador eliminado')),
             );
           }
         } catch (e) {

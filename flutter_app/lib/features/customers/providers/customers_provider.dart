@@ -22,7 +22,9 @@ class CustomersState {
 }
 
 class CustomersNotifier extends StateNotifier<CustomersState> {
-  CustomersNotifier() : super(const CustomersState());
+  CustomersNotifier() : super(const CustomersState()) {
+    load();
+  }
 
   Future<void> load({String? search}) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -56,6 +58,14 @@ class CustomersNotifier extends StateNotifier<CustomersState> {
   }
 
   Future<void> refresh() => load();
+
+  Future<void> delete(String customerId) async {
+    await ApiClient().dio.delete(
+      ApiEndpoints.customerById(customerId),
+      data: <String, dynamic>{},
+    );
+    await load();
+  }
 }
 
 final customersProvider = StateNotifierProvider<CustomersNotifier, CustomersState>(

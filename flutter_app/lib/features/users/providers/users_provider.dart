@@ -97,7 +97,10 @@ class UsersNotifier extends StateNotifier<UsersState> {
   }
 
   Future<void> deactivate(String userId) async {
-    await ApiClient().dio.delete(ApiEndpoints.userById(userId));
+    await ApiClient().dio.delete(
+      ApiEndpoints.userById(userId),
+      data: <String, dynamic>{},
+    );
     await load();
   }
 }

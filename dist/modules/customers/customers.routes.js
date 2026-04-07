@@ -67,5 +67,15 @@ async function customersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
+    // DELETE /api/customers/:id (OPERATOR+)
+    app.delete('/:id', { preHandler: [permissions_1.requireOperator] }, async (request, reply) => {
+        const { id } = request.params;
+        try {
+            return reply.send(await (0, customers_service_1.deleteCustomer)(id));
+        }
+        catch (err) {
+            return reply.status(err.statusCode || 500).send({ error: err.message });
+        }
+    });
 }
 //# sourceMappingURL=customers.routes.js.map

@@ -12,6 +12,7 @@ const hash_1 = require("../../utils/hash");
 const prisma = new client_1.PrismaClient();
 async function listUsers() {
     return prisma.user.findMany({
+        where: { isActive: true },
         select: {
             id: true,
             name: true,

@@ -12,6 +12,7 @@ import {
   getCustomerOrders,
   createCustomer,
   updateCustomer,
+  deleteCustomer,
 } from './customers.service'
 
 export async function customersRoutes(app: FastifyInstance) {
@@ -72,6 +73,16 @@ export async function customersRoutes(app: FastifyInstance) {
     }
     try {
       return reply.send(await updateCustomer(id, result.data))
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message })
+    }
+  })
+
+  // DELETE /api/customers/:id (OPERATOR+)
+  app.delete('/:id', { preHandler: [requireOperator] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    try {
+      return reply.send(await deleteCustomer(id))
     } catch (err: any) {
       return reply.status(err.statusCode || 500).send({ error: err.message })
     }

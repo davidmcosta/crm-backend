@@ -69,3 +69,23 @@ export async function updateCustomer(id: string, data: UpdateCustomerInput) {
   }
   return prisma.customer.update({ where: { id }, data })
 }
+
+export async function deleteCustomer(id: string) {
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    include: { _count: { select: { orders: true } } },
+  })
+  if (!customer || !customer.isActive) {
+    throw { statusCode: 404, message: 'Cliente não encontrado' }
+  }
+  // Soft delete: desassocia encomendas e marca como inativo
+  await prisma.order.updateMany({
+    where: { customerId: id },
+    data: { customerId: null },
+  })
+  await prisma.customer.update({
+    where: { id },
+    data: { isActive: false },
+  })
+  return { message: 'Cliente eliminado', ordersAffected: customer._count.orders }
+}
