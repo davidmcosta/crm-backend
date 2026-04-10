@@ -156,6 +156,9 @@ async function updateOrder(id, data, userId) {
     if (existing.status === client_1.OrderStatus.CANCELLED) {
         throw { statusCode: 400, message: 'Não é possível editar uma encomenda cancelada' };
     }
+    if (existing.status === client_1.OrderStatus.PAID) {
+        throw { statusCode: 400, message: 'Não é possível editar uma encomenda já paga' };
+    }
     // Recalcular extrasValor se extras for fornecido
     const updateData = { ...data, updatedAt: new Date() };
     if (data.extras !== undefined) {
@@ -208,6 +211,8 @@ async function cancelOrder(id, userId) {
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
     if (order.status === client_1.OrderStatus.CANCELLED)
         throw { statusCode: 400, message: 'A encomenda já está cancelada' };
+    if (order.status === client_1.OrderStatus.PAID)
+        throw { statusCode: 400, message: 'Não é possível cancelar uma encomenda já paga' };
     const [updated] = await prisma.$transaction([
         prisma.order.update({ where: { id }, data: { status: client_1.OrderStatus.CANCELLED } }),
         prisma.orderStatusHistory.create({

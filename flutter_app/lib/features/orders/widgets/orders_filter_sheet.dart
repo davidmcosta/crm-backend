@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/orders_provider.dart';
+import '../../customers/providers/customers_provider.dart';
+import '../../customers/models/customer_model.dart';
 
 /// Bottom sheet com filtros avançados para encomendas.
 /// Devolve um [OrdersFilter] atualizado ou null se cancelado.
-class OrdersFilterSheet extends StatefulWidget {
+class OrdersFilterSheet extends ConsumerStatefulWidget {
   final OrdersFilter current;
 
   const OrdersFilterSheet({super.key, required this.current});
 
   @override
-  State<OrdersFilterSheet> createState() => _OrdersFilterSheetState();
+  ConsumerState<OrdersFilterSheet> createState() => _OrdersFilterSheetState();
 }
 
-class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
+class _OrdersFilterSheetState extends ConsumerState<OrdersFilterSheet> {
   late final TextEditingController _cemiterioCtrl;
   late final TextEditingController _trabalhoCtrl;
   late final TextEditingController _produtoCtrl;
+  late final TextEditingController _customerCtrl;
 
   DateTime? _dateFrom;
   DateTime? _dateTo;
+  CustomerModel? _selectedCustomer;
 
   @override
   void initState() {
@@ -26,6 +31,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
     _cemiterioCtrl = TextEditingController(text: widget.current.cemiterio ?? '');
     _trabalhoCtrl  = TextEditingController(text: widget.current.trabalho  ?? '');
     _produtoCtrl   = TextEditingController(text: widget.current.produto   ?? '');
+    _customerCtrl  = TextEditingController(text: widget.current.customerName ?? '');
     _dateFrom = widget.current.dateFrom;
     _dateTo   = widget.current.dateTo;
   }
@@ -35,6 +41,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
     _cemiterioCtrl.dispose();
     _trabalhoCtrl.dispose();
     _produtoCtrl.dispose();
+    _customerCtrl.dispose();
     super.dispose();
   }
 
@@ -50,7 +57,6 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 2),
       helpText: isFrom ? 'Data de início' : 'Data de fim',
-      locale: const Locale('pt', 'PT'),
     );
     if (picked == null) return;
     setState(() {
@@ -74,11 +80,14 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
       cemiterio:    _cemiterioCtrl.text.trim().isEmpty ? null : _cemiterioCtrl.text.trim(),
       trabalho:     _trabalhoCtrl.text.trim().isEmpty  ? null : _trabalhoCtrl.text.trim(),
       produto:      _produtoCtrl.text.trim().isEmpty   ? null : _produtoCtrl.text.trim(),
+      customerId:   _selectedCustomer?.id ?? (_customerCtrl.text.isEmpty ? null : widget.current.customerId),
+      customerName: _selectedCustomer?.name ?? (_customerCtrl.text.isEmpty ? null : widget.current.customerName),
       dateFrom:     _dateFrom,
       dateTo:       _dateTo,
       clearCemiterio: _cemiterioCtrl.text.trim().isEmpty,
       clearTrabalho:  _trabalhoCtrl.text.trim().isEmpty,
       clearProduto:   _produtoCtrl.text.trim().isEmpty,
+      clearCustomer:  _selectedCustomer == null && _customerCtrl.text.isEmpty,
       clearDateFrom:  _dateFrom == null,
       clearDateTo:    _dateTo   == null,
       page: 1,
@@ -91,6 +100,8 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
       _cemiterioCtrl.clear();
       _trabalhoCtrl.clear();
       _produtoCtrl.clear();
+      _customerCtrl.clear();
+      _selectedCustomer = null;
       _dateFrom = null;
       _dateTo   = null;
     });
@@ -99,6 +110,8 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final customersState = ref.watch(customersProvider);
+    final customers = customersState.customers;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -111,7 +124,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabeçalho
+          // ── Cabeçalho ──────────────────────────────────────────────────
           Row(
             children: [
               Text('Filtros avançados',
@@ -127,7 +140,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
           const Divider(),
           const SizedBox(height: 8),
 
-          // ── Período de datas ──────────────────────────────────────────────
+          // ── Período de datas ────────────────────────────────────────────
           Text('Período de criação',
               style: theme.textTheme.labelMedium
                   ?.copyWith(color: theme.colorScheme.primary)),
@@ -157,7 +170,98 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
           ),
           const SizedBox(height: 16),
 
-          // ── Cemitério ─────────────────────────────────────────────────────
+          // ── Cliente ─────────────────────────────────────────────────────
+          Text('Cliente',
+              style: theme.textTheme.labelMedium
+                  ?.copyWith(color: theme.colorScheme.primary)),
+          const SizedBox(height: 6),
+          customersState.isLoading
+              ? const SizedBox(
+                  height: 48,
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              : Autocomplete<CustomerModel>(
+                  initialValue: TextEditingValue(
+                    text: widget.current.customerName ?? '',
+                  ),
+                  displayStringForOption: (c) => c.name,
+                  optionsBuilder: (value) {
+                    if (value.text.isEmpty) return customers;
+                    final q = value.text.toLowerCase();
+                    return customers.where(
+                      (c) => c.name.toLowerCase().contains(q),
+                    );
+                  },
+                  onSelected: (customer) {
+                    setState(() => _selectedCustomer = customer);
+                  },
+                  fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
+                    // Sincronizar com limpeza
+                    if (_selectedCustomer == null &&
+                        widget.current.customerId == null &&
+                        ctrl.text != _customerCtrl.text) {
+                      ctrl.text = _customerCtrl.text;
+                    }
+                    return TextField(
+                      controller: ctrl,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        hintText: 'Pesquisar cliente...',
+                        prefixIcon: const Icon(Icons.person_outline, size: 20),
+                        suffixIcon: ctrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  ctrl.clear();
+                                  setState(() => _selectedCustomer = null);
+                                },
+                              )
+                            : null,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                      ),
+                      onChanged: (_) {
+                        if (_selectedCustomer != null) {
+                          setState(() => _selectedCustomer = null);
+                        }
+                      },
+                    );
+                  },
+                  optionsViewBuilder: (ctx, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(8),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (_, i) {
+                              final c = options.elementAt(i);
+                              return ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.person, size: 18),
+                                title: Text(c.name),
+                                subtitle: c.email != null
+                                    ? Text(c.email!,
+                                        style: const TextStyle(fontSize: 11))
+                                    : null,
+                                onTap: () => onSelected(c),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          const SizedBox(height: 16),
+
+          // ── Cemitério ───────────────────────────────────────────────────
           Text('Cemitério',
               style: theme.textTheme.labelMedium
                   ?.copyWith(color: theme.colorScheme.primary)),
@@ -169,7 +273,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
           ),
           const SizedBox(height: 16),
 
-          // ── Tipo de trabalho ──────────────────────────────────────────────
+          // ── Tipo de trabalho ────────────────────────────────────────────
           Text('Tipo de trabalho',
               style: theme.textTheme.labelMedium
                   ?.copyWith(color: theme.colorScheme.primary)),
@@ -181,7 +285,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
           ),
           const SizedBox(height: 16),
 
-          // ── Produto / Descrição ───────────────────────────────────────────
+          // ── Produto / Descrição ─────────────────────────────────────────
           Text('Produto / Descrição',
               style: theme.textTheme.labelMedium
                   ?.copyWith(color: theme.colorScheme.primary)),
@@ -193,7 +297,7 @@ class _OrdersFilterSheetState extends State<OrdersFilterSheet> {
           ),
           const SizedBox(height: 24),
 
-          // ── Botão Aplicar ─────────────────────────────────────────────────
+          // ── Botão Aplicar ───────────────────────────────────────────────
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(

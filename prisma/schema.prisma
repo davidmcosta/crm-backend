@@ -25,6 +25,7 @@ enum OrderStatus {
   IN_PRODUCTION
   READY
   DELIVERED
+  PAID
   CANCELLED
 }
 

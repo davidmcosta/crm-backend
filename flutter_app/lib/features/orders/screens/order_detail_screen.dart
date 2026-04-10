@@ -24,7 +24,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   final _currency   = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
   final _allStatuses = [
-    'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED'
+    'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED', 'PAID'
   ];
 
   // ── Alterar estado ────────────────────────────────────────────────────────────
@@ -213,7 +213,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         actions: [
           if (canEdit)
             orderAsync.whenData((order) {
-              if (order.status == 'CANCELLED') return const SizedBox.shrink();
+              if (order.status == 'CANCELLED' || order.status == 'PAID')
+                return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Editar encomenda',
@@ -702,9 +703,29 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             // ── Botões de ação ────────────────────────────────────────────────
             if (canEdit) ...[
               const SizedBox(height: 16),
+              // Botão especial destaque para marcar como Pago
+              if (order.status == 'DELIVERED')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF1565C0),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => _changeStatus(order.status),
+                      icon: const Icon(Icons.euro_outlined),
+                      label: const Text('Marcar como Pago',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
               Row(
                 children: [
-                  if (order.status != 'CANCELLED')
+                  // Editar — oculto em CANCELLED e PAID
+                  if (order.status != 'CANCELLED' && order.status != 'PAID')
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => context.push(
@@ -714,8 +735,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                         label: const Text('Editar'),
                       ),
                     ),
-                  if (order.status != 'CANCELLED') const SizedBox(width: 12),
+                  if (order.status != 'CANCELLED' && order.status != 'PAID')
+                    const SizedBox(width: 12),
+                  // Alterar Estado — oculto em DELIVERED (usa botão acima), PAID e CANCELLED
                   if (order.status != 'DELIVERED' &&
+                      order.status != 'PAID' &&
                       order.status != 'CANCELLED')
                     Expanded(
                       child: ElevatedButton.icon(

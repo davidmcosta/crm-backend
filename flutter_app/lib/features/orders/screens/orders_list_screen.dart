@@ -14,6 +14,7 @@ const _statuses = [
   'IN_PRODUCTION',
   'READY',
   'DELIVERED',
+  'PAID',
   'CANCELLED',
 ];
 
@@ -24,6 +25,7 @@ const _statusLabels = [
   'Em Progresso',
   'Concluídas',
   'Entregues',
+  'Pagas',
   'Canceladas',
 ];
 

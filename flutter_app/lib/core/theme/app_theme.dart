@@ -143,6 +143,7 @@ class AppTheme {
       case 'IN_PRODUCTION': return warning;
       case 'READY':         return success;
       case 'DELIVERED':     return const Color(0xFF3D6440);
+      case 'PAID':          return const Color(0xFF1565C0); // azul escuro — dinheiro
       case 'CANCELLED':     return error;
       default:              return textMuted;
     }
@@ -155,6 +156,7 @@ class AppTheme {
       case 'IN_PRODUCTION': return 'Em Progresso';
       case 'READY':         return 'Concluída';
       case 'DELIVERED':     return 'Entregue';
+      case 'PAID':          return 'Pago';
       case 'CANCELLED':     return 'Cancelada';
       default:              return status;
     }
