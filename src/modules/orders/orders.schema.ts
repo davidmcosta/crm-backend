@@ -89,6 +89,11 @@ export const listOrdersQuerySchema = z.object({
   status:     z.nativeEnum(OrderStatus).optional(),
   customerId: z.string().optional(),
   search:     z.string().optional(),
+  cemiterio:  z.string().optional(),
+  trabalho:   z.string().optional(),
+  produto:    z.string().optional(),
+  dateFrom:   z.string().optional(),
+  dateTo:     z.string().optional(),
 })
 
 export type CreateOrderInput  = z.infer<typeof createOrderSchema>

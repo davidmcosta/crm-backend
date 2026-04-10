@@ -78,5 +78,10 @@ exports.listOrdersQuerySchema = zod_1.z.object({
     status: zod_1.z.nativeEnum(client_1.OrderStatus).optional(),
     customerId: zod_1.z.string().optional(),
     search: zod_1.z.string().optional(),
+    cemiterio: zod_1.z.string().optional(),
+    trabalho: zod_1.z.string().optional(),
+    produto: zod_1.z.string().optional(),
+    dateFrom: zod_1.z.string().optional(),
+    dateTo: zod_1.z.string().optional(),
 });
 //# sourceMappingURL=orders.schema.js.map

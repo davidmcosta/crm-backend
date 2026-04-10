@@ -75,8 +75,7 @@ async function deleteCustomer(id) {
     if (!customer || !customer.isActive) {
         throw { statusCode: 404, message: 'Cliente não encontrado' };
     }
-    // Soft delete: mark as inactive and detach from orders
-    // Orders keep their data but customerId is set to null
+    // Soft delete: desassocia encomendas e marca como inativo
     await prisma.order.updateMany({
         where: { customerId: id },
         data: { customerId: null },

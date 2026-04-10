@@ -17,19 +17,55 @@ async function generateOrderNumber(): Promise<string> {
 
 // ── Listagem ─────────────────────────────────────────────────────────────────
 export async function listOrders(query: ListOrdersQuery) {
-  const { page, limit, status, customerId, search } = query
+  const { page, limit, status, customerId, search, cemiterio, trabalho, produto, dateFrom, dateTo } = query
   const skip  = (page - 1) * limit
   const where: any = {}
   if (status)     where.status     = status
   if (customerId) where.customerId = customerId
+
+  // Filtros de campo específico
+  if (cemiterio) where.cemiterio = { contains: cemiterio, mode: 'insensitive' }
+  if (trabalho)  where.trabalho  = { contains: trabalho,  mode: 'insensitive' }
+
+  // Filtro por intervalo de datas
+  if (dateFrom || dateTo) {
+    const dateFilter: Record<string, Date> = {}
+    if (dateFrom) dateFilter['gte'] = new Date(dateFrom as string)
+    if (dateTo) {
+      const end = new Date(dateTo as string)
+      end.setHours(23, 59, 59, 999)
+      dateFilter['lte'] = end
+    }
+    where.createdAt = dateFilter
+  }
+
+  // Pesquisa de texto geral (ordem, falecido, requerente, cemitério, obs, dedicatória, cliente)
   if (search) {
-    where.OR = [
+    const searchOr = [
       { orderNumber:  { contains: search, mode: 'insensitive' } },
       { nomeFalecido: { contains: search, mode: 'insensitive' } },
       { requerente:   { contains: search, mode: 'insensitive' } },
       { cemiterio:    { contains: search, mode: 'insensitive' } },
+      { observacoes:  { contains: search, mode: 'insensitive' } },
+      { dedicatoria:  { contains: search, mode: 'insensitive' } },
       { customer: { name: { contains: search, mode: 'insensitive' } } },
     ]
+    where.OR = searchOr
+  }
+
+  // Pesquisa por nome de produto (dentro do campo trabalho e também texto livre)
+  if (produto) {
+    const prodOr = [
+      { trabalho: { contains: produto, mode: 'insensitive' } },
+      { nomeFalecido: { contains: produto, mode: 'insensitive' } },
+    ]
+    if (where.OR) {
+      // Combina com AND: (existing OR) AND (produto OR)
+      where.AND = [{ OR: where.OR }, { OR: prodOr }]
+      delete where.OR
+    } else {
+      where.OR = prodOr
+    }
   }
 
   const [orders, total] = await Promise.all([

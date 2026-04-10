@@ -10,15 +10,71 @@ import '../models/order_model.dart';
 class OrdersFilter {
   final String? status;
   final String? search;
+  final String? cemiterio;
+  final String? trabalho;
+  final String? produto;
+  final String? customerId;
+  final String? customerName; // só para display
+  final DateTime? dateFrom;
+  final DateTime? dateTo;
   final int page;
 
-  const OrdersFilter({this.status, this.search, this.page = 1});
+  const OrdersFilter({
+    this.status,
+    this.search,
+    this.cemiterio,
+    this.trabalho,
+    this.produto,
+    this.customerId,
+    this.customerName,
+    this.dateFrom,
+    this.dateTo,
+    this.page = 1,
+  });
 
-  OrdersFilter copyWith({String? status, String? search, int? page}) =>
+  /// Conta quantos filtros avançados estão ativos (excluindo search e status)
+  int get activeAdvancedCount {
+    int count = 0;
+    if (cemiterio != null && cemiterio!.isNotEmpty) count++;
+    if (trabalho  != null && trabalho!.isNotEmpty)  count++;
+    if (produto   != null && produto!.isNotEmpty)   count++;
+    if (customerId != null) count++;
+    if (dateFrom  != null) count++;
+    if (dateTo    != null) count++;
+    return count;
+  }
+
+  OrdersFilter copyWith({
+    String? status,
+    String? search,
+    String? cemiterio,
+    String? trabalho,
+    String? produto,
+    String? customerId,
+    String? customerName,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    int? page,
+    bool clearStatus = false,
+    bool clearSearch = false,
+    bool clearCemiterio = false,
+    bool clearTrabalho = false,
+    bool clearProduto = false,
+    bool clearCustomer = false,
+    bool clearDateFrom = false,
+    bool clearDateTo = false,
+  }) =>
       OrdersFilter(
-        status: status ?? this.status,
-        search: search ?? this.search,
-        page: page ?? this.page,
+        status:       clearStatus     ? null : (status     ?? this.status),
+        search:       clearSearch     ? null : (search     ?? this.search),
+        cemiterio:    clearCemiterio  ? null : (cemiterio  ?? this.cemiterio),
+        trabalho:     clearTrabalho   ? null : (trabalho   ?? this.trabalho),
+        produto:      clearProduto    ? null : (produto    ?? this.produto),
+        customerId:   clearCustomer   ? null : (customerId ?? this.customerId),
+        customerName: clearCustomer   ? null : (customerName ?? this.customerName),
+        dateFrom:     clearDateFrom   ? null : (dateFrom   ?? this.dateFrom),
+        dateTo:       clearDateTo     ? null : (dateTo     ?? this.dateTo),
+        page:         page ?? this.page,
       );
 }
 
@@ -94,8 +150,18 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
 
     try {
       final params = <String, dynamic>{'page': f.page, 'limit': 20};
-      if (f.status != null) params['status'] = f.status;
-      if (f.search != null && f.search!.isNotEmpty) params['search'] = f.search;
+      if (f.status     != null && f.status!.isNotEmpty)     params['status']     = f.status;
+      if (f.search     != null && f.search!.isNotEmpty)     params['search']     = f.search;
+      if (f.cemiterio  != null && f.cemiterio!.isNotEmpty)  params['cemiterio']  = f.cemiterio;
+      if (f.trabalho   != null && f.trabalho!.isNotEmpty)   params['trabalho']   = f.trabalho;
+      if (f.produto    != null && f.produto!.isNotEmpty)    params['produto']    = f.produto;
+      if (f.customerId != null)                             params['customerId'] = f.customerId;
+      if (f.dateFrom   != null) {
+        params['dateFrom'] = f.dateFrom!.toIso8601String().substring(0, 10);
+      }
+      if (f.dateTo != null) {
+        params['dateTo'] = f.dateTo!.toIso8601String().substring(0, 10);
+      }
 
       final response = await ApiClient().dio.get(
         ApiEndpoints.orders,

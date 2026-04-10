@@ -214,50 +214,55 @@ export declare const updateOrderSchema: z.ZodObject<{
     observacoes?: string | undefined;
 }>;
 export declare const updateStatusSchema: z.ZodObject<{
-    status: z.ZodNativeEnum<{
-        PENDING: "PENDING";
-        CONFIRMED: "CONFIRMED";
-        IN_PRODUCTION: "IN_PRODUCTION";
-        READY: "READY";
-        DELIVERED: "DELIVERED";
-        CANCELLED: "CANCELLED";
-    }>;
+    status: z.ZodNativeEnum<any>;
     notes: z.ZodOptional<z.ZodString>;
     fotos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
 }, "strip", z.ZodTypeAny, {
-    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED";
-    fotos: string[];
-    notes?: string | undefined;
+    [x: string]: any;
+    status?: unknown;
+    notes?: unknown;
+    fotos?: unknown;
 }, {
-    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED";
-    notes?: string | undefined;
-    fotos?: string[] | undefined;
+    [x: string]: any;
+    status?: unknown;
+    notes?: unknown;
+    fotos?: unknown;
 }>;
 export declare const listOrdersQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodNumber>;
     limit: z.ZodDefault<z.ZodNumber>;
-    status: z.ZodOptional<z.ZodNativeEnum<{
-        PENDING: "PENDING";
-        CONFIRMED: "CONFIRMED";
-        IN_PRODUCTION: "IN_PRODUCTION";
-        READY: "READY";
-        DELIVERED: "DELIVERED";
-        CANCELLED: "CANCELLED";
-    }>>;
+    status: z.ZodOptional<z.ZodNativeEnum<any>>;
     customerId: z.ZodOptional<z.ZodString>;
     search: z.ZodOptional<z.ZodString>;
+    cemiterio: z.ZodOptional<z.ZodString>;
+    trabalho: z.ZodOptional<z.ZodString>;
+    produto: z.ZodOptional<z.ZodString>;
+    dateFrom: z.ZodOptional<z.ZodString>;
+    dateTo: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    page: number;
-    limit: number;
-    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED" | undefined;
-    search?: string | undefined;
-    customerId?: string | undefined;
+    [x: string]: any;
+    page?: unknown;
+    limit?: unknown;
+    status?: unknown;
+    customerId?: unknown;
+    search?: unknown;
+    cemiterio?: unknown;
+    trabalho?: unknown;
+    produto?: unknown;
+    dateFrom?: unknown;
+    dateTo?: unknown;
 }, {
-    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "CANCELLED" | undefined;
-    search?: string | undefined;
-    customerId?: string | undefined;
-    page?: number | undefined;
-    limit?: number | undefined;
+    [x: string]: any;
+    page?: unknown;
+    limit?: unknown;
+    status?: unknown;
+    customerId?: unknown;
+    search?: unknown;
+    cemiterio?: unknown;
+    trabalho?: unknown;
+    produto?: unknown;
+    dateFrom?: unknown;
+    dateTo?: unknown;
 }>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;

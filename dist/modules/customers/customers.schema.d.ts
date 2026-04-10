@@ -30,15 +30,15 @@ export declare const updateCustomerSchema: z.ZodObject<{
     notes: z.ZodOptional<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     email?: string | undefined;
-    name?: string | undefined;
     notes?: string | undefined;
+    name?: string | undefined;
     phone?: string | undefined;
     address?: string | undefined;
     taxId?: string | undefined;
 }, {
     email?: string | undefined;
-    name?: string | undefined;
     notes?: string | undefined;
+    name?: string | undefined;
     phone?: string | undefined;
     address?: string | undefined;
     taxId?: string | undefined;

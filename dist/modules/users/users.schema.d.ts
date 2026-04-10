@@ -3,22 +3,19 @@ export declare const createUserSchema: z.ZodObject<{
     name: z.ZodString;
     email: z.ZodString;
     password: z.ZodString;
-    role: z.ZodDefault<z.ZodNativeEnum<{
-        ADMIN: "ADMIN";
-        MANAGER: "MANAGER";
-        OPERATOR: "OPERATOR";
-        VIEWER: "VIEWER";
-    }>>;
+    role: z.ZodDefault<z.ZodNativeEnum<any>>;
 }, "strip", z.ZodTypeAny, {
-    email: string;
-    password: string;
-    name: string;
-    role: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
+    [x: string]: any;
+    name?: unknown;
+    email?: unknown;
+    password?: unknown;
+    role?: unknown;
 }, {
-    email: string;
-    password: string;
-    name: string;
-    role?: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER" | undefined;
+    [x: string]: any;
+    name?: unknown;
+    email?: unknown;
+    password?: unknown;
+    role?: unknown;
 }>;
 export declare const updateUserSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -31,16 +28,13 @@ export declare const updateUserSchema: z.ZodObject<{
     name?: string | undefined;
 }>;
 export declare const updateRoleSchema: z.ZodObject<{
-    role: z.ZodNativeEnum<{
-        ADMIN: "ADMIN";
-        MANAGER: "MANAGER";
-        OPERATOR: "OPERATOR";
-        VIEWER: "VIEWER";
-    }>;
+    role: z.ZodNativeEnum<any>;
 }, "strip", z.ZodTypeAny, {
-    role: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
+    [x: string]: any;
+    role?: unknown;
 }, {
-    role: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
+    [x: string]: any;
+    role?: unknown;
 }>;
 export declare const changePasswordSchema: z.ZodObject<{
     currentPassword: z.ZodString;

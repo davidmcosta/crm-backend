@@ -4,10 +4,10 @@ export declare function loginService(app: FastifyInstance, data: LoginInput): Pr
     accessToken: string;
     refreshToken: string;
     user: {
-        id: string;
-        name: string;
-        email: string;
-        role: import(".prisma/client").$Enums.UserRole;
+        id: any;
+        name: any;
+        email: any;
+        role: any;
     };
 }>;
 export declare function refreshTokenService(app: FastifyInstance, refreshToken: string): Promise<{
