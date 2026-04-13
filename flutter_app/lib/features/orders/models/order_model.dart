@@ -1,3 +1,39 @@
+// ── Falecido ─────────────────────────────────────────────────────────────────
+
+class FalecidoItem {
+  final String?       nome;
+  final String?       datas;
+  final String?       dedicatoria;
+  final List<String>  fotos;   // base64 data URLs
+
+  const FalecidoItem({
+    this.nome,
+    this.datas,
+    this.dedicatoria,
+    this.fotos = const [],
+  });
+
+  factory FalecidoItem.fromJson(Map<String, dynamic> j) => FalecidoItem(
+        nome:        j['nome']        as String?,
+        datas:       j['datas']       as String?,
+        dedicatoria: j['dedicatoria'] as String?,
+        fotos: (j['fotos'] as List<dynamic>? ?? []).cast<String>(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        if (nome        != null) 'nome':        nome,
+        if (datas       != null) 'datas':       datas,
+        if (dedicatoria != null) 'dedicatoria': dedicatoria,
+        'fotos': fotos,
+      };
+
+  bool get isEmpty =>
+      (nome == null || nome!.isEmpty) &&
+      (datas == null || datas!.isEmpty) &&
+      (dedicatoria == null || dedicatoria!.isEmpty) &&
+      fotos.isEmpty;
+}
+
 // ── Produto ──────────────────────────────────────────────────────────────────
 
 class ProdutoItem {
@@ -111,7 +147,9 @@ class OrderModel {
   final String? numeroSepultura;
 
   // Falecido
-  final String? fotoPessoa;
+  final String? fotoPessoa;              // legado
+  final List<String> fotosPessoa;        // legado — fotos do primeiro falecido
+  final List<FalecidoItem> falecidos;    // lista de falecidos (1-5)
   final String? nomeFalecido;
   final String? datasFalecido;
   final String? dedicatoria;
@@ -157,6 +195,8 @@ class OrderModel {
     this.talhao,
     this.numeroSepultura,
     this.fotoPessoa,
+    this.fotosPessoa  = const [],
+    this.falecidos    = const [],
     this.nomeFalecido,
     this.datasFalecido,
     this.dedicatoria,
@@ -192,7 +232,33 @@ class OrderModel {
         cemiterio:       j['cemiterio']       as String?,
         talhao:          j['talhao']          as String?,
         numeroSepultura: j['numeroSepultura'] as String?,
-        fotoPessoa:      j['fotoPessoa']      as String?,
+        fotoPessoa:  j['fotoPessoa'] as String?,
+        fotosPessoa: () {
+          final raw = j['fotosPessoa'];
+          if (raw is List && raw.isNotEmpty) return raw.cast<String>();
+          final legacy = j['fotoPessoa'] as String?;
+          return legacy != null ? [legacy] : <String>[];
+        }(),
+        falecidos: () {
+          final raw = j['falecidos'];
+          if (raw is List && raw.isNotEmpty) {
+            return raw
+                .map((e) => FalecidoItem.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+          // fallback: construir a partir dos campos legados
+          final nome  = j['nomeFalecido']  as String?;
+          final datas = j['datasFalecido'] as String?;
+          final ded   = j['dedicatoria']   as String?;
+          final rawFotos = j['fotosPessoa'];
+          final fotosLeg = rawFotos is List && rawFotos.isNotEmpty
+              ? rawFotos.cast<String>()
+              : (j['fotoPessoa'] != null ? [j['fotoPessoa'] as String] : <String>[]);
+          if (nome != null || datas != null || ded != null || fotosLeg.isNotEmpty) {
+            return [FalecidoItem(nome: nome, datas: datas, dedicatoria: ded, fotos: fotosLeg)];
+          }
+          return <FalecidoItem>[];
+        }(),
         nomeFalecido:    j['nomeFalecido']    as String?,
         datasFalecido:   j['datasFalecido']   as String?,
         dedicatoria:     j['dedicatoria']     as String?,

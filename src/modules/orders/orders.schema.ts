@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { OrderStatus } from '@prisma/client'
 
+const falecidoSchema = z.object({
+  nome:       z.string().optional(),
+  datas:      z.string().optional(),
+  dedicatoria: z.string().optional(),
+  fotos:      z.array(z.string()).optional().default([]),
+})
+
 const produtoSchema = z.object({
   nome:      z.string().min(1),
   qty:       z.number().positive(),
@@ -24,8 +31,11 @@ export const createOrderSchema = z.object({
   talhao:          z.string().optional(),
   numeroSepultura: z.string().optional(),
 
-  // Falecido (todos opcionais)
+  // Falecido(s)
+  falecidos:     z.array(falecidoSchema).optional().default([]),
+  // campos legados (mantidos para compat.)
   fotoPessoa:    z.string().optional(),
+  fotosPessoa:   z.array(z.string()).optional().default([]),
   nomeFalecido:  z.string().optional(),
   datasFalecido: z.string().optional(),
   dedicatoria:   z.string().optional(),
@@ -62,7 +72,9 @@ export const updateOrderSchema = z.object({
   cemiterio:          z.string().optional(),
   talhao:             z.string().optional(),
   numeroSepultura:    z.string().optional(),
+  falecidos:          z.array(falecidoSchema).optional(),
   fotoPessoa:         z.string().optional(),
+  fotosPessoa:        z.array(z.string()).optional(),
   nomeFalecido:       z.string().optional(),
   datasFalecido:      z.string().optional(),
   dedicatoria:        z.string().optional(),

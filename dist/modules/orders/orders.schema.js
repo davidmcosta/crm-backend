@@ -3,6 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.listOrdersQuerySchema = exports.updateStatusSchema = exports.updateOrderSchema = exports.createOrderSchema = void 0;
 const zod_1 = require("zod");
 const client_1 = require("@prisma/client");
+const falecidoSchema = zod_1.z.object({
+    nome: zod_1.z.string().optional(),
+    datas: zod_1.z.string().optional(),
+    dedicatoria: zod_1.z.string().optional(),
+    fotos: zod_1.z.array(zod_1.z.string()).optional().default([]),
+});
 const produtoSchema = zod_1.z.object({
     nome: zod_1.z.string().min(1),
     qty: zod_1.z.number().positive(),
@@ -21,8 +27,11 @@ exports.createOrderSchema = zod_1.z.object({
     cemiterio: zod_1.z.string().optional(),
     talhao: zod_1.z.string().optional(),
     numeroSepultura: zod_1.z.string().optional(),
-    // Falecido (todos opcionais)
+    // Falecido(s)
+    falecidos: zod_1.z.array(falecidoSchema).optional().default([]),
+    // campos legados (mantidos para compat.)
     fotoPessoa: zod_1.z.string().optional(),
+    fotosPessoa: zod_1.z.array(zod_1.z.string()).optional().default([]),
     nomeFalecido: zod_1.z.string().optional(),
     datasFalecido: zod_1.z.string().optional(),
     dedicatoria: zod_1.z.string().optional(),
@@ -53,7 +62,9 @@ exports.updateOrderSchema = zod_1.z.object({
     cemiterio: zod_1.z.string().optional(),
     talhao: zod_1.z.string().optional(),
     numeroSepultura: zod_1.z.string().optional(),
+    falecidos: zod_1.z.array(falecidoSchema).optional(),
     fotoPessoa: zod_1.z.string().optional(),
+    fotosPessoa: zod_1.z.array(zod_1.z.string()).optional(),
     nomeFalecido: zod_1.z.string().optional(),
     datasFalecido: zod_1.z.string().optional(),
     dedicatoria: zod_1.z.string().optional(),

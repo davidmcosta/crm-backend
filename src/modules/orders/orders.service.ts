@@ -70,7 +70,7 @@ export async function listOrders(query: ListOrdersQuery) {
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
-      where, skip, take: limit, orderBy: { createdAt: 'desc' },
+      where, skip, take: limit, orderBy: { createdAt: 'asc' },
       include: {
         customer:  { select: { id: true, name: true, email: true } },
         createdBy: { select: { id: true, name: true } },
@@ -124,7 +124,11 @@ export async function createOrder(data: CreateOrderInput, userId: string) {
       talhao:          data.talhao ?? null,
       numeroSepultura: data.numeroSepultura ?? null,
 
-      fotoPessoa:    data.fotoPessoa    ?? null,
+      falecidos:     data.falecidos     ?? [],
+      fotosPessoa:   data.fotosPessoa   ?? [],
+      fotoPessoa:    (data.fotosPessoa && data.fotosPessoa.length > 0)
+                       ? data.fotosPessoa[0]
+                       : (data.fotoPessoa ?? null),
       nomeFalecido:  data.nomeFalecido  ?? null,
       datasFalecido: data.datasFalecido ?? null,
       dedicatoria:   data.dedicatoria   ?? null,
@@ -171,6 +175,10 @@ export async function updateOrder(id: string, data: UpdateOrderInput, userId: st
   const updateData: any = { ...data, updatedAt: new Date() }
   if (data.extras !== undefined) {
     updateData.extrasValor = data.extras.reduce((sum, e) => sum + e.valor, 0)
+  }
+  // Sincronizar fotoPessoa com o primeiro elemento de fotosPessoa
+  if (data.fotosPessoa !== undefined) {
+    updateData.fotoPessoa = data.fotosPessoa.length > 0 ? data.fotosPessoa[0] : null
   }
 
   return prisma.order.update({

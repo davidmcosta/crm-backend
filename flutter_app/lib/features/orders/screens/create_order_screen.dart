@@ -10,6 +10,29 @@ import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../../core/theme/app_theme.dart';
 
+// ── Falecido entry ────────────────────────────────────────────────────────────
+
+class _FalecidoEntry {
+  final nomeCtrl        = TextEditingController();
+  final datasCtrl       = TextEditingController();
+  final dedicatoriaCtrl = TextEditingController();
+  List<String>    fotosBase64 = [];
+  List<Uint8List> fotosBytes  = [];
+
+  void dispose() {
+    nomeCtrl.dispose();
+    datasCtrl.dispose();
+    dedicatoriaCtrl.dispose();
+  }
+
+  FalecidoItem toItem() => FalecidoItem(
+        nome:        nomeCtrl.text.trim().isEmpty  ? null : nomeCtrl.text.trim(),
+        datas:       datasCtrl.text.trim().isEmpty ? null : datasCtrl.text.trim(),
+        dedicatoria: dedicatoriaCtrl.text.trim().isEmpty ? null : dedicatoriaCtrl.text.trim(),
+        fotos:       fotosBase64,
+      );
+}
+
 // ── Linha de produto ──────────────────────────────────────────────────────────
 
 class _ProdRow {
@@ -65,20 +88,16 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final _cemiterioCtrl       = TextEditingController();
   final _talhaoCtrl          = TextEditingController();
   final _numeroSepulturaCtrl = TextEditingController();
-  final _nomeFalecidoCtrl    = TextEditingController();
-  final _datasFalecidoCtrl   = TextEditingController();
-  final _dedicatoriaCtrl     = TextEditingController();
   final _kmCtrl              = TextEditingController();
   final _portagensCtrl       = TextEditingController(text: '0');
   final _requerenteCtrl      = TextEditingController();
   final _contactoCtrl        = TextEditingController();
   final _observacoesCtrl     = TextEditingController();
 
-  String?    _selectedCustomerId;
-  double     _selectedCustomerDiscount = 0;
-  bool       _temIVA                   = false;
-  String?    _fotoPessoaBase64;
-  Uint8List? _fotoPessoaBytes;
+  String?              _selectedCustomerId;
+  double               _selectedCustomerDiscount = 0;
+  bool                 _temIVA                   = false;
+  List<_FalecidoEntry> _falecidos                = [_FalecidoEntry()];
   List<_ProdRow>  _produtos = [_ProdRow()];
   List<_ExtraRow> _extras   = [];
 
@@ -104,9 +123,6 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _cemiterioCtrl.text       = o.cemiterio       ?? '';
     _talhaoCtrl.text          = o.talhao          ?? '';
     _numeroSepulturaCtrl.text = o.numeroSepultura ?? '';
-    _nomeFalecidoCtrl.text    = o.nomeFalecido    ?? '';
-    _datasFalecidoCtrl.text   = o.datasFalecido   ?? '';
-    _dedicatoriaCtrl.text     = o.dedicatoria     ?? '';
     _kmCtrl.text              = o.km?.toString()  ?? '';
     _portagensCtrl.text       = o.portagens.toStringAsFixed(2);
     _requerenteCtrl.text      = o.requerente;
@@ -116,12 +132,19 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _selectedCustomerDiscount = o.descontoPerc;
     _temIVA                   = o.ivaPerc > 0;
 
-    if (o.fotoPessoa != null && o.fotoPessoa!.isNotEmpty) {
-      _fotoPessoaBase64 = o.fotoPessoa;
-      final b64 = o.fotoPessoa!.contains(',')
-          ? o.fotoPessoa!.split(',').last
-          : o.fotoPessoa!;
-      _fotoPessoaBytes = base64Decode(b64);
+    if (o.falecidos.isNotEmpty) {
+      _falecidos = o.falecidos.map((f) {
+        final e = _FalecidoEntry();
+        e.nomeCtrl.text        = f.nome        ?? '';
+        e.datasCtrl.text       = f.datas       ?? '';
+        e.dedicatoriaCtrl.text = f.dedicatoria ?? '';
+        e.fotosBase64 = List<String>.from(f.fotos);
+        e.fotosBytes  = f.fotos.map((s) {
+          final b64 = s.contains(',') ? s.split(',').last : s;
+          return base64Decode(b64);
+        }).toList();
+        return e;
+      }).toList();
     }
 
     if (o.produtos.isNotEmpty) {
@@ -155,16 +178,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _cemiterioCtrl.dispose();
     _talhaoCtrl.dispose();
     _numeroSepulturaCtrl.dispose();
-    _nomeFalecidoCtrl.dispose();
-    _datasFalecidoCtrl.dispose();
-    _dedicatoriaCtrl.dispose();
     _kmCtrl.dispose();
     _portagensCtrl.dispose();
     _requerenteCtrl.dispose();
     _contactoCtrl.dispose();
     _observacoesCtrl.dispose();
-    for (final r in _produtos) r.dispose();
-    for (final r in _extras)   r.dispose();
+    for (final r in _falecidos) r.dispose();
+    for (final r in _produtos)  r.dispose();
+    for (final r in _extras)    r.dispose();
     super.dispose();
   }
 
@@ -201,18 +222,19 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     setState(() {});
   }
 
-  // ── Foto ──────────────────────────────────────────────────────────────────────
-  Future<void> _pickPhoto() async {
+  // ── Fotos de falecidos ────────────────────────────────────────────────────────
+  Future<void> _addFotoFalecido(int falecidoIndex) async {
     try {
       final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        maxWidth: 800, maxHeight: 800, imageQuality: 75,
+        maxWidth: 900, maxHeight: 900, imageQuality: 75,
       );
       if (file == null) return;
       final bytes = await file.readAsBytes();
       setState(() {
-        _fotoPessoaBytes  = bytes;
-        _fotoPessoaBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        _falecidos[falecidoIndex].fotosBytes.add(bytes);
+        _falecidos[falecidoIndex].fotosBase64
+            .add('data:image/jpeg;base64,${base64Encode(bytes)}');
       });
     } catch (_) {
       if (mounted) {
@@ -223,9 +245,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
   }
 
-  void _removePhoto() => setState(() {
-        _fotoPessoaBytes  = null;
-        _fotoPessoaBase64 = null;
+  void _removeFotoFalecido(int falecidoIndex, int fotoIndex) =>
+      setState(() {
+        _falecidos[falecidoIndex].fotosBytes.removeAt(fotoIndex);
+        _falecidos[falecidoIndex].fotosBase64.removeAt(fotoIndex);
       });
 
   // ── Produtos / Extras ─────────────────────────────────────────────────────────
@@ -287,14 +310,29 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         body['talhao']          = _talhaoCtrl.text.trim();
       if (_numeroSepulturaCtrl.text.trim().isNotEmpty)
         body['numeroSepultura'] = _numeroSepulturaCtrl.text.trim();
-      if (_fotoPessoaBase64 != null)
-        body['fotoPessoa']      = _fotoPessoaBase64;
-      if (_nomeFalecidoCtrl.text.trim().isNotEmpty)
-        body['nomeFalecido']    = _nomeFalecidoCtrl.text.trim();
-      if (_datasFalecidoCtrl.text.trim().isNotEmpty)
-        body['datasFalecido']   = _datasFalecidoCtrl.text.trim();
-      if (_dedicatoriaCtrl.text.trim().isNotEmpty)
-        body['dedicatoria']     = _dedicatoriaCtrl.text.trim();
+      final falecidosJson = _falecidos
+          .map((e) => e.toItem())
+          .where((f) => !f.isEmpty)
+          .map((f) => f.toJson())
+          .toList();
+      body['falecidos']    = falecidosJson;
+      // legado — primeiro falecido
+      if (falecidosJson.isNotEmpty) {
+        final first = _falecidos.first;
+        body['fotosPessoa'] = first.fotosBase64;
+        if (first.fotosBase64.isNotEmpty)
+          body['fotoPessoa'] = first.fotosBase64.first;
+      }
+      // campos legados do primeiro falecido
+      if (_falecidos.isNotEmpty) {
+        final first = _falecidos.first;
+        if (first.nomeCtrl.text.trim().isNotEmpty)
+          body['nomeFalecido']  = first.nomeCtrl.text.trim();
+        if (first.datasCtrl.text.trim().isNotEmpty)
+          body['datasFalecido'] = first.datasCtrl.text.trim();
+        if (first.dedicatoriaCtrl.text.trim().isNotEmpty)
+          body['dedicatoria']   = first.dedicatoriaCtrl.text.trim();
+      }
       if (_observacoesCtrl.text.trim().isNotEmpty)
         body['observacoes']     = _observacoesCtrl.text.trim();
 
@@ -425,74 +463,183 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             ]),
 
             // ═══════════════════════════════════════
-            // 4. FALECIDO(A)
+            // 4. FALECIDO(S)
             // ═══════════════════════════════════════
             _gap(),
-            _section(Icons.person, 'Falecido(a)', optional: true),
+            _section(Icons.person, 'Falecido(s)', optional: true),
 
-            // Foto
-            Center(
-              child: Stack(children: [
-                CircleAvatar(
-                  radius: 56,
-                  backgroundColor: AppTheme.border,
-                  backgroundImage: _fotoPessoaBytes != null
-                      ? MemoryImage(_fotoPessoaBytes!) : null,
-                  child: _fotoPessoaBytes == null
-                      ? const Icon(Icons.person, size: 44,
-                          color: AppTheme.textMuted) : null,
-                ),
-                Positioned(
-                  right: 0, bottom: 0,
-                  child: GestureDetector(
-                    onTap: _fotoPessoaBytes != null ? _removePhoto : _pickPhoto,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: _fotoPessoaBytes != null
-                            ? AppTheme.error : AppTheme.gold,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: Icon(
-                        _fotoPessoaBytes != null
-                            ? Icons.close : Icons.add_a_photo,
-                        size: 14, color: Colors.white,
-                      ),
+            ..._falecidos.asMap().entries.map((entry) {
+              final fi = entry.key;
+              final fe = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  elevation: 0,
+                  color: AppTheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppTheme.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // cabeçalho com número e botão de remover
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.gold.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('Falecido ${fi + 1}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.gold)),
+                          ),
+                          const Spacer(),
+                          if (_falecidos.length > 1)
+                            IconButton(
+                              onPressed: () => setState(
+                                  () { fe.dispose(); _falecidos.removeAt(fi); }),
+                              icon: const Icon(Icons.delete_outline,
+                                  color: AppTheme.error, size: 20),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                        ]),
+                        const SizedBox(height: 10),
+
+                        // fotos
+                        if (fe.fotosBytes.isNotEmpty) ...[
+                          SizedBox(
+                            height: 100,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: fe.fotosBytes.length + 1,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 8),
+                              itemBuilder: (_, pi) {
+                                if (pi == fe.fotosBytes.length) {
+                                  return GestureDetector(
+                                    onTap: () => _addFotoFalecido(fi),
+                                    child: Container(
+                                      width: 80,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.goldFaint,
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                        border: Border.all(
+                                            color: AppTheme.gold),
+                                      ),
+                                      child: const Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.add_a_photo,
+                                              color: AppTheme.gold,
+                                              size: 20),
+                                          SizedBox(height: 3),
+                                          Text('Adicionar',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: AppTheme.gold)),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return Stack(children: [
+                                  ClipRRect(
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                    child: Image.memory(
+                                      fe.fotosBytes[pi],
+                                      width: 80, height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 3, right: 3,
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          _removeFotoFalecido(fi, pi),
+                                      child: Container(
+                                        padding:
+                                            const EdgeInsets.all(3),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.error,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: Colors.white,
+                                              width: 1.5),
+                                        ),
+                                        child: const Icon(Icons.close,
+                                            size: 10,
+                                            color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ]);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ] else ...[
+                          OutlinedButton.icon(
+                            onPressed: () => _addFotoFalecido(fi),
+                            icon: const Icon(Icons.add_a_photo, size: 16),
+                            label: const Text('Carregar foto(s)',
+                                style: TextStyle(fontSize: 13)),
+                            style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 40)),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+
+                        // campos de texto
+                        TextFormField(
+                          controller: fe.nomeCtrl,
+                          decoration:
+                              _deco('Nome do(a) falecido(a)', Icons.badge_outlined),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: fe.datasCtrl,
+                          decoration: _deco(
+                              'Datas (ex: 01/01/1950 – 15/03/2026)',
+                              Icons.date_range_outlined),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: fe.dedicatoriaCtrl,
+                          maxLines: 3,
+                          decoration: _deco(
+                              'Dedicatória / Epitáfio',
+                              Icons.format_quote_outlined),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ]),
-            ),
-            const SizedBox(height: 4),
-            Center(
-              child: TextButton.icon(
-                onPressed: _pickPhoto,
-                icon: const Icon(Icons.upload, size: 16),
-                label: const Text('Carregar foto',
-                    style: TextStyle(fontSize: 13)),
-              ),
-            ),
-            const SizedBox(height: 10),
+              );
+            }),
 
-            _field(
-              ctrl: _nomeFalecidoCtrl,
-              label: 'Nome do(a) falecido(a)',
-              icon: Icons.badge_outlined,
-            ),
-            const SizedBox(height: 10),
-            _field(
-              ctrl: _datasFalecidoCtrl,
-              label: 'Datas (ex: 01/01/1950 – 15/03/2026)',
-              icon: Icons.date_range_outlined,
-            ),
-            const SizedBox(height: 10),
-            _field(
-              ctrl: _dedicatoriaCtrl,
-              label: 'Dedicatória / Epitáfio',
-              icon: Icons.format_quote_outlined,
-              maxLines: 3,
-            ),
+            if (_falecidos.length < 5)
+              OutlinedButton.icon(
+                onPressed: () =>
+                    setState(() => _falecidos.add(_FalecidoEntry())),
+                icon: const Icon(Icons.person_add_outlined),
+                label: const Text('Adicionar outro falecido'),
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 44)),
+              ),
 
             // ═══════════════════════════════════════
             // 5. PRODUTOS

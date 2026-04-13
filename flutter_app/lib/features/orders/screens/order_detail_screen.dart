@@ -390,77 +390,135 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Falecido ──────────────────────────────────────────────────────
-            if (order.fotoPessoa != null ||
-                order.nomeFalecido != null ||
-                order.datasFalecido != null ||
-                order.dedicatoria != null) ...[
+            // ── Falecido(s) ───────────────────────────────────────────────────
+            if (order.falecidos.isNotEmpty) ...[
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _cardTitle(Icons.person, 'Falecido(a)'),
+                      _cardTitle(Icons.people_outlined,
+                          order.falecidos.length == 1
+                              ? 'Falecido(a)'
+                              : 'Falecidos (${order.falecidos.length})'),
                       const SizedBox(height: 12),
 
-                      if (order.fotoPessoa != null &&
-                          order.fotoPessoa!.isNotEmpty)
-                        Center(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(
-                              _decodePhoto(order.fotoPessoa!),
-                              width: 160, height: 160, fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      if (order.fotoPessoa != null &&
-                          order.fotoPessoa!.isNotEmpty)
-                        const SizedBox(height: 12),
-
-                      if (order.nomeFalecido != null &&
-                          order.nomeFalecido!.isNotEmpty)
-                        _row(Icons.badge_outlined, 'Nome', order.nomeFalecido),
-                      if (order.datasFalecido != null &&
-                          order.datasFalecido!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _row(Icons.date_range_outlined, 'Datas',
-                            order.datasFalecido),
-                      ],
-                      if (order.dedicatoria != null &&
-                          order.dedicatoria!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.goldFaint,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.border),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(children: [
-                                const Icon(Icons.format_quote_outlined,
-                                    size: 14, color: AppTheme.gold),
-                                const SizedBox(width: 4),
-                                const Text('Dedicatória',
-                                    style: TextStyle(
+                      ...order.falecidos.asMap().entries.map((entry) {
+                        final fi = entry.key;
+                        final f  = entry.value;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (order.falecidos.length > 1) ...[
+                              if (fi > 0) const Divider(height: 20),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.gold.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('Falecido ${fi + 1}',
+                                    style: const TextStyle(
                                         fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.bold,
                                         color: AppTheme.gold)),
-                              ]),
-                              const SizedBox(height: 6),
-                              Text(order.dedicatoria!,
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontStyle: FontStyle.italic)),
+                              ),
+                              const SizedBox(height: 10),
                             ],
-                          ),
-                        ),
-                      ],
+
+                            // fotos
+                            if (f.fotos.isNotEmpty) ...[
+                              SizedBox(
+                                height: f.fotos.length == 1 ? 170 : 150,
+                                child: f.fotos.length == 1
+                                    ? Center(
+                                        child: GestureDetector(
+                                          onTap: () => _showPhotoDialog(
+                                              context, f.fotos, 0),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            child: Image.memory(
+                                              _decodePhoto(f.fotos[0]),
+                                              height: 170,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: f.fotos.length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(width: 8),
+                                        itemBuilder: (_, pi) =>
+                                            GestureDetector(
+                                          onTap: () => _showPhotoDialog(
+                                              context, f.fotos, pi),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            child: Image.memory(
+                                              _decodePhoto(f.fotos[pi]),
+                                              width: 120, height: 150,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+
+                            if (f.nome != null && f.nome!.isNotEmpty)
+                              _row(Icons.badge_outlined, 'Nome', f.nome),
+                            if (f.datas != null && f.datas!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              _row(Icons.date_range_outlined, 'Datas',
+                                  f.datas),
+                            ],
+                            if (f.dedicatoria != null &&
+                                f.dedicatoria!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.goldFaint,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border:
+                                      Border.all(color: AppTheme.border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(children: [
+                                      const Icon(
+                                          Icons.format_quote_outlined,
+                                          size: 14,
+                                          color: AppTheme.gold),
+                                      const SizedBox(width: 4),
+                                      const Text('Dedicatória',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.gold)),
+                                    ]),
+                                    const SizedBox(height: 6),
+                                    Text(f.dedicatoria!,
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontStyle: FontStyle.italic)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -948,9 +1006,89 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
   Uint8List _decodePhoto(String dataUrl) {
-    final base64 =
-        dataUrl.contains(',') ? dataUrl.split(',').last : dataUrl;
-    return base64Decode(base64);
+    final b64 = dataUrl.contains(',') ? dataUrl.split(',').last : dataUrl;
+    return base64Decode(b64);
+  }
+
+  void _showPhotoDialog(
+      BuildContext context, List<String> fotos, int initialIndex) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        int current = initialIndex;
+        return StatefulBuilder(
+          builder: (ctx, setState) => Dialog(
+            backgroundColor: Colors.black,
+            insetPadding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Text(
+                        fotos.length > 1
+                            ? 'Foto ${current + 1} / ${fotos.length}'
+                            : 'Foto',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+                InteractiveViewer(
+                  child: Image.memory(
+                    _decodePhoto(fotos[current]),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                if (fotos.length > 1) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: current > 0
+                            ? () => setState(() => current--)
+                            : null,
+                        icon: const Icon(Icons.chevron_left,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      ...List.generate(fotos.length, (i) => Container(
+                            width: 8, height: 8,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: i == current
+                                  ? Colors.white
+                                  : Colors.white38,
+                            ),
+                          )),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: current < fotos.length - 1
+                            ? () => setState(() => current++)
+                            : null,
+                        icon: const Icon(Icons.chevron_right,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _cardTitle(IconData icon, String title) => Row(

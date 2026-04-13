@@ -5,7 +5,24 @@ export declare const createOrderSchema: z.ZodObject<{
     cemiterio: z.ZodOptional<z.ZodString>;
     talhao: z.ZodOptional<z.ZodString>;
     numeroSepultura: z.ZodOptional<z.ZodString>;
+    falecidos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
+        nome: z.ZodOptional<z.ZodString>;
+        datas: z.ZodOptional<z.ZodString>;
+        dedicatoria: z.ZodOptional<z.ZodString>;
+        fotos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
+    }, "strip", z.ZodTypeAny, {
+        fotos: string[];
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+    }, {
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+        fotos?: string[] | undefined;
+    }>, "many">>>;
     fotoPessoa: z.ZodOptional<z.ZodString>;
+    fotosPessoa: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
     nomeFalecido: z.ZodOptional<z.ZodString>;
     datasFalecido: z.ZodOptional<z.ZodString>;
     dedicatoria: z.ZodOptional<z.ZodString>;
@@ -51,6 +68,13 @@ export declare const createOrderSchema: z.ZodObject<{
     ivaValor: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     trabalho: string;
+    falecidos: {
+        fotos: string[];
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+    }[];
+    fotosPessoa: string[];
     produtos: {
         nome: string;
         qty: number;
@@ -73,6 +97,7 @@ export declare const createOrderSchema: z.ZodObject<{
     descontoValor: number;
     ivaPerc: number;
     ivaValor: number;
+    dedicatoria?: string | undefined;
     customerId?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
@@ -80,21 +105,27 @@ export declare const createOrderSchema: z.ZodObject<{
     fotoPessoa?: string | undefined;
     nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
-    dedicatoria?: string | undefined;
     km?: number | undefined;
     observacoes?: string | undefined;
 }, {
     trabalho: string;
     requerente: string;
     contacto: string;
+    dedicatoria?: string | undefined;
     customerId?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;
+    falecidos?: {
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+        fotos?: string[] | undefined;
+    }[] | undefined;
     fotoPessoa?: string | undefined;
+    fotosPessoa?: string[] | undefined;
     nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
-    dedicatoria?: string | undefined;
     produtos?: {
         nome: string;
         qty: number;
@@ -123,7 +154,24 @@ export declare const updateOrderSchema: z.ZodObject<{
     cemiterio: z.ZodOptional<z.ZodString>;
     talhao: z.ZodOptional<z.ZodString>;
     numeroSepultura: z.ZodOptional<z.ZodString>;
+    falecidos: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        nome: z.ZodOptional<z.ZodString>;
+        datas: z.ZodOptional<z.ZodString>;
+        dedicatoria: z.ZodOptional<z.ZodString>;
+        fotos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
+    }, "strip", z.ZodTypeAny, {
+        fotos: string[];
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+    }, {
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+        fotos?: string[] | undefined;
+    }>, "many">>;
     fotoPessoa: z.ZodOptional<z.ZodString>;
+    fotosPessoa: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     nomeFalecido: z.ZodOptional<z.ZodString>;
     datasFalecido: z.ZodOptional<z.ZodString>;
     dedicatoria: z.ZodOptional<z.ZodString>;
@@ -169,15 +217,22 @@ export declare const updateOrderSchema: z.ZodObject<{
     ivaPerc: z.ZodOptional<z.ZodNumber>;
     ivaValor: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
+    dedicatoria?: string | undefined;
     customerId?: string | undefined;
     trabalho?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;
+    falecidos?: {
+        fotos: string[];
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+    }[] | undefined;
     fotoPessoa?: string | undefined;
+    fotosPessoa?: string[] | undefined;
     nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
-    dedicatoria?: string | undefined;
     produtos?: {
         nome: string;
         qty: number;
@@ -203,15 +258,22 @@ export declare const updateOrderSchema: z.ZodObject<{
     ivaPerc?: number | undefined;
     ivaValor?: number | undefined;
 }, {
+    dedicatoria?: string | undefined;
     customerId?: string | undefined;
     trabalho?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;
+    falecidos?: {
+        nome?: string | undefined;
+        datas?: string | undefined;
+        dedicatoria?: string | undefined;
+        fotos?: string[] | undefined;
+    }[] | undefined;
     fotoPessoa?: string | undefined;
+    fotosPessoa?: string[] | undefined;
     nomeFalecido?: string | undefined;
     datasFalecido?: string | undefined;
-    dedicatoria?: string | undefined;
     produtos?: {
         nome: string;
         qty: number;

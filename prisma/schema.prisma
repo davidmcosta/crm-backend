@@ -70,11 +70,14 @@ model Order {
   talhao          String?
   numeroSepultura String?
 
-  // Falecido
-  fotoPessoa    String? @db.Text // base64 data URL
-  nomeFalecido  String? // opcional — por vezes só existe foto
-  datasFalecido String? // ex: "01/01/1950 - 15/03/2026"
-  dedicatoria   String? @db.Text // opcional
+  // Falecido(s) — legado (campo único)
+  fotoPessoa    String? @db.Text
+  fotosPessoa   Json    @default("[]")
+  nomeFalecido  String?
+  datasFalecido String?
+  dedicatoria   String? @db.Text
+  // Novo — lista de falecidos (1–5 por encomenda)
+  falecidos     Json    @default("[]")
 
   // Produtos (lista dinâmica de artigos)
   produtos Json @default("[]")
