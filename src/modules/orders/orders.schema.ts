@@ -53,6 +53,8 @@ export const createOrderSchema = z.object({
   observacoes:   z.string().optional(),
   descontoPerc:  z.number().min(0).max(100).default(0),
   descontoValor: z.number().min(0).default(0),
+  ivaPerc:       z.number().min(0).max(100).default(0),
+  ivaValor:      z.number().min(0).default(0),
 })
 
 export const updateOrderSchema = z.object({
@@ -79,6 +81,8 @@ export const updateOrderSchema = z.object({
   customerId:    z.string().optional(),
   descontoPerc:  z.number().min(0).max(100).optional(),
   descontoValor: z.number().min(0).optional(),
+  ivaPerc:       z.number().min(0).max(100).optional(),
+  ivaValor:      z.number().min(0).optional(),
 })
 
 export const updateStatusSchema = z.object({

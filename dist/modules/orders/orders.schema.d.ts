@@ -47,6 +47,8 @@ export declare const createOrderSchema: z.ZodObject<{
     observacoes: z.ZodOptional<z.ZodString>;
     descontoPerc: z.ZodDefault<z.ZodNumber>;
     descontoValor: z.ZodDefault<z.ZodNumber>;
+    ivaPerc: z.ZodDefault<z.ZodNumber>;
+    ivaValor: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     trabalho: string;
     produtos: {
@@ -69,6 +71,8 @@ export declare const createOrderSchema: z.ZodObject<{
     contacto: string;
     descontoPerc: number;
     descontoValor: number;
+    ivaPerc: number;
+    ivaValor: number;
     customerId?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
@@ -111,6 +115,8 @@ export declare const createOrderSchema: z.ZodObject<{
     observacoes?: string | undefined;
     descontoPerc?: number | undefined;
     descontoValor?: number | undefined;
+    ivaPerc?: number | undefined;
+    ivaValor?: number | undefined;
 }>;
 export declare const updateOrderSchema: z.ZodObject<{
     trabalho: z.ZodOptional<z.ZodString>;
@@ -160,6 +166,8 @@ export declare const updateOrderSchema: z.ZodObject<{
     customerId: z.ZodOptional<z.ZodString>;
     descontoPerc: z.ZodOptional<z.ZodNumber>;
     descontoValor: z.ZodOptional<z.ZodNumber>;
+    ivaPerc: z.ZodOptional<z.ZodNumber>;
+    ivaValor: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     customerId?: string | undefined;
     trabalho?: string | undefined;
@@ -192,6 +200,8 @@ export declare const updateOrderSchema: z.ZodObject<{
     observacoes?: string | undefined;
     descontoPerc?: number | undefined;
     descontoValor?: number | undefined;
+    ivaPerc?: number | undefined;
+    ivaValor?: number | undefined;
 }, {
     customerId?: string | undefined;
     trabalho?: string | undefined;
@@ -224,6 +234,8 @@ export declare const updateOrderSchema: z.ZodObject<{
     observacoes?: string | undefined;
     descontoPerc?: number | undefined;
     descontoValor?: number | undefined;
+    ivaPerc?: number | undefined;
+    ivaValor?: number | undefined;
 }>;
 export declare const updateStatusSchema: z.ZodObject<{
     status: z.ZodNativeEnum<any>;

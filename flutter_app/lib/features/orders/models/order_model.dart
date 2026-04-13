@@ -132,6 +132,10 @@ class OrderModel {
   final double descontoPerc;
   final double descontoValor;
 
+  // IVA
+  final double ivaPerc;   // 0 = isento, 23 = 23%
+  final double ivaValor;
+
   // Requerente
   final String requerente;
   final String contacto;
@@ -166,6 +170,8 @@ class OrderModel {
     required this.valorTotal,
     this.descontoPerc  = 0,
     this.descontoValor = 0,
+    this.ivaPerc       = 0,
+    this.ivaValor      = 0,
     required this.requerente,
     required this.contacto,
     this.observacoes,
@@ -204,6 +210,8 @@ class OrderModel {
         valorTotal:    _d(j['valorTotal']),
         descontoPerc:  (j['descontoPerc']  as num?)?.toDouble() ?? 0.0,
         descontoValor: _d(j['descontoValor']),
+        ivaPerc:       (j['ivaPerc']       as num?)?.toDouble() ?? 0.0,
+        ivaValor:      _d(j['ivaValor']),
         requerente:  j['requerente'] as String? ?? '',
         contacto:    j['contacto']   as String? ?? '',
         observacoes: j['observacoes'] as String?,

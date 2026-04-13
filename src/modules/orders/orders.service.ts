@@ -141,6 +141,8 @@ export async function createOrder(data: CreateOrderInput, userId: string) {
       valorTotal:         data.valorTotal         ?? 0,
       descontoPerc:       data.descontoPerc       ?? 0,
       descontoValor:      data.descontoValor      ?? 0,
+      ivaPerc:            data.ivaPerc            ?? 0,
+      ivaValor:           data.ivaValor           ?? 0,
 
       requerente:  data.requerente,
       contacto:    data.contacto,

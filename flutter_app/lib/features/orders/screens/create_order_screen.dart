@@ -76,6 +76,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   String?    _selectedCustomerId;
   double     _selectedCustomerDiscount = 0;
+  bool       _temIVA                   = false;
   String?    _fotoPessoaBase64;
   Uint8List? _fotoPessoaBytes;
   List<_ProdRow>  _produtos = [_ProdRow()];
@@ -113,6 +114,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _observacoesCtrl.text     = o.observacoes ?? '';
     _selectedCustomerId       = o.customer?.id;
     _selectedCustomerDiscount = o.descontoPerc;
+    _temIVA                   = o.ivaPerc > 0;
 
     if (o.fotoPessoa != null && o.fotoPessoa!.isNotEmpty) {
       _fotoPessoaBase64 = o.fotoPessoa;
@@ -178,8 +180,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           ? _subtotalProdutos * _selectedCustomerDiscount / 100
           : 0;
 
-  double get _valorTotal =>
+  double get _baseIVA =>
       _subtotalProdutos - _descontoValor + _deslocacao + _subtotalExtras;
+
+  double get _ivaValor => _temIVA ? _baseIVA * 0.23 : 0;
+
+  double get _valorTotal => _baseIVA + _ivaValor;
 
   void _recalcDeslocacao() {
     final km        = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))        ?? 0;
@@ -267,6 +273,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         'extrasValor':        _subtotalExtras,
         'descontoPerc':       _selectedCustomerDiscount,
         'descontoValor':      _descontoValor,
+        'ivaPerc':            _temIVA ? 23.0 : 0.0,
+        'ivaValor':           _ivaValor,
         'valorTotal':         _valorTotal,
       };
 
@@ -364,14 +372,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           DropdownMenuItem(value: c.id, child: Text(c.name))),
                     ],
                     onChanged: (v) {
-                      final customer = v == null
-                          ? null
-                          : customersState.customers
-                              .where((c) => c.id == v)
-                              .firstOrNull;
+                      double discount = 0;
+                      if (v != null) {
+                        for (final c in customersState.customers) {
+                          if (c.id == v) { discount = c.discount; break; }
+                        }
+                      }
                       setState(() {
                         _selectedCustomerId       = v;
-                        _selectedCustomerDiscount = customer?.discount ?? 0;
+                        _selectedCustomerDiscount = discount;
                       });
                     },
                   ),
@@ -761,6 +770,49 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             ),
 
             // ═══════════════════════════════════════
+            // IVA
+            // ═══════════════════════════════════════
+            _gap(),
+            _section(Icons.receipt_long_outlined, 'Faturação / IVA'),
+            Container(
+              decoration: BoxDecoration(
+                color: _temIVA
+                    ? const Color(0xFF1565C0).withOpacity(0.06)
+                    : AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _temIVA
+                      ? const Color(0xFF1565C0).withOpacity(0.35)
+                      : AppTheme.border,
+                ),
+              ),
+              child: SwitchListTile(
+                value: _temIVA,
+                onChanged: (v) => setState(() => _temIVA = v),
+                title: const Text('Fatura com IVA',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                  _temIVA
+                      ? 'IVA à taxa normal (23%) incluído no total'
+                      : 'Encomenda isenta de IVA',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _temIVA
+                        ? const Color(0xFF1565C0)
+                        : AppTheme.textMuted,
+                  ),
+                ),
+                activeColor: const Color(0xFF1565C0),
+                secondary: Icon(
+                  _temIVA ? Icons.receipt_long : Icons.receipt_long_outlined,
+                  color: _temIVA
+                      ? const Color(0xFF1565C0)
+                      : AppTheme.textMuted,
+                ),
+              ),
+            ),
+
+            // ═══════════════════════════════════════
             // RESUMO FINANCEIRO
             // ═══════════════════════════════════════
             _gap(),
@@ -782,6 +834,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 _totalRow('Deslocação / Montagem', _deslocacao),
                 if (_subtotalExtras > 0)
                   _totalRow('Extras', _subtotalExtras),
+                if (_temIVA) ...[
+                  const Divider(height: 12),
+                  _totalRow('Subtotal (sem IVA)', _baseIVA, highlight: false),
+                  _totalRow('IVA (23%)', _ivaValor, isIva: true),
+                ],
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -900,39 +957,49 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       );
 
   Widget _totalRow(String label, double value,
-          {bool highlight = true, bool isDiscount = false}) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(children: [
-              if (isDiscount) ...[
-                const Icon(Icons.discount_outlined,
-                    size: 13, color: AppTheme.gold),
-                const SizedBox(width: 4),
-              ],
-              Text(label,
-                  style: TextStyle(
-                      color: isDiscount ? AppTheme.gold : AppTheme.textMuted,
-                      fontSize: 13,
-                      fontWeight: isDiscount
-                          ? FontWeight.w600 : FontWeight.normal)),
-            ]),
-            Text(
-              '${isDiscount ? '−' : ''}${NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value.abs())}',
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: isDiscount
-                      ? AppTheme.gold
-                      : highlight
-                          ? AppTheme.primary
-                          : AppTheme.textMuted),
-            ),
-          ],
-        ),
-      );
+          {bool highlight = true, bool isDiscount = false, bool isIva = false}) {
+    const ivaColor = Color(0xFF1565C0);
+    final color = isDiscount
+        ? AppTheme.gold
+        : isIva
+            ? ivaColor
+            : highlight
+                ? AppTheme.primary
+                : AppTheme.textMuted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(children: [
+            if (isDiscount) ...[
+              const Icon(Icons.discount_outlined,
+                  size: 13, color: AppTheme.gold),
+              const SizedBox(width: 4),
+            ],
+            if (isIva) ...[
+              const Icon(Icons.receipt_long_outlined,
+                  size: 13, color: ivaColor),
+              const SizedBox(width: 4),
+            ],
+            Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: (isDiscount || isIva)
+                        ? FontWeight.w600 : FontWeight.normal)),
+          ]),
+          Text(
+            '${isDiscount ? '−' : ''}${NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value.abs())}',
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: color),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 extension on double {

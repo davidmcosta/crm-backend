@@ -665,6 +665,57 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
+            // ── IVA ───────────────────────────────────────────────────────────
+            if (order.ivaPerc > 0) ...[
+              Card(
+                color: const Color(0xFF1565C0).withOpacity(0.06),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                      color: const Color(0xFF1565C0).withOpacity(0.35)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  child: Column(children: [
+                    Row(children: [
+                      const Icon(Icons.receipt_long_outlined,
+                          size: 18, color: Color(0xFF1565C0)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'IVA (${order.ivaPerc % 1 == 0 ? order.ivaPerc.toInt() : order.ivaPerc.toStringAsFixed(1)}%) — taxa normal',
+                          style: const TextStyle(
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Text(
+                        _currency.format(order.ivaValor),
+                        style: const TextStyle(
+                            color: Color(0xFF1565C0),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15),
+                      ),
+                    ]),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Base tributável: ${_currency.format(order.valorTotal - order.ivaValor)}',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF1565C0)),
+                        ),
+                      ],
+                    ),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // ── Total geral ───────────────────────────────────────────────────
             Card(
               color: AppTheme.goldFaint,
@@ -675,21 +726,39 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('TOTAL',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text(
-                      _currency.format(order.valorTotal),
-                      style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary),
+                child: Column(children: [
+                  if (order.ivaPerc > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal (sem IVA)',
+                            style: TextStyle(
+                                fontSize: 13, color: AppTheme.textMuted)),
+                        Text(
+                          _currency.format(order.valorTotal - order.ivaValor),
+                          style: const TextStyle(
+                              fontSize: 13, color: AppTheme.textMuted)),
+                      ],
                     ),
+                    const SizedBox(height: 6),
                   ],
-                ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        order.ivaPerc > 0 ? 'TOTAL (c/ IVA)' : 'TOTAL',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(
+                        _currency.format(order.valorTotal),
+                        style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primary),
+                      ),
+                    ],
+                  ),
+                ]),
               ),
             ),
             const SizedBox(height: 12),
@@ -923,4 +992,3 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 }
-            

@@ -45,6 +45,8 @@ exports.createOrderSchema = zod_1.z.object({
     observacoes: zod_1.z.string().optional(),
     descontoPerc: zod_1.z.number().min(0).max(100).default(0),
     descontoValor: zod_1.z.number().min(0).default(0),
+    ivaPerc: zod_1.z.number().min(0).max(100).default(0),
+    ivaValor: zod_1.z.number().min(0).default(0),
 });
 exports.updateOrderSchema = zod_1.z.object({
     trabalho: zod_1.z.string().min(1).optional(),
@@ -70,6 +72,8 @@ exports.updateOrderSchema = zod_1.z.object({
     customerId: zod_1.z.string().optional(),
     descontoPerc: zod_1.z.number().min(0).max(100).optional(),
     descontoValor: zod_1.z.number().min(0).optional(),
+    ivaPerc: zod_1.z.number().min(0).max(100).optional(),
+    ivaValor: zod_1.z.number().min(0).optional(),
 });
 exports.updateStatusSchema = zod_1.z.object({
     status: zod_1.z.nativeEnum(client_1.OrderStatus, { errorMap: () => ({ message: 'Estado inválido' }) }),
