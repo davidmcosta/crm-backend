@@ -104,7 +104,7 @@ class AppDrawer extends ConsumerWidget {
           const Divider(height: 8, indent: 16, endIndent: 16),
           _DrawerItem(
             icon: Icons.category_outlined,
-            label: 'Catálogo de Produtos',
+            label: 'Produtos',
             route: '/products',
             currentLocation: location,
           ),
