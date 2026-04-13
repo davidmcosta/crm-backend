@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="order_management"
+        android:label="Casa das Campas CRM"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
