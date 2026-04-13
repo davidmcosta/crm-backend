@@ -128,6 +128,10 @@ class OrderModel {
   final List<ExtraItem> extras;
   final double valorTotal;
 
+  // Desconto de revendedor
+  final double descontoPerc;
+  final double descontoValor;
+
   // Requerente
   final String requerente;
   final String contacto;
@@ -160,6 +164,8 @@ class OrderModel {
     required this.deslocacaoMontagem,
     this.extras = const [],
     required this.valorTotal,
+    this.descontoPerc  = 0,
+    this.descontoValor = 0,
     required this.requerente,
     required this.contacto,
     this.observacoes,
@@ -195,7 +201,9 @@ class OrderModel {
         portagens:         _d(j['portagens']),
         refeicoes:         _d(j['refeicoes']),
         deslocacaoMontagem: _d(j['deslocacaoMontagem']),
-        valorTotal:        _d(j['valorTotal']),
+        valorTotal:    _d(j['valorTotal']),
+        descontoPerc:  (j['descontoPerc']  as num?)?.toDouble() ?? 0.0,
+        descontoValor: _d(j['descontoValor']),
         requerente:  j['requerente'] as String? ?? '',
         contacto:    j['contacto']   as String? ?? '',
         observacoes: j['observacoes'] as String?,

@@ -10,6 +10,7 @@ import 'features/orders/screens/order_detail_screen.dart';
 import 'features/orders/screens/create_order_screen.dart';
 import 'features/customers/models/customer_model.dart';
 import 'features/customers/screens/customers_list_screen.dart';
+import 'features/customers/screens/customer_detail_screen.dart';
 import 'features/customers/screens/create_customer_screen.dart';
 import 'features/customers/screens/edit_customer_screen.dart';
 import 'features/users/screens/users_list_screen.dart';
@@ -76,11 +77,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const CreateCustomerScreen(),
           ),
           GoRoute(
-            path: ':id/edit',
-            builder: (_, state) {
-              final customer = state.extra as CustomerModel;
-              return EditCustomerScreen(customer: customer);
-            },
+            path: ':id',
+            builder: (_, state) =>
+                CustomerDetailScreen(customerId: state.pathParameters['id']!),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (_, state) {
+                  final customer = state.extra as CustomerModel;
+                  return EditCustomerScreen(customer: customer);
+                },
+              ),
+            ],
           ),
         ],
       ),

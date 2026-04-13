@@ -138,6 +138,8 @@ async function createOrder(data, userId) {
             deslocacaoMontagem: data.deslocacaoMontagem ?? 0,
             extrasValor: extrasTotal,
             valorTotal: data.valorTotal ?? 0,
+            descontoPerc: data.descontoPerc ?? 0,
+            descontoValor: data.descontoValor ?? 0,
             requerente: data.requerente,
             contacto: data.contacto,
             observacoes: data.observacoes ?? null,

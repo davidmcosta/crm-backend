@@ -48,7 +48,9 @@ model Customer {
   email     String?  @unique
   phone     String?
   address   String?
+  taxId     String?
   notes     String?
+  discount  Float    @default(0) // percentagem de desconto (ex: 10 = 10%)
   isActive  Boolean  @default(true)
   orders    Order[]
   createdAt DateTime @default(now())
@@ -89,6 +91,10 @@ model Order {
   valorTotal         Decimal @default(0) @db.Decimal(10, 2)
 
   // Requerente
+  // Desconto de revendedor
+  descontoPerc  Float   @default(0)
+  descontoValor Decimal @default(0) @db.Decimal(10, 2)
+
   requerente  String
   contacto    String
   observacoes String?

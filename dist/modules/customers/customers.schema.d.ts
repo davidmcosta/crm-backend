@@ -6,8 +6,10 @@ export declare const createCustomerSchema: z.ZodObject<{
     address: z.ZodOptional<z.ZodString>;
     taxId: z.ZodOptional<z.ZodString>;
     notes: z.ZodOptional<z.ZodString>;
+    discount: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     name: string;
+    discount: number;
     email?: string | undefined;
     notes?: string | undefined;
     phone?: string | undefined;
@@ -20,6 +22,7 @@ export declare const createCustomerSchema: z.ZodObject<{
     phone?: string | undefined;
     address?: string | undefined;
     taxId?: string | undefined;
+    discount?: number | undefined;
 }>;
 export declare const updateCustomerSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -28,6 +31,7 @@ export declare const updateCustomerSchema: z.ZodObject<{
     address: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     taxId: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     notes: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    discount: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     email?: string | undefined;
     notes?: string | undefined;
@@ -35,6 +39,7 @@ export declare const updateCustomerSchema: z.ZodObject<{
     phone?: string | undefined;
     address?: string | undefined;
     taxId?: string | undefined;
+    discount?: number | undefined;
 }, {
     email?: string | undefined;
     notes?: string | undefined;
@@ -42,6 +47,7 @@ export declare const updateCustomerSchema: z.ZodObject<{
     phone?: string | undefined;
     address?: string | undefined;
     taxId?: string | undefined;
+    discount?: number | undefined;
 }>;
 export declare const listCustomersQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodNumber>;

@@ -9,6 +9,7 @@ exports.createCustomerSchema = zod_1.z.object({
     address: zod_1.z.string().optional(),
     taxId: zod_1.z.string().optional(),
     notes: zod_1.z.string().optional(),
+    discount: zod_1.z.coerce.number().min(0).max(100).default(0),
 });
 exports.updateCustomerSchema = exports.createCustomerSchema.partial();
 exports.listCustomersQuerySchema = zod_1.z.object({

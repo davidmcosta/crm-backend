@@ -76,3 +76,8 @@ final customerDetailProvider = FutureProvider.family<CustomerModel, String>((ref
   final response = await ApiClient().dio.get(ApiEndpoints.customerById(id));
   return CustomerModel.fromJson(response.data as Map<String, dynamic>);
 });
+
+final customerOrdersProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, customerId) async {
+  final response = await ApiClient().dio.get(ApiEndpoints.customerOrders(customerId));
+  return (response.data as List).cast<Map<String, dynamic>>();
+});

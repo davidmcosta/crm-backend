@@ -75,6 +75,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final _observacoesCtrl     = TextEditingController();
 
   String?    _selectedCustomerId;
+  double     _selectedCustomerDiscount = 0;
   String?    _fotoPessoaBase64;
   Uint8List? _fotoPessoaBytes;
   List<_ProdRow>  _produtos = [_ProdRow()];
@@ -111,6 +112,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _contactoCtrl.text        = o.contacto;
     _observacoesCtrl.text     = o.observacoes ?? '';
     _selectedCustomerId       = o.customer?.id;
+    _selectedCustomerDiscount = o.descontoPerc;
 
     if (o.fotoPessoa != null && o.fotoPessoa!.isNotEmpty) {
       _fotoPessoaBase64 = o.fotoPessoa;
@@ -171,18 +173,24 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   double get _subtotalExtras =>
       _extras.fold(0, (s, r) => s + r.valor);
 
+  double get _descontoValor =>
+      _selectedCustomerDiscount > 0
+          ? _subtotalProdutos * _selectedCustomerDiscount / 100
+          : 0;
+
   double get _valorTotal =>
-      _subtotalProdutos + _deslocacao + _subtotalExtras;
+      _subtotalProdutos - _descontoValor + _deslocacao + _subtotalExtras;
 
   void _recalcDeslocacao() {
     final km        = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))        ?? 0;
     final portagens = double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0;
 
     final custokm     = km * 2 * 0.40;
+    final portagensRT = portagens * 2;          // ida + volta
     final horasViagem = (km * 2) / 80;
     _precisaRefeicao  = horasViagem > 4.0;
-    _refeicoes        = _precisaRefeicao ? 2 * 10.20 : 0;
-    _deslocacao       = custokm + portagens + _refeicoes;
+    _refeicoes        = _precisaRefeicao ? 2 * 15.00 : 0;  // 2 col. × €15
+    _deslocacao       = custokm + portagensRT + _refeicoes;
 
     setState(() {});
   }
@@ -253,10 +261,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         'produtos':           produtosJson,
         'extras':             extrasJson,
         'valorSepultura':     _subtotalProdutos,
-        'portagens':          double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0,
+        'portagens':          (double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0) * 2,
         'refeicoes':          _refeicoes,
         'deslocacaoMontagem': _deslocacao,
         'extrasValor':        _subtotalExtras,
+        'descontoPerc':       _selectedCustomerDiscount,
+        'descontoValor':      _descontoValor,
         'valorTotal':         _valorTotal,
       };
 
@@ -353,7 +363,17 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       ...customersState.customers.map((c) =>
                           DropdownMenuItem(value: c.id, child: Text(c.name))),
                     ],
-                    onChanged: (v) => setState(() => _selectedCustomerId = v),
+                    onChanged: (v) {
+                      final customer = v == null
+                          ? null
+                          : customersState.customers
+                              .where((c) => c.id == v)
+                              .firstOrNull;
+                      setState(() {
+                        _selectedCustomerId       = v;
+                        _selectedCustomerDiscount = customer?.discount ?? 0;
+                      });
+                    },
                   ),
 
             // ═══════════════════════════════════════
@@ -618,10 +638,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   _calcRow(
                       'Veículo classe 2  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €0,40',
                       (double.tryParse(_kmCtrl.text) ?? 0) * 2 * 0.40),
-                  _calcRow('Portagens',
-                      double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0),
+                  _calcRow('Portagens (ida + volta)',
+                      (double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0) * 2),
                   if (_precisaRefeicao)
-                    _calcRow('Refeições (2 colaboradores)', _refeicoes,
+                    _calcRow('Refeições (2 colaboradores × €15)', _refeicoes,
                         note: 'viagem > 4h'),
                   const Divider(height: 14),
                   Row(
@@ -753,6 +773,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               ),
               child: Column(children: [
                 _totalRow('Produtos', _subtotalProdutos),
+                if (_descontoValor > 0)
+                  _totalRow(
+                    'Desconto (${_selectedCustomerDiscount % 1 == 0 ? _selectedCustomerDiscount.toInt().toString() : _selectedCustomerDiscount.toStringAsFixed(1)}%)',
+                    -_descontoValor,
+                    isDiscount: true,
+                  ),
                 _totalRow('Deslocação / Montagem', _deslocacao),
                 if (_subtotalExtras > 0)
                   _totalRow('Extras', _subtotalExtras),
@@ -873,24 +899,36 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         ),
       );
 
-  Widget _totalRow(String label, double value, {bool highlight = true}) =>
+  Widget _totalRow(String label, double value,
+          {bool highlight = true, bool isDiscount = false}) =>
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    color: AppTheme.textMuted, fontSize: 13)),
+            Row(children: [
+              if (isDiscount) ...[
+                const Icon(Icons.discount_outlined,
+                    size: 13, color: AppTheme.gold),
+                const SizedBox(width: 4),
+              ],
+              Text(label,
+                  style: TextStyle(
+                      color: isDiscount ? AppTheme.gold : AppTheme.textMuted,
+                      fontSize: 13,
+                      fontWeight: isDiscount
+                          ? FontWeight.w600 : FontWeight.normal)),
+            ]),
             Text(
-              NumberFormat.currency(locale: 'pt_PT', symbol: '€')
-                  .format(value),
+              '${isDiscount ? '−' : ''}${NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value.abs())}',
               style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: highlight
-                      ? AppTheme.primary
-                      : AppTheme.textMuted),
+                  color: isDiscount
+                      ? AppTheme.gold
+                      : highlight
+                          ? AppTheme.primary
+                          : AppTheme.textMuted),
             ),
           ],
         ),

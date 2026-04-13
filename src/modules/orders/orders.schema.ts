@@ -48,9 +48,11 @@ export const createOrderSchema = z.object({
   valorTotal: z.number().min(0).default(0),
 
   // Requerente
-  requerente:  z.string().min(1, 'Requerente é obrigatório'),
-  contacto:    z.string().min(1, 'Contacto é obrigatório'),
-  observacoes: z.string().optional(),
+  requerente:    z.string().min(1, 'Requerente é obrigatório'),
+  contacto:      z.string().min(1, 'Contacto é obrigatório'),
+  observacoes:   z.string().optional(),
+  descontoPerc:  z.number().min(0).max(100).default(0),
+  descontoValor: z.number().min(0).default(0),
 })
 
 export const updateOrderSchema = z.object({
@@ -71,10 +73,12 @@ export const updateOrderSchema = z.object({
   extras:             z.array(extraSchema).optional(),
   extrasValor:        z.number().min(0).optional(),
   valorTotal:         z.number().min(0).optional(),
-  requerente:         z.string().min(1).optional(),
-  contacto:           z.string().min(1).optional(),
-  observacoes:        z.string().optional(),
-  customerId:         z.string().optional(),
+  requerente:    z.string().min(1).optional(),
+  contacto:      z.string().min(1).optional(),
+  observacoes:   z.string().optional(),
+  customerId:    z.string().optional(),
+  descontoPerc:  z.number().min(0).max(100).optional(),
+  descontoValor: z.number().min(0).optional(),
 })
 
 export const updateStatusSchema = z.object({

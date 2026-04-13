@@ -102,7 +102,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Fotos do trabalho',
+                  const Text('Fotos',
                       style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primary)),
@@ -198,6 +198,84 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         ),
       ),
     );
+  }
+
+  // ── Reverter pagamento ────────────────────────────────────────────────────────
+  Future<void> _revertPayment() async {
+    final notesCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.undo, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Reverter Pagamento'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'A encomenda voltará ao estado "Entregue".\nIndique o motivo (opcional):',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Ex: Pagamento registado por lapso',
+                prefixIcon: Icon(Icons.notes_outlined),
+              ),
+              maxLines: 2,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.orange.shade800),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await updateOrderStatus(
+        widget.orderId,
+        'DELIVERED',
+        notesCtrl.text.trim().isEmpty
+            ? 'Pagamento revertido'
+            : notesCtrl.text.trim(),
+      );
+      ref.invalidate(orderDetailProvider(widget.orderId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pagamento revertido — encomenda voltou a Entregue'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: AppTheme.error),
+        );
+      }
+    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────────
@@ -549,6 +627,44 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
+            // ── Desconto de revendedor ────────────────────────────────────────
+            if (order.descontoPerc > 0) ...[
+              Card(
+                color: AppTheme.gold.withOpacity(0.08),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: AppTheme.gold.withOpacity(0.4)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.discount_outlined,
+                          size: 18, color: AppTheme.gold),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Desconto revendedor (${order.descontoPerc % 1 == 0 ? order.descontoPerc.toInt() : order.descontoPerc.toStringAsFixed(1)}%)',
+                          style: const TextStyle(
+                              color: AppTheme.gold,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Text(
+                        '−${_currency.format(order.descontoValor)}',
+                        style: const TextStyle(
+                            color: AppTheme.gold,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // ── Total geral ───────────────────────────────────────────────────
             Card(
               color: AppTheme.goldFaint,
@@ -703,53 +819,54 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             // ── Botões de ação ────────────────────────────────────────────────
             if (canEdit) ...[
               const SizedBox(height: 16),
-              // Botão especial destaque para marcar como Pago
-              if (order.status == 'DELIVERED')
+
+              // Botão de reverter pagamento (só em PAID)
+              if (order.status == 'PAID')
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: SizedBox(
                     width: double.infinity,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF1565C0),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.orange.shade800,
+                        side: BorderSide(color: Colors.orange.shade800),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      onPressed: () => _changeStatus(order.status),
-                      icon: const Icon(Icons.euro_outlined),
-                      label: const Text('Marcar como Pago',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      onPressed: () => _revertPayment(),
+                      icon: const Icon(Icons.undo),
+                      label: const Text('Reverter Pagamento'),
                     ),
                   ),
                 ),
-              Row(
-                children: [
-                  // Editar — oculto em CANCELLED e PAID
-                  if (order.status != 'CANCELLED' && order.status != 'PAID')
+
+              if (order.status != 'PAID' && order.status != 'CANCELLED')
+                Row(
+                  children: [
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.push(
-                            '/orders/${order.id}/edit',
-                            extra: order),
-                        icon: const Icon(Icons.edit_outlined),
-                        label: const Text('Editar'),
+                      child: SizedBox(
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.push(
+                              '/orders/${order.id}/edit',
+                              extra: order),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Editar'),
+                        ),
                       ),
                     ),
-                  if (order.status != 'CANCELLED' && order.status != 'PAID')
                     const SizedBox(width: 12),
-                  // Alterar Estado — oculto em DELIVERED (usa botão acima), PAID e CANCELLED
-                  if (order.status != 'DELIVERED' &&
-                      order.status != 'PAID' &&
-                      order.status != 'CANCELLED')
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _changeStatus(order.status),
-                        icon: const Icon(Icons.swap_horiz),
-                        label: const Text('Alterar Estado'),
+                      child: SizedBox(
+                        height: 44,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _changeStatus(order.status),
+                          icon: const Icon(Icons.swap_horiz, size: 18),
+                          label: const Text('Alterar Estado'),
+                        ),
                       ),
                     ),
-                ],
-              ),
+                  ],
+                ),
             ],
 
             const SizedBox(height: 32),
@@ -806,3 +923,4 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 }
+            

@@ -30,18 +30,25 @@ class EditCustomerScreen extends ConsumerStatefulWidget {
 
 class _EditCustomerScreenState extends ConsumerState<EditCustomerScreen> {
   final _formKey    = GlobalKey<FormState>();
-  late final _nameCtrl    = TextEditingController(text: widget.customer.name);
-  late final _emailCtrl   = TextEditingController(text: widget.customer.email ?? '');
-  late final _phoneCtrl   = TextEditingController(text: widget.customer.phone ?? '');
-  late final _taxIdCtrl   = TextEditingController(text: widget.customer.taxId ?? '');
-  late final _addressCtrl = TextEditingController(text: widget.customer.address ?? '');
-  late final _notesCtrl   = TextEditingController(text: widget.customer.notes ?? '');
+  late final _nameCtrl     = TextEditingController(text: widget.customer.name);
+  late final _emailCtrl    = TextEditingController(text: widget.customer.email   ?? '');
+  late final _phoneCtrl    = TextEditingController(text: widget.customer.phone   ?? '');
+  late final _taxIdCtrl    = TextEditingController(text: widget.customer.taxId   ?? '');
+  late final _addressCtrl  = TextEditingController(text: widget.customer.address ?? '');
+  late final _notesCtrl    = TextEditingController(text: widget.customer.notes   ?? '');
+  late final _discountCtrl = TextEditingController(
+      text: widget.customer.discount == 0
+          ? '0'
+          : widget.customer.discount % 1 == 0
+              ? widget.customer.discount.toInt().toString()
+              : widget.customer.discount.toStringAsFixed(1));
   bool _isLoading = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose(); _emailCtrl.dispose(); _phoneCtrl.dispose();
     _taxIdCtrl.dispose(); _addressCtrl.dispose(); _notesCtrl.dispose();
+    _discountCtrl.dispose();
     super.dispose();
   }
 
@@ -56,6 +63,7 @@ class _EditCustomerScreenState extends ConsumerState<EditCustomerScreen> {
       if (_taxIdCtrl.text.trim().isNotEmpty)   body['taxId']   = _taxIdCtrl.text.trim();
       if (_addressCtrl.text.trim().isNotEmpty) body['address'] = _addressCtrl.text.trim();
       if (_notesCtrl.text.trim().isNotEmpty)   body['notes']   = _notesCtrl.text.trim();
+      body['discount'] = double.tryParse(_discountCtrl.text.replaceAll(',', '.')) ?? 0.0;
 
       await ApiClient().dio.put(
         ApiEndpoints.customerById(widget.customer.id),
@@ -186,6 +194,47 @@ class _EditCustomerScreenState extends ConsumerState<EditCustomerScreen> {
                       ),
                       maxLines: 3,
                     ),
+
+                    const SizedBox(height: 20),
+                    // ── Secção: Desconto ──────────────────────────────────
+                    _sectionHeader(Icons.discount_outlined, 'Desconto de revendedor'),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _discountCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Desconto (%)',
+                        hintText: '0 = sem desconto',
+                        prefixIcon: Icon(Icons.percent),
+                        suffixText: '%',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) {
+                        final d = double.tryParse(v?.replaceAll(',', '.') ?? '');
+                        if (d == null || d < 0 || d > 100) return 'Valor entre 0 e 100';
+                        return null;
+                      },
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    if ((double.tryParse(_discountCtrl.text.replaceAll(',', '.')) ?? 0) > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.gold.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.gold.withOpacity(0.3)),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.stars_outlined, size: 14, color: AppTheme.gold),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Revendedor — ${_discountCtrl.text}% aplicado automaticamente nas encomendas',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.gold),
+                            ),
+                          ]),
+                        ),
+                      ),
                   ],
                 ),
               ),

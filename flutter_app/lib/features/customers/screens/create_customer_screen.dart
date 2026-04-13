@@ -30,18 +30,20 @@ class CreateCustomerScreen extends ConsumerStatefulWidget {
 class _CreateCustomerScreenState
     extends ConsumerState<CreateCustomerScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  final _taxIdCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
+  final _nameCtrl     = TextEditingController();
+  final _emailCtrl    = TextEditingController();
+  final _phoneCtrl    = TextEditingController();
+  final _addressCtrl  = TextEditingController();
+  final _taxIdCtrl    = TextEditingController();
+  final _notesCtrl    = TextEditingController();
+  final _discountCtrl = TextEditingController(text: '0');
   bool _isLoading = false;
 
   @override
   void dispose() {
     _nameCtrl.dispose(); _emailCtrl.dispose(); _phoneCtrl.dispose();
     _addressCtrl.dispose(); _taxIdCtrl.dispose(); _notesCtrl.dispose();
+    _discountCtrl.dispose();
     super.dispose();
   }
 
@@ -56,6 +58,7 @@ class _CreateCustomerScreenState
       if (_addressCtrl.text.trim().isNotEmpty) body['address'] = _addressCtrl.text.trim();
       if (_taxIdCtrl.text.trim().isNotEmpty)   body['taxId']   = _taxIdCtrl.text.trim();
       if (_notesCtrl.text.trim().isNotEmpty)   body['notes']   = _notesCtrl.text.trim();
+      body['discount'] = double.tryParse(_discountCtrl.text.replaceAll(',', '.')) ?? 0.0;
 
       await ApiClient().dio.post(ApiEndpoints.customers, data: body);
 
@@ -129,6 +132,58 @@ class _CreateCustomerScreenState
                       decoration: const InputDecoration(labelText: 'Notas'),
                       maxLines: 3,
                     ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      const Icon(Icons.discount_outlined,
+                          size: 16, color: AppTheme.gold),
+                      const SizedBox(width: 6),
+                      const Text('Desconto de revendedor',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primary,
+                              fontSize: 13)),
+                    ]),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _discountCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Desconto (%)',
+                        hintText: '0 = sem desconto',
+                        prefixIcon: Icon(Icons.percent),
+                        suffixText: '%',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) {
+                        final d = double.tryParse(v?.replaceAll(',', '.') ?? '');
+                        if (d == null || d < 0 || d > 100) return 'Valor entre 0 e 100';
+                        return null;
+                      },
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    if ((double.tryParse(_discountCtrl.text.replaceAll(',', '.')) ?? 0) > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.gold.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.gold.withOpacity(0.3)),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.stars_outlined,
+                                size: 14, color: AppTheme.gold),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Revendedor com ${_discountCtrl.text}% de desconto nas encomendas',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppTheme.gold),
+                            ),
+                          ]),
+                        ),
+                      ),
                   ],
                 ),
               ),
