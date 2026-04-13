@@ -11,6 +11,12 @@ import '../../../core/theme/app_theme.dart';
 
 const _roles      = ['ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER'];
 const _roleLabels = ['Admin', 'Gestor', 'Operador', 'Visualizador'];
+const _roleDescriptions = [
+  'Acesso total — gere utilizadores, configurações e todas as encomendas',
+  'Gere encomendas e clientes, sem acesso a utilizadores',
+  'Cria e edita encomendas e clientes',
+  'Só consulta — não pode criar nem editar'
+];
 
 // ── Helper de extração de erro ─────────────────────────────────────────────────
 String _extractError(dynamic e) {
@@ -274,6 +280,8 @@ class UsersListScreen extends ConsumerWidget {
                 const SizedBox(height: 6),
                 ...List.generate(_roles.length, (i) => RadioListTile(
                   title: Text(_roleLabels[i]),
+                  subtitle: Text(_roleDescriptions[i],
+                      style: const TextStyle(fontSize: 12)),
                   value: _roles[i],
                   groupValue: selectedRole,
                   dense: true,
@@ -373,6 +381,8 @@ class UsersListScreen extends ConsumerWidget {
                 _roles.length,
                 (i) => RadioListTile(
                   title: Text(_roleLabels[i]),
+                  subtitle: Text(_roleDescriptions[i],
+                      style: const TextStyle(fontSize: 12)),
                   value: _roles[i],
                   groupValue: selected,
                   activeColor: AppTheme.gold,

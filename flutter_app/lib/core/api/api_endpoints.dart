@@ -24,4 +24,12 @@ class ApiEndpoints {
   static String userById(String id) => '/users/$id';
   static String userRole(String id) => '/users/$id/role';
   static const String changePassword = '/users/me/password';
+
+  // Produtos
+  static const String products = '/products';
+  static String productById(String id) => '/products/$id';
+  static const String productCategories = '/products/categories';
+
+  // Configurações
+  static const String settings = '/settings';
 }

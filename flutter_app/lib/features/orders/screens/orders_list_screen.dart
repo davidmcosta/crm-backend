@@ -41,6 +41,20 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   int _selectedStatusIndex = 0;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final status = ref.read(ordersProvider).filter.status;
+      if (status != null) {
+        final idx = _statuses.indexOf(status);
+        if (idx >= 0) {
+          setState(() => _selectedStatusIndex = idx);
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();

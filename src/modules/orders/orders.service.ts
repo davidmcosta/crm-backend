@@ -5,7 +5,13 @@ const prisma = new PrismaClient()
 
 // ── Número de encomenda 01/26, 02/26, ... ───────────────────────────────────
 async function generateOrderNumber(): Promise<string> {
-  const year = String(new Date().getFullYear()).slice(-2)
+  // Use settings anoAtual if set; otherwise current year
+  let yearFull = new Date().getFullYear()
+  try {
+    const settings = await (prisma as any).settings.findUnique({ where: { id: 'global' } })
+    if (settings && settings.anoAtual > 0) yearFull = settings.anoAtual
+  } catch {}
+  const year = String(yearFull).slice(-2)
   const last = await prisma.order.findFirst({
     where: { orderNumber: { endsWith: `/${year}` } },
     orderBy: { createdAt: 'desc' },

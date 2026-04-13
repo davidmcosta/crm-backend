@@ -210,7 +210,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           children: [
             Icon(Icons.undo, color: Colors.orange),
             SizedBox(width: 8),
-            Text('Reverter Pagamento'),
+            Expanded(
+              child: Text('Reverter Pagamento',
+                  overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         content: Column(
@@ -544,17 +547,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textMuted))),
-                          SizedBox(width: 50, child: Text('Qty',
+                          Expanded(flex: 1, child: Text('Qty',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textMuted))),
-                          SizedBox(width: 70, child: Text('Preço',
+                          Expanded(flex: 1, child: Text('Preço',
                               textAlign: TextAlign.right,
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textMuted))),
-                          SizedBox(width: 70, child: Text('Total',
+                          Expanded(flex: 1, child: Text('Total',
                               textAlign: TextAlign.right,
                               style: TextStyle(fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -568,18 +571,18 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                               Expanded(flex: 4,
                                   child: Text(p.nome,
                                       style: const TextStyle(fontSize: 14))),
-                              SizedBox(width: 50,
+                              Expanded(flex: 1,
                                   child: Text(
                                       p.qty % 1 == 0
                                           ? p.qty.toInt().toString()
                                           : p.qty.toStringAsFixed(2),
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(fontSize: 14))),
-                              SizedBox(width: 70,
+                              Expanded(flex: 1,
                                   child: Text(_currency.format(p.precoUnit),
                                       textAlign: TextAlign.right,
                                       style: const TextStyle(fontSize: 14))),
-                              SizedBox(width: 70,
+                              Expanded(flex: 1,
                                   child: Text(_currency.format(p.total),
                                       textAlign: TextAlign.right,
                                       style: const TextStyle(
@@ -1095,9 +1098,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         children: [
           Icon(icon, size: 18, color: AppTheme.gold),
           const SizedBox(width: 8),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(title,
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+          ),
         ],
       );
 

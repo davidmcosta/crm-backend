@@ -222,45 +222,41 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                                             fontWeight: FontWeight.bold),
                                       ),
                                     ),
-                                    title: Row(children: [
-                                      Expanded(
-                                        child: Text(c.name,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w500)),
-                                      ),
-                                      if (c.isReseller) ...[
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.gold.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(
-                                                color: AppTheme.gold.withOpacity(0.4)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.discount_outlined,
-                                                  size: 10, color: AppTheme.gold),
-                                              const SizedBox(width: 3),
-                                              Text(
-                                                '${c.discount % 1 == 0 ? c.discount.toInt() : c.discount.toStringAsFixed(1)}%',
-                                                style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: AppTheme.gold,
-                                                    fontWeight: FontWeight.w600),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ]),
+                                    title: Text(c.name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w500)),
                                     subtitle: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
+                                        if (c.isReseller) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.gold.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(
+                                                  color: AppTheme.gold.withOpacity(0.4)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.discount_outlined,
+                                                    size: 10, color: AppTheme.gold),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  '${c.discount % 1 == 0 ? c.discount.toInt() : c.discount.toStringAsFixed(1)}%',
+                                                  style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: AppTheme.gold,
+                                                      fontWeight: FontWeight.w600),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                        ],
                                         if (c.email != null)
                                           Text(c.email!,
                                               style: const TextStyle(

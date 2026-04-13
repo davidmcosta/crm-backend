@@ -12,6 +12,8 @@ const auth_routes_1 = require("./modules/auth/auth.routes");
 const orders_routes_1 = require("./modules/orders/orders.routes");
 const customers_routes_1 = require("./modules/customers/customers.routes");
 const users_routes_1 = require("./modules/users/users.routes");
+const products_routes_1 = require("./modules/products/products.routes");
+const settings_routes_1 = require("./modules/settings/settings.routes");
 const app = (0, fastify_1.default)({
     logger: env_1.env.NODE_ENV === 'development'
         ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
@@ -34,6 +36,8 @@ app.register(auth_routes_1.authRoutes, { prefix: '/api/auth' });
 app.register(orders_routes_1.ordersRoutes, { prefix: '/api/orders' });
 app.register(customers_routes_1.customersRoutes, { prefix: '/api/customers' });
 app.register(users_routes_1.usersRoutes, { prefix: '/api/users' });
+app.register(products_routes_1.productsRoutes, { prefix: '/api/products' });
+app.register(settings_routes_1.settingsRoutes, { prefix: '/api/settings' });
 // Health check
 app.get('/health', async () => ({
     status: 'ok',

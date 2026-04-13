@@ -7,6 +7,8 @@ import { authRoutes } from './modules/auth/auth.routes'
 import { ordersRoutes } from './modules/orders/orders.routes'
 import { customersRoutes } from './modules/customers/customers.routes'
 import { usersRoutes } from './modules/users/users.routes'
+import { productsRoutes } from './modules/products/products.routes'
+import { settingsRoutes } from './modules/settings/settings.routes'
 
 const app = Fastify({
   logger: env.NODE_ENV === 'development'
@@ -35,6 +37,8 @@ app.register(authRoutes, { prefix: '/api/auth' })
 app.register(ordersRoutes, { prefix: '/api/orders' })
 app.register(customersRoutes, { prefix: '/api/customers' })
 app.register(usersRoutes, { prefix: '/api/users' })
+app.register(productsRoutes, { prefix: '/api/products' })
+app.register(settingsRoutes, { prefix: '/api/settings' })
 
 // Health check
 app.get('/health', async () => ({

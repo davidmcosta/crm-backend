@@ -104,7 +104,12 @@ class DashboardScreen extends ConsumerWidget {
                     ? '…'
                     : '${orders.orders.where((o) => o.status == 'PENDING').length}',
                 color: AppTheme.warning,
-                onTap: () => context.go('/orders'),
+                onTap: () {
+                  ref.read(ordersProvider.notifier).setFilter(
+                    const OrdersFilter(status: 'PENDING'),
+                  );
+                  context.go('/orders');
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -116,7 +121,12 @@ class DashboardScreen extends ConsumerWidget {
                     ? '…'
                     : '${orders.orders.where((o) => o.status == 'IN_PRODUCTION').length}',
                 color: const Color(0xFF8A5C2A),
-                onTap: () => context.go('/orders'),
+                onTap: () {
+                  ref.read(ordersProvider.notifier).setFilter(
+                    const OrdersFilter(status: 'IN_PRODUCTION'),
+                  );
+                  context.go('/orders');
+                },
               ),
             ),
           ]),

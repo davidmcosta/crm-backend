@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../models/order_model.dart';
 import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
+import '../../products/screens/product_picker_dialog.dart';
 import '../../../core/theme/app_theme.dart';
 
 // ── Falecido entry ────────────────────────────────────────────────────────────
@@ -256,6 +257,29 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   void _removeProduto(int i) {
     _produtos[i].dispose();
     setState(() => _produtos.removeAt(i));
+  }
+
+  Future<void> _addFromCatalog() async {
+    final result = await showProductPickerDialog(context);
+    if (result == null) return;
+    final rows = productPickResultToRows(result);
+    setState(() {
+      // Remove the single empty row if it's the only one
+      if (_produtos.length == 1 &&
+          _produtos[0].nomeCtrl.text.isEmpty &&
+          _produtos[0].qtyCtrl.text == '1' &&
+          _produtos[0].precoCtrl.text == '0,00') {
+        _produtos[0].dispose();
+        _produtos.clear();
+      }
+      for (final r in rows) {
+        final row = _ProdRow();
+        row.nomeCtrl.text  = r['nome'] as String;
+        row.qtyCtrl.text   = (r['qty'] as double).toString();
+        row.precoCtrl.text = (r['precoUnit'] as double).toString();
+        _produtos.add(row);
+      }
+    });
   }
 
   void _addExtra() => setState(() => _extras.add(_ExtraRow()));
@@ -731,13 +755,30 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               );
             }),
 
-            OutlinedButton.icon(
-              onPressed: _addProduto,
-              icon: const Icon(Icons.add),
-              label: const Text('Adicionar produto'),
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 44)),
-            ),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _addProduto,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Adicionar linha'),
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 44)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _addFromCatalog,
+                  icon: const Icon(Icons.category_outlined, size: 18),
+                  label: const Text('Do catálogo'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    backgroundColor: AppTheme.gold,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ]),
             if (_subtotalProdutos > 0) ...[
               const SizedBox(height: 10),
               _totalRow('Subtotal produtos', _subtotalProdutos,
@@ -1118,24 +1159,30 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(children: [
-            if (isDiscount) ...[
-              const Icon(Icons.discount_outlined,
-                  size: 13, color: AppTheme.gold),
-              const SizedBox(width: 4),
-            ],
-            if (isIva) ...[
-              const Icon(Icons.receipt_long_outlined,
-                  size: 13, color: ivaColor),
-              const SizedBox(width: 4),
-            ],
-            Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 13,
-                    fontWeight: (isDiscount || isIva)
-                        ? FontWeight.w600 : FontWeight.normal)),
-          ]),
+          Expanded(
+            child: Row(children: [
+              if (isDiscount) ...[
+                const Icon(Icons.discount_outlined,
+                    size: 13, color: AppTheme.gold),
+                const SizedBox(width: 4),
+              ],
+              if (isIva) ...[
+                const Icon(Icons.receipt_long_outlined,
+                    size: 13, color: ivaColor),
+                const SizedBox(width: 4),
+              ],
+              Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 13,
+                        fontWeight: (isDiscount || isIva)
+                            ? FontWeight.w600 : FontWeight.normal),
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ]),
+          ),
+          const SizedBox(width: 8),
           Text(
             '${isDiscount ? '−' : ''}${NumberFormat.currency(locale: 'pt_PT', symbol: '€').format(value.abs())}',
             style: TextStyle(

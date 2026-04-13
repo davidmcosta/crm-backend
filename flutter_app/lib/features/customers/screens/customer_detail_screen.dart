@@ -106,12 +106,14 @@ class CustomerDetailScreen extends ConsumerWidget {
                                       const Icon(Icons.discount_outlined,
                                           size: 14, color: AppTheme.gold),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        'Revendedor — ${customer.discount % 1 == 0 ? customer.discount.toInt() : customer.discount.toStringAsFixed(1)}% de desconto nas encomendas',
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.gold,
-                                            fontWeight: FontWeight.w600),
+                                      Expanded(
+                                        child: Text(
+                                          'Revendedor — ${customer.discount % 1 == 0 ? customer.discount.toInt() : customer.discount.toStringAsFixed(1)}% de desconto nas encomendas',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.gold,
+                                              fontWeight: FontWeight.w600),
+                                        ),
                                       ),
                                     ]),
                                   ),

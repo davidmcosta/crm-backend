@@ -14,6 +14,10 @@ import 'features/customers/screens/customer_detail_screen.dart';
 import 'features/customers/screens/create_customer_screen.dart';
 import 'features/customers/screens/edit_customer_screen.dart';
 import 'features/users/screens/users_list_screen.dart';
+import 'features/products/models/product_model.dart';
+import 'features/products/screens/products_list_screen.dart';
+import 'features/products/screens/product_form_screen.dart';
+import 'features/settings/screens/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -97,6 +101,31 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/users',
         builder: (_, __) => const UsersListScreen(),
+      ),
+
+      // ── Produtos ───────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/products',
+        builder: (_, __) => const ProductsListScreen(),
+        routes: [
+          GoRoute(
+            path: 'new',
+            builder: (_, __) => const ProductFormScreen(),
+          ),
+          GoRoute(
+            path: ':id/edit',
+            builder: (_, state) {
+              final product = state.extra as ProductModel?;
+              return ProductFormScreen(product: product);
+            },
+          ),
+        ],
+      ),
+
+      // ── Configurações ──────────────────────────────────────────────────────
+      GoRoute(
+        path: '/settings',
+        builder: (_, __) => const SettingsScreen(),
       ),
     ],
   );

@@ -81,10 +81,13 @@ class OrderCard extends StatelessWidget {
                   const Icon(Icons.person_outline,
                       size: 14, color: AppTheme.textMuted),
                   const SizedBox(width: 6),
-                  Text(
-                    'Req: ${order.requerente}',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppTheme.textMuted),
+                  Expanded(
+                    child: Text(
+                      'Req: ${order.requerente}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textMuted),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ]),
               ],

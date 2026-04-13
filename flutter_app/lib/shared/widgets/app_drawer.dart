@@ -101,12 +101,25 @@ class AppDrawer extends ConsumerWidget {
             route: '/customers',
             currentLocation: location,
           ),
-          if (user?.isAdmin == true) ...[
+          const Divider(height: 8, indent: 16, endIndent: 16),
+          _DrawerItem(
+            icon: Icons.category_outlined,
+            label: 'Catálogo de Produtos',
+            route: '/products',
+            currentLocation: location,
+          ),
+          if (user?.isAdmin == true || user?.isManager == true) ...[
             const Divider(height: 8, indent: 16, endIndent: 16),
             _DrawerItem(
               icon: Icons.manage_accounts_outlined,
               label: 'Utilizadores',
               route: '/users',
+              currentLocation: location,
+            ),
+            _DrawerItem(
+              icon: Icons.settings_outlined,
+              label: 'Configurações',
+              route: '/settings',
               currentLocation: location,
             ),
           ],
