@@ -1,3 +1,10 @@
+// Prisma Decimal fields serialise as strings — handle both
+double _d(dynamic v, [double fallback = 0]) {
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v) ?? fallback;
+  return fallback;
+}
+
 class ProductBOMItem {
   final String  id;
   final String  componentName;
@@ -16,8 +23,8 @@ class ProductBOMItem {
   factory ProductBOMItem.fromJson(Map<String, dynamic> j) => ProductBOMItem(
         id:            j['id']            as String,
         componentName: j['componentName'] as String,
-        qty:           (j['qty']          as num).toDouble(),
-        includedPrice: (j['includedPrice'] as num).toDouble(),
+        qty:           _d(j['qty'],           1),
+        includedPrice: _d(j['includedPrice'], 0),
         sortOrder:     (j['sortOrder']    as num? ?? 0).toInt(),
       );
 
@@ -57,7 +64,7 @@ class ProductModel {
         name:        j['name']     as String,
         category:    j['category'] as String?,
         description: j['description'] as String?,
-        basePrice:   (j['basePrice'] as num).toDouble(),
+        basePrice:   _d(j['basePrice'], 0),
         isActive:    j['isActive'] as bool? ?? true,
         bomItems: (j['bomItems'] as List<dynamic>? ?? [])
             .map((e) => ProductBOMItem.fromJson(e as Map<String, dynamic>))

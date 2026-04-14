@@ -2,6 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_endpoints.dart';
 
+// Prisma Decimal fields come back as strings — handle both
+double? _toDouble(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
 class AppSettings {
   final int    anoAtual;
   final double kmRate;
@@ -14,9 +22,9 @@ class AppSettings {
   });
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
-        anoAtual: (j['anoAtual'] as num?)?.toInt()    ?? 0,
-        kmRate:   (j['kmRate']   as num?)?.toDouble() ?? 0.36,
-        mealCost: (j['mealCost'] as num?)?.toDouble() ?? 12.0,
+        anoAtual: (j['anoAtual'] as num?)?.toInt() ?? 0,
+        kmRate:   _toDouble(j['kmRate'])   ?? 0.36,
+        mealCost: _toDouble(j['mealCost']) ?? 12.0,
       );
 
   /// Effective year for display (0 = sistema)
