@@ -274,9 +274,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       }
       for (final r in rows) {
         final row = _ProdRow();
+        final qty   = r['qty']      as double;
+        final preco = r['precoUnit'] as double;
         row.nomeCtrl.text  = r['nome'] as String;
-        row.qtyCtrl.text   = (r['qty'] as double).toString();
-        row.precoCtrl.text = (r['precoUnit'] as double).toString();
+        row.qtyCtrl.text   = qty  == qty.truncateToDouble()
+            ? qty.toInt().toString()
+            : qty.toString();
+        row.precoCtrl.text = preco == preco.truncateToDouble()
+            ? preco.toInt().toString()
+            : preco.toStringAsFixed(2);
         _produtos.add(row);
       }
     });
