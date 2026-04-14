@@ -4,6 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
+import '../../../shared/widgets/app_drawer.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -75,6 +76,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settingsAsync = ref.watch(settingsProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Configurações')),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

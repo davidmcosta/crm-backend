@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/products_provider.dart';
 import '../models/product_model.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/app_drawer.dart';
 
 class ProductsListScreen extends ConsumerStatefulWidget {
   const ProductsListScreen({super.key});
@@ -64,8 +65,9 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
     final categories = grouped.keys.toList()..sort();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Catálogo de Produtos'),
+        title: const Text('Produtos'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

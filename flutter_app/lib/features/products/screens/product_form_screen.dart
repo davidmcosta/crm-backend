@@ -174,6 +174,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'Editar Produto' : 'Novo Produto'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         actions: [
           if (isEdit)
             IconButton(
