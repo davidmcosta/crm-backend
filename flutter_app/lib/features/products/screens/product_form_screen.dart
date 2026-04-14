@@ -103,16 +103,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     super.dispose();
   }
 
-  double get _computedBasePrice {
-    if (_bomRows.isEmpty) {
-      return double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0;
-    }
-    return _bomRows.fold(0.0, (sum, r) {
-      final p = double.tryParse(r.priceCtrl.text.replaceAll(',', '.')) ?? 0;
-      final q = double.tryParse(r.qtyCtrl.text.replaceAll(',', '.'))   ?? 1;
-      return sum + p * q;
-    });
-  }
+  double get _computedBasePrice =>
+      double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0;
 
   // ── Picker de produto para BOM ─────────────────────────────────────────────
   Future<void> _pickComponentProduct(_BOMRow row) async {
@@ -216,8 +208,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isEdit   = widget.product != null;
-    final currency = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
+    final isEdit      = widget.product != null;
     final allProducts = ref.watch(productsNotifierProvider).products;
 
     return Scaffold(
@@ -272,26 +263,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ),
             const SizedBox(height: 12),
 
-            AnimatedOpacity(
-              opacity: _bomRows.isEmpty ? 1.0 : 0.5,
-              duration: const Duration(milliseconds: 200),
-              child: TextFormField(
-                controller: _priceCtrl,
-                enabled: _bomRows.isEmpty,
-                decoration: InputDecoration(
-                  labelText: _bomRows.isEmpty
-                      ? 'Preço base (€) *'
-                      : 'Preço base (€) — calculado pelos componentes',
-                  prefixIcon: const Icon(Icons.euro_outlined, size: 18),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: _bomRows.isEmpty
-                    ? (v) => (v == null || v.trim().isEmpty)
-                        ? 'Campo obrigatório'
-                        : null
-                    : null,
+            TextFormField(
+              controller: _priceCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Preço base (€) *',
+                prefixIcon: Icon(Icons.euro_outlined, size: 18),
               ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Campo obrigatório'
+                  : null,
+              onChanged: (_) => setState(() {}),
             ),
 
             const SizedBox(height: 8),
@@ -342,27 +325,21 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ),
 
             if (_bomRows.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                  color: AppTheme.goldFaint,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(children: [
-                  const Icon(Icons.euro_outlined,
-                      size: 16, color: AppTheme.primary),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.info_outline, size: 14, color: AppTheme.gold),
                   const SizedBox(width: 8),
-                  const Text('Preço total calculado:',
-                      style: TextStyle(fontSize: 13, color: AppTheme.primary)),
-                  const Spacer(),
-                  Text(
-                    currency.format(_computedBasePrice),
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary),
+                  const Expanded(
+                    child: Text(
+                      'O preço de cada componente serve de referência para calcular a diferença quando se troca um componente numa encomenda.',
+                      style: TextStyle(fontSize: 11, color: AppTheme.gold),
+                    ),
                   ),
                 ]),
               ),
@@ -525,7 +502,7 @@ class _BOMRowWidget extends StatelessWidget {
                 child: TextField(
                   controller: row.priceCtrl,
                   decoration: const InputDecoration(
-                      labelText: 'Preço incl. (€)',
+                      labelText: 'Preço ref. (€)',
                       isDense: true,
                       prefixIcon: Icon(Icons.euro_outlined, size: 16)),
                   keyboardType:
