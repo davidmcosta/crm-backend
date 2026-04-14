@@ -7,8 +7,14 @@ import { LoginInput } from './auth.schema'
 const prisma = new PrismaClient()
 
 export async function loginService(app: FastifyInstance, data: LoginInput) {
-  const user = await prisma.user.findUnique({
-    where: { email: data.email },
+  // Find user by email OR username
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: data.login },
+        { username: data.login },
+      ],
+    },
     select: {
       id: true,
       name: true,

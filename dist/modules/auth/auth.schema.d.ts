@@ -1,12 +1,12 @@
 import { z } from 'zod';
 export declare const loginSchema: z.ZodObject<{
-    email: z.ZodString;
+    login: z.ZodString;
     password: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    email: string;
+    login: string;
     password: string;
 }, {
-    email: string;
+    login: string;
     password: string;
 }>;
 export declare const refreshSchema: z.ZodObject<{

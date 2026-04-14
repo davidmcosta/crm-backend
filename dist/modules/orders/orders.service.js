@@ -7,6 +7,7 @@ exports.updateOrder = updateOrder;
 exports.updateOrderStatus = updateOrderStatus;
 exports.getOrderHistory = getOrderHistory;
 exports.cancelOrder = cancelOrder;
+exports.deleteOrder = deleteOrder;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 // ── Número de encomenda 01/26, 02/26, ... ───────────────────────────────────
@@ -33,6 +34,20 @@ async function listOrders(query) {
     const { page, limit, status, customerId, search, cemiterio, trabalho, produto, dateFrom, dateTo } = query;
     const skip = (page - 1) * limit;
     const where = {};
+    // Load settings and apply year filter if anosVisiveis is set
+    try {
+        const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
+        if (settings && Array.isArray(settings.anosVisiveis) && settings.anosVisiveis.length > 0) {
+            const years = settings.anosVisiveis;
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
+            where.createdAt = {
+                gte: new Date(minYear, 0, 1),
+                lte: new Date(maxYear, 11, 31, 23, 59, 59, 999),
+            };
+        }
+    }
+    catch { }
     if (status)
         where.status = status;
     if (customerId)
@@ -42,7 +57,7 @@ async function listOrders(query) {
         where.cemiterio = { contains: cemiterio, mode: 'insensitive' };
     if (trabalho)
         where.trabalho = { contains: trabalho, mode: 'insensitive' };
-    // Filtro por intervalo de datas
+    // Filtro por intervalo de datas (sobrescreve o filtro de anosVisiveis se especificado)
     if (dateFrom || dateTo) {
         const dateFilter = {};
         if (dateFrom)
@@ -240,5 +255,14 @@ async function cancelOrder(id, userId) {
         }),
     ]);
     return updated;
+}
+// ── Eliminar ─────────────────────────────────────────────────────────────────
+async function deleteOrder(id) {
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order)
+        throw { statusCode: 404, message: 'Encomenda não encontrada' };
+    // Delete the order (cascade deletes statusHistory via schema)
+    await prisma.order.delete({ where: { id } });
+    return { success: true };
 }
 //# sourceMappingURL=orders.service.js.map

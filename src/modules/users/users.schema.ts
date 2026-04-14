@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client'
 export const createUserSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
+  username: z.string().min(3).max(30).optional(),
   password: z.string().min(8, 'Password deve ter pelo menos 8 caracteres'),
   role: z.nativeEnum(UserRole).default(UserRole.OPERATOR),
 })
@@ -11,6 +12,7 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
+  username: z.string().min(3).max(30).optional(),
 })
 
 export const updateRoleSchema = z.object({

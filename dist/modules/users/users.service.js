@@ -17,6 +17,7 @@ async function listUsers() {
             id: true,
             name: true,
             email: true,
+            username: true,
             role: true,
             isActive: true,
             createdAt: true,
@@ -31,6 +32,7 @@ async function getUserById(id) {
             id: true,
             name: true,
             email: true,
+            username: true,
             role: true,
             isActive: true,
             createdAt: true,
@@ -42,13 +44,20 @@ async function getUserById(id) {
     return user;
 }
 async function createUser(data) {
-    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    const existing = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { email: data.email },
+                { username: data.username || undefined },
+            ],
+        },
+    });
     if (existing)
-        throw { statusCode: 409, message: 'Já existe um utilizador com este email' };
+        throw { statusCode: 409, message: 'Já existe um utilizador com este email ou utilizador' };
     const hashedPassword = await (0, hash_1.hashPassword)(data.password);
     return prisma.user.create({
         data: { ...data, password: hashedPassword },
-        select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+        select: { id: true, name: true, email: true, username: true, role: true, isActive: true, createdAt: true },
     });
 }
 async function updateUser(id, data) {
@@ -60,10 +69,15 @@ async function updateUser(id, data) {
         if (existing)
             throw { statusCode: 409, message: 'Já existe um utilizador com este email' };
     }
+    if (data.username && data.username !== user.username) {
+        const existing = await prisma.user.findUnique({ where: { username: data.username } });
+        if (existing)
+            throw { statusCode: 409, message: 'Já existe um utilizador com este nome de utilizador' };
+    }
     return prisma.user.update({
         where: { id },
         data,
-        select: { id: true, name: true, email: true, role: true, isActive: true },
+        select: { id: true, name: true, email: true, username: true, role: true, isActive: true },
     });
 }
 async function updateUserRole(id, data) {

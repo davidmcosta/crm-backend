@@ -32,6 +32,7 @@ enum OrderStatus {
 model User {
   id            String               @id @default(uuid())
   email         String               @unique
+  username      String?              @unique
   password      String
   name          String
   role          UserRole             @default(OPERATOR)
@@ -149,11 +150,12 @@ model ProductBOM {
 // ── Configurações globais ─────────────────────────────────────────────────────
 
 model Settings {
-  id          String  @id @default("global")
-  anoAtual    Int     @default(0)   // 0 = usar ano do sistema
-  kmRate      Decimal @default(0.36) @db.Decimal(10, 4)
-  mealCost    Decimal @default(12)  @db.Decimal(10, 2)
-  updatedAt   DateTime @updatedAt
+  id            String  @id @default("global")
+  anoAtual      Int     @default(0)   // 0 = usar ano do sistema
+  kmRate        Decimal @default(0.36) @db.Decimal(10, 4)
+  mealCost      Decimal @default(12)  @db.Decimal(10, 2)
+  anosVisiveis  Json    @default("[]")
+  updatedAt     DateTime @updatedAt
 }
 
 model OrderStatusHistory {

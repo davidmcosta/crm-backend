@@ -15,6 +15,7 @@ import {
   updateOrderStatus,
   getOrderHistory,
   cancelOrder,
+  deleteOrder,
 } from './orders.service'
 
 export async function ordersRoutes(app: FastifyInstance) {
@@ -104,13 +105,12 @@ export async function ordersRoutes(app: FastifyInstance) {
     }
   })
 
-  // DELETE /api/orders/:id — cancelar encomenda (MANAGER+)
+  // DELETE /api/orders/:id — eliminar encomenda (MANAGER+)
   app.delete('/:id', { preHandler: [requireManager] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const user = request.user as { id: string }
     try {
-      await cancelOrder(id, user.id)
-      return reply.send({ message: 'Encomenda cancelada com sucesso' })
+      const result = await deleteOrder(id)
+      return reply.send(result)
     } catch (err: any) {
       return reply.status(err.statusCode || 500).send({ error: err.message })
     }

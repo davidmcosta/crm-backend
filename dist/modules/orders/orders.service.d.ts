@@ -14,4 +14,7 @@ export declare function updateOrder(id: string, data: UpdateOrderInput, userId: 
 export declare function updateOrderStatus(id: string, data: UpdateStatusInput, userId: string): Promise<any>;
 export declare function getOrderHistory(id: string): Promise<any>;
 export declare function cancelOrder(id: string, userId: string): Promise<any>;
+export declare function deleteOrder(id: string): Promise<{
+    success: boolean;
+}>;
 //# sourceMappingURL=orders.service.d.ts.map

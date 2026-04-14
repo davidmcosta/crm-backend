@@ -9,6 +9,7 @@ const updateSettingsSchema = zod_1.z.object({
     anoAtual: zod_1.z.number().int().min(0).optional(),
     kmRate: zod_1.z.number().min(0).optional(),
     mealCost: zod_1.z.number().min(0).optional(),
+    anosVisiveis: zod_1.z.array(zod_1.z.number().int()).optional(),
 });
 async function settingsRoutes(app) {
     app.addHook('preHandler', auth_1.authenticate);

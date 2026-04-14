@@ -10,6 +10,8 @@ import '../providers/orders_provider.dart';
 import '../widgets/status_badge.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/api/api_endpoints.dart';
 
 class OrderDetailScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -281,12 +283,69 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     }
   }
 
+  // ── Eliminar encomenda ────────────────────────────────────────────────────────
+  Future<void> _deleteOrder(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(children: [
+          Icon(Icons.delete_forever, color: AppTheme.error),
+          SizedBox(width: 8),
+          Expanded(child: Text('Eliminar Encomenda',
+              overflow: TextOverflow.ellipsis)),
+        ]),
+        content: const Text(
+          'Esta ação é irreversível. A encomenda será eliminada permanentemente.\n\nTem a certeza?',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ApiClient().dio.delete(ApiEndpoints.orderById(id));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Encomenda eliminada'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final orderAsync = ref.watch(orderDetailProvider(widget.orderId));
     final auth       = ref.watch(authProvider);
     final canEdit    = auth.user?.isOperator ?? false;
+    final canDelete  = auth.user?.isManager  ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -947,11 +1006,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               ),
 
             // ── Botões de ação ────────────────────────────────────────────────
-            if (canEdit) ...[
+            if (canEdit || canDelete) ...[
               const SizedBox(height: 16),
 
               // Botão de reverter pagamento (só em PAID)
-              if (order.status == 'PAID')
+              if (canEdit && order.status == 'PAID')
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: SizedBox(
@@ -969,7 +1028,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   ),
                 ),
 
-              if (order.status != 'PAID' && order.status != 'CANCELLED')
+              if (canEdit && order.status != 'PAID' && order.status != 'CANCELLED')
                 Row(
                   children: [
                     Expanded(
@@ -997,6 +1056,24 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     ),
                   ],
                 ),
+
+              // Botão de eliminar (só para MANAGER+)
+              if (canDelete && order.status == 'CANCELLED') ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: BorderSide(color: AppTheme.error.withOpacity(0.6)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => _deleteOrder(order.id),
+                    icon: const Icon(Icons.delete_forever_outlined, size: 18),
+                    label: const Text('Eliminar encomenda'),
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: 32),

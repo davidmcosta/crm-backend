@@ -213,6 +213,7 @@ class UsersListScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref) async {
     final nameCtrl     = TextEditingController();
     final emailCtrl    = TextEditingController();
+    final usernameCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
     String selectedRole = 'OPERATOR';
     bool isLoading      = false;
@@ -257,6 +258,16 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: const InputDecoration(
                     labelText: 'Email *',
                     prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: usernameCtrl,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Username (opcional)',
+                    hintText: 'Ex: joao.silva',
+                    prefixIcon: Icon(Icons.alternate_email_outlined),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -317,14 +328,17 @@ class UsersListScreen extends ConsumerWidget {
                         errorMsg  = null;
                       });
                       try {
+                        final payload = <String, dynamic>{
+                          'name':     name,
+                          'email':    email,
+                          'password': pass,
+                          'role':     selectedRole,
+                        };
+                        final username = usernameCtrl.text.trim();
+                        if (username.isNotEmpty) payload['username'] = username;
                         await ApiClient().dio.post(
                           ApiEndpoints.users,
-                          data: jsonEncode({
-                            'name':     name,
-                            'email':    email,
-                            'password': pass,
-                            'role':     selectedRole,
-                          }),
+                          data: jsonEncode(payload),
                           options: Options(headers: {
                             'Content-Type': 'application/json'
                           }),
@@ -361,6 +375,7 @@ class UsersListScreen extends ConsumerWidget {
 
     nameCtrl.dispose();
     emailCtrl.dispose();
+    usernameCtrl.dispose();
     passwordCtrl.dispose();
   }
 

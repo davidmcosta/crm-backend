@@ -26,8 +26,8 @@ async function usersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
-    // POST /api/users — criar utilizador, só ADMIN
-    app.post('/', { preHandler: [permissions_1.requireAdmin] }, async (request, reply) => {
+    // POST /api/users — criar utilizador, MANAGER+
+    app.post('/', { preHandler: [permissions_1.requireManager] }, async (request, reply) => {
         const result = users_schema_1.createUserSchema.safeParse(request.body);
         if (!result.success) {
             return reply.status(400).send({ error: 'Dados inválidos', details: result.error.flatten().fieldErrors });

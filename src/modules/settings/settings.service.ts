@@ -16,10 +16,11 @@ export async function updateSettings(data: {
   anoAtual?: number
   kmRate?:   number
   mealCost?: number
+  anosVisiveis?: number[]
 }) {
   return prisma.settings.upsert({
     where:  { id: 'global' },
-    create: { id: 'global', anoAtual: 0, kmRate: 0.36, mealCost: 12, ...data },
+    create: { id: 'global', anoAtual: 0, kmRate: 0.36, mealCost: 12, anosVisiveis: [], ...data },
     update: { ...data, updatedAt: new Date() },
   })
 }

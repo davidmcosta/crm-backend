@@ -154,16 +154,26 @@ class _DrawerSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: AppTheme.textMuted.withOpacity(0.6),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
+      child: Row(children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.4,
+            color: AppTheme.gold,
+          ),
         ),
-      ),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Divider(
+            color: AppTheme.border,
+            height: 1,
+            thickness: 1,
+          ),
+        ),
+      ]),
     );
   }
 }

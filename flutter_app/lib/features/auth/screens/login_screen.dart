@@ -14,13 +14,13 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey       = GlobalKey<FormState>();
-  final _emailCtrl     = TextEditingController();
+  final _loginCtrl     = TextEditingController();
   final _passwordCtrl  = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _loginCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
@@ -28,7 +28,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     await ref.read(authProvider.notifier).login(
-          _emailCtrl.text.trim(),
+          _loginCtrl.text.trim(),
           _passwordCtrl.text,
         );
   }
@@ -73,18 +73,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           TextFormField(
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _loginCtrl,
+                            keyboardType: TextInputType.text,
                             textInputAction: TextInputAction.next,
+                            autocorrect: false,
                             decoration: const InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: Icon(Icons.email_outlined),
+                              labelText: 'Email ou username',
+                              prefixIcon: Icon(Icons.person_outline),
                             ),
                             validator: (v) {
-                              if (v == null || v.isEmpty)
-                                return 'Introduz o email';
-                              if (!v.contains('@'))
-                                return 'Email inválido';
+                              if (v == null || v.trim().isEmpty)
+                                return 'Introduz o email ou username';
                               return null;
                             },
                           ),

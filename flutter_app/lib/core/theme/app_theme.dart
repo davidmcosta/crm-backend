@@ -111,10 +111,14 @@ class AppTheme {
 
     // Chips / FilterChip
     chipTheme: ChipThemeData(
-      selectedColor: gold.withOpacity(0.2),
+      selectedColor: gold.withOpacity(0.25),
       checkmarkColor: primary,
       side: const BorderSide(color: border),
-      labelStyle: const TextStyle(fontSize: 13),
+      labelStyle: const TextStyle(fontSize: 13, color: textMuted),
+      secondaryLabelStyle: const TextStyle(
+          fontSize: 13, color: primary, fontWeight: FontWeight.w600),
+      backgroundColor: cardColor,
+      secondarySelectedColor: gold.withOpacity(0.25),
     ),
 
     // Drawer

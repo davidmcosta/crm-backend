@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { authenticate } from '../../middleware/auth'
-import { requireAdmin } from '../../middleware/permissions'
+import { requireAdmin, requireManager } from '../../middleware/permissions'
 import {
   createUserSchema,
   updateUserSchema,
@@ -39,8 +39,8 @@ export async function usersRoutes(app: FastifyInstance) {
     }
   })
 
-  // POST /api/users — criar utilizador, só ADMIN
-  app.post('/', { preHandler: [requireAdmin] }, async (request, reply) => {
+  // POST /api/users — criar utilizador, MANAGER+
+  app.post('/', { preHandler: [requireManager] }, async (request, reply) => {
     const result = createUserSchema.safeParse(request.body)
     if (!result.success) {
       return reply.status(400).send({ error: 'Dados inválidos', details: result.error.flatten().fieldErrors })

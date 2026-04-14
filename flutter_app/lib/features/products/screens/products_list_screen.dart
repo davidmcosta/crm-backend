@@ -196,6 +196,87 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
   }
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Builds flattened BOM component rows, with nested sub-components indented.
+List<Widget> _buildBomRows(
+    List<ProductBOMItem> items,
+    List<ProductModel> allProducts,
+    NumberFormat currency, {
+    int depth = 0,
+  }) {
+  final widgets = <Widget>[];
+  for (final item in items) {
+    final isLinked = item.componentProductId != null;
+    // Find linked product in all products list
+    ProductModel? linked;
+    if (isLinked) {
+      for (final p in allProducts) {
+        if (p.id == item.componentProductId) { linked = p; break; }
+      }
+    }
+    final hasChildren = linked != null && linked.bomItems.isNotEmpty;
+    widgets.add(
+      Padding(
+        padding: EdgeInsets.only(left: depth * 12.0, bottom: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (depth > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 4, top: 2),
+                child: Icon(Icons.subdirectory_arrow_right,
+                    size: 11, color: AppTheme.gold.withOpacity(0.7)),
+              ),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: depth == 0
+                      ? AppTheme.primary.withOpacity(0.06)
+                      : AppTheme.gold.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                      color: depth == 0
+                          ? AppTheme.primary.withOpacity(0.15)
+                          : AppTheme.gold.withOpacity(0.2)),
+                ),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(
+                      item.componentName,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: depth == 0 ? AppTheme.primary : AppTheme.textMuted),
+                    ),
+                  ),
+                  Text(
+                    currency.format(item.includedPrice),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: depth == 0 ? AppTheme.primary : AppTheme.textMuted),
+                  ),
+                  if (hasChildren)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Icon(Icons.account_tree_outlined,
+                          size: 10, color: AppTheme.gold),
+                    ),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    // Recurse into sub-components (max 2 levels deep)
+    if (hasChildren && depth < 1) {
+      widgets.addAll(_buildBomRows(linked!.bomItems, allProducts, currency, depth: depth + 1));
+    }
+  }
+  return widgets;
+}
+
 // ── Product card ──────────────────────────────────────────────────────────────
 
 class _ProductCard extends ConsumerWidget {
@@ -250,25 +331,8 @@ class _ProductCard extends ConsumerWidget {
               ],
               if (product.bomItems.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: product.bomItems.map((item) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                              color: AppTheme.primary.withOpacity(0.15)),
-                        ),
-                        child: Text(
-                          '${item.componentName} — ${currency.format(item.includedPrice)}',
-                          style: const TextStyle(
-                              fontSize: 11, color: AppTheme.primary),
-                        ),
-                      )).toList(),
-                ),
+                // Build component display with nested sub-components
+                ..._buildBomRows(product.bomItems, ref.watch(productsNotifierProvider).products, currency),
               ],
               const SizedBox(height: 4),
               Row(

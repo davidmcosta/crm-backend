@@ -39,7 +39,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final response = await ApiClient().dio.post(
         ApiEndpoints.login,
-        data: jsonEncode({'email': email, 'password': password}),
+        data: jsonEncode({'login': email, 'password': password}),
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
       final data = response.data as Map<String, dynamic>;

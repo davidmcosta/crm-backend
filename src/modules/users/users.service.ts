@@ -11,6 +11,7 @@ export async function listUsers() {
       id: true,
       name: true,
       email: true,
+      username: true,
       role: true,
       isActive: true,
       createdAt: true,
@@ -26,6 +27,7 @@ export async function getUserById(id: string) {
       id: true,
       name: true,
       email: true,
+      username: true,
       role: true,
       isActive: true,
       createdAt: true,
@@ -37,13 +39,20 @@ export async function getUserById(id: string) {
 }
 
 export async function createUser(data: CreateUserInput) {
-  const existing = await prisma.user.findUnique({ where: { email: data.email } })
-  if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este email' }
+  const existing = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: data.email },
+        { username: data.username || undefined },
+      ],
+    },
+  })
+  if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este email ou utilizador' }
 
   const hashedPassword = await hashPassword(data.password)
   return prisma.user.create({
     data: { ...data, password: hashedPassword },
-    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+    select: { id: true, name: true, email: true, username: true, role: true, isActive: true, createdAt: true },
   })
 }
 
@@ -56,10 +65,15 @@ export async function updateUser(id: string, data: UpdateUserInput) {
     if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este email' }
   }
 
+  if (data.username && data.username !== user.username) {
+    const existing = await prisma.user.findUnique({ where: { username: data.username } })
+    if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este nome de utilizador' }
+  }
+
   return prisma.user.update({
     where: { id },
     data,
-    select: { id: true, name: true, email: true, role: true, isActive: true },
+    select: { id: true, name: true, email: true, username: true, role: true, isActive: true },
   })
 }
 

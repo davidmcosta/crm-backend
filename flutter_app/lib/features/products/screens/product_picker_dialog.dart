@@ -8,9 +8,9 @@ import '../../../core/theme/app_theme.dart';
 // ── Result returned when user picks a product ─────────────────────────────────
 
 class ProductPickResult {
-  /// Either a single line (no BOM) or multiple BOM lines
   final List<_PickedLine> lines;
-  const ProductPickResult(this.lines);
+  final String groupLabel; // nome do produto principal selecionado
+  const ProductPickResult(this.lines, {required this.groupLabel});
 }
 
 class _PickedLine {
@@ -275,7 +275,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   ProductPickResult _buildResult(ProductModel p, List<ProductModel> allProducts) {
     final lines = <_PickedLine>[];
     _expandProduct(p, 1.0, allProducts, lines, {});
-    return ProductPickResult(lines);
+    return ProductPickResult(lines, groupLabel: p.name);
   }
 
   /// Expande um produto recursivamente:

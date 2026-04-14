@@ -19,6 +19,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _mealCtrl   = TextEditingController();
   bool _saving      = false;
   bool _loaded      = false;
+  List<int> _anosVisiveis = [];
 
   @override
   void dispose() {
@@ -30,10 +31,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _populate(AppSettings s) {
     if (_loaded) return;
-    _anoCtrl.text  = s.anoAtual > 0 ? s.anoAtual.toString() : '';
-    _kmCtrl.text   = s.kmRate.toString();
-    _mealCtrl.text = s.mealCost.toString();
+    _anoCtrl.text   = s.anoAtual > 0 ? s.anoAtual.toString() : '';
+    _kmCtrl.text    = s.kmRate.toString();
+    _mealCtrl.text  = s.mealCost.toString();
+    _anosVisiveis   = List<int>.from(s.anosVisiveis);
     _loaded = true;
+  }
+
+  List<int> _yearOptions() {
+    final current = DateTime.now().year;
+    return List.generate(5, (i) => current - 3 + i);
   }
 
   Future<void> _save() async {
@@ -45,9 +52,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final meal    = double.tryParse(_mealCtrl.text.replaceAll(',', '.')) ?? 12.0;
 
       await ApiClient().dio.put(ApiEndpoints.settings, data: {
-        'anoAtual':  ano,
-        'kmRate':    km,
-        'mealCost':  meal,
+        'anoAtual':     ano,
+        'kmRate':       km,
+        'mealCost':     meal,
+        'anosVisiveis': _anosVisiveis,
       });
 
       ref.invalidate(settingsProvider);
@@ -195,6 +203,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ),
                       ]),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Anos visíveis na listagem ─────────────────────────────────
+              _sectionHeader(
+                  Icons.calendar_view_month_outlined, 'Anos visíveis'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Filtra a listagem de encomendas pelos anos selecionados. '
+                        'Se nenhum ano estiver selecionado, mostram-se todos.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _yearOptions().map((year) {
+                          final selected = _anosVisiveis.contains(year);
+                          return FilterChip(
+                            label: Text('$year'),
+                            selected: selected,
+                            onSelected: (_) => setState(() {
+                              if (selected) {
+                                _anosVisiveis.remove(year);
+                              } else {
+                                _anosVisiveis.add(year);
+                                _anosVisiveis.sort();
+                              }
+                            }),
+                          );
+                        }).toList(),
+                      ),
+                      if (_anosVisiveis.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.goldFaint,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.info_outline,
+                                size: 14, color: AppTheme.gold),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'A mostrar encomendas de: ${_anosVisiveis.join(', ')}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: AppTheme.gold),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ] else
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Todos os anos visíveis (sem filtro)',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.success),
+                          ),
+                        ),
                     ],
                   ),
                 ),

@@ -11,20 +11,25 @@ double? _toDouble(dynamic v) {
 }
 
 class AppSettings {
-  final int    anoAtual;
-  final double kmRate;
-  final double mealCost;
+  final int          anoAtual;
+  final double       kmRate;
+  final double       mealCost;
+  final List<int>    anosVisiveis;
 
   const AppSettings({
     required this.anoAtual,
     required this.kmRate,
     required this.mealCost,
+    this.anosVisiveis = const [],
   });
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
-        anoAtual: (j['anoAtual'] as num?)?.toInt() ?? 0,
-        kmRate:   _toDouble(j['kmRate'])   ?? 0.36,
-        mealCost: _toDouble(j['mealCost']) ?? 12.0,
+        anoAtual:     (j['anoAtual'] as num?)?.toInt() ?? 0,
+        kmRate:       _toDouble(j['kmRate'])   ?? 0.36,
+        mealCost:     _toDouble(j['mealCost']) ?? 12.0,
+        anosVisiveis: (j['anosVisiveis'] as List?)
+            ?.map((e) => (e as num).toInt())
+            .toList() ?? [],
       );
 
   /// Effective year for display (0 = sistema)

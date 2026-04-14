@@ -91,13 +91,12 @@ async function ordersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
-    // DELETE /api/orders/:id — cancelar encomenda (MANAGER+)
+    // DELETE /api/orders/:id — eliminar encomenda (MANAGER+)
     app.delete('/:id', { preHandler: [permissions_1.requireManager] }, async (request, reply) => {
         const { id } = request.params;
-        const user = request.user;
         try {
-            await (0, orders_service_1.cancelOrder)(id, user.id);
-            return reply.send({ message: 'Encomenda cancelada com sucesso' });
+            const result = await (0, orders_service_1.deleteOrder)(id);
+            return reply.send(result);
         }
         catch (err) {
             return reply.status(err.statusCode || 500).send({ error: err.message });

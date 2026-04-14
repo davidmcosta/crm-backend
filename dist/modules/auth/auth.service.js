@@ -7,8 +7,14 @@ const hash_1 = require("../../utils/hash");
 const env_1 = require("../../config/env");
 const prisma = new client_1.PrismaClient();
 async function loginService(app, data) {
-    const user = await prisma.user.findUnique({
-        where: { email: data.email },
+    // Find user by email OR username
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { email: data.login },
+                { username: data.login },
+            ],
+        },
         select: {
             id: true,
             name: true,

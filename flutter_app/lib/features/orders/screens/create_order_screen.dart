@@ -10,6 +10,7 @@ import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../products/screens/product_picker_dialog.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../settings/providers/settings_provider.dart';
 
 // ── Falecido entry ────────────────────────────────────────────────────────────
 
@@ -40,6 +41,13 @@ class _ProdRow {
   final nomeCtrl  = TextEditingController();
   final qtyCtrl   = TextEditingController(text: '1');
   final precoCtrl = TextEditingController(text: '0,00');
+
+  /// Identificador do grupo do catálogo (null = linha manual)
+  String? groupId;
+  /// Nome do produto principal do grupo (para o cabeçalho)
+  String? groupLabel;
+  /// Se é a primeira linha do grupo (mostra cabeçalho)
+  bool isGroupStart = false;
 
   void dispose() {
     nomeCtrl.dispose();
@@ -103,9 +111,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   List<_ExtraRow> _extras   = [];
 
   // Calculados
-  double _refeicoes       = 0;
-  double _deslocacao      = 0;
-  bool   _precisaRefeicao = false;
+  double _refeicoes        = 0;
+  double _deslocacao       = 0;
+  bool   _precisaRefeicao  = false;
+  double _kmRateCurrent    = 0.40;
+  double _mealCostCurrent  = 15.0;
 
   final _currency = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
@@ -209,16 +219,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   double get _valorTotal => _baseIVA + _ivaValor;
 
-  void _recalcDeslocacao() {
+  void _recalcDeslocacao({double kmRate = 0.40, double mealCost = 15.0}) {
     final km        = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))        ?? 0;
     final portagens = double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0;
 
-    final custokm     = km * 2 * 0.40;
+    final custokm     = km * 2 * kmRate;
     final portagensRT = portagens * 2;          // ida + volta
     final horasViagem = (km * 2) / 80;
     _precisaRefeicao  = horasViagem > 4.0;
-    _refeicoes        = _precisaRefeicao ? 2 * 15.00 : 0;  // 2 col. × €15
+    _refeicoes        = _precisaRefeicao ? 2 * mealCost : 0;  // 2 col. × mealCost
     _deslocacao       = custokm + portagensRT + _refeicoes;
+    _kmRateCurrent    = kmRate;
+    _mealCostCurrent  = mealCost;
 
     setState(() {});
   }
@@ -272,6 +284,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         _produtos[0].dispose();
         _produtos.clear();
       }
+      // Unique group ID based on timestamp + group label
+      final groupId = '${DateTime.now().millisecondsSinceEpoch}';
+      bool isFirst = true;
       for (final r in rows) {
         final row = _ProdRow();
         final qty   = r['qty']      as double;
@@ -283,6 +298,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         row.precoCtrl.text = preco == preco.truncateToDouble()
             ? preco.toInt().toString()
             : preco.toStringAsFixed(2);
+        row.groupId     = groupId;
+        row.groupLabel  = result.groupLabel;
+        row.isGroupStart = isFirst;
+        isFirst = false;
         _produtos.add(row);
       }
     });
@@ -395,7 +414,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final customersState = ref.watch(customersProvider);
+    final customersState  = ref.watch(customersProvider);
+    // Apply settings-based travel rates whenever settings load/change
+    ref.watch(settingsProvider).whenData((s) {
+      if (s.kmRate != _kmRateCurrent || s.mealCost != _mealCostCurrent) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _recalcDeslocacao(kmRate: s.kmRate, mealCost: s.mealCost);
+        });
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -680,84 +707,125 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             ..._produtos.asMap().entries.map((e) {
               final i = e.key;
               final r = e.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  elevation: 0,
-                  color: AppTheme.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: const BorderSide(color: AppTheme.border),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(children: [
-                      Row(children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: r.nomeCtrl,
-                            decoration: _deco('Nome do produto',
-                                Icons.label_outline),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                        if (_produtos.length > 1) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _removeProduto(i),
-                            icon: const Icon(Icons.delete_outline,
-                                color: Colors.red),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
-                      ]),
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: r.qtyCtrl,
-                            decoration: _deco('Qtd', Icons.numbers),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => setState(() {}),
+              // Is this row part of a catalog group?
+              final isCatalog = r.groupId != null;
+              final cardColor = isCatalog
+                  ? AppTheme.goldFaint.withOpacity(0.5)
+                  : AppTheme.surface;
+              final borderColor = isCatalog ? AppTheme.gold.withOpacity(0.4) : AppTheme.border;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Group header shown on first row of group
+                  if (r.isGroupStart && r.groupLabel != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 4),
+                      child: Row(children: [
+                        const Icon(Icons.category_outlined,
+                            size: 13, color: AppTheme.gold),
+                        const SizedBox(width: 6),
+                        Text(
+                          r.groupLabel!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.gold,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            controller: r.precoCtrl,
-                            decoration:
-                                _deco('Preço unit. (€)', Icons.euro_outlined),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: AppTheme.goldFaint,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Text(
-                              _currency.format(r.total),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.primary,
-                                  fontSize: 13),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                        const Expanded(
+                          child: Divider(
+                              color: AppTheme.border, height: 1),
                         ),
                       ]),
-                    ]),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Card(
+                      elevation: 0,
+                      color: cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(color: borderColor),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(children: [
+                          Row(children: [
+                            if (isCatalog && !r.isGroupStart)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Icon(Icons.subdirectory_arrow_right,
+                                    size: 14,
+                                    color: AppTheme.gold.withOpacity(0.7)),
+                              ),
+                            Expanded(
+                              child: TextFormField(
+                                controller: r.nomeCtrl,
+                                decoration: _deco('Nome do produto',
+                                    Icons.label_outline),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            if (_produtos.length > 1) ...[
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () => _removeProduto(i),
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.red),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
+                          ]),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: r.qtyCtrl,
+                                decoration: _deco('Qtd', Icons.numbers),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                    decimal: true),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: r.precoCtrl,
+                                decoration:
+                                    _deco('Preço unit. (€)', Icons.euro_outlined),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                    decimal: true),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.goldFaint,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppTheme.border),
+                                ),
+                                child: Text(
+                                  _currency.format(r.total),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.primary,
+                                      fontSize: 13),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ]),
+                        ]),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               );
             }),
 
@@ -839,12 +907,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           color: AppTheme.success)),
                   const SizedBox(height: 6),
                   _calcRow(
-                      'Veículo classe 2  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €0,40',
-                      (double.tryParse(_kmCtrl.text) ?? 0) * 2 * 0.40),
+                      'Veículo  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €${_kmRateCurrent.toStringAsFixed(2)}',
+                      (double.tryParse(_kmCtrl.text) ?? 0) * 2 * _kmRateCurrent),
                   _calcRow('Portagens (ida + volta)',
                       (double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0) * 2),
                   if (_precisaRefeicao)
-                    _calcRow('Refeições (2 colaboradores × €15)', _refeicoes,
+                    _calcRow('Refeições (2 col. × €${_mealCostCurrent.toStringAsFixed(2)})', _refeicoes,
                         note: 'viagem > 4h'),
                   const Divider(height: 14),
                   Row(
