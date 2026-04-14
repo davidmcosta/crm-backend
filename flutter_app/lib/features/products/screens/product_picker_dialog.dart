@@ -272,20 +272,10 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   }
 
   ProductPickResult _buildResult(ProductModel p) {
-    if (p.bomItems.isEmpty) {
-      // Single line: the product itself
-      return ProductPickResult([
-        _PickedLine(nome: p.name, qty: 1, precoUnit: p.basePrice),
-      ]);
-    } else {
-      // Expand into BOM items
-      return ProductPickResult(
-        p.bomItems.map((item) => _PickedLine(
-              nome:      item.componentName,
-              qty:       item.qty,
-              precoUnit: item.includedPrice,
-            )).toList(),
-      );
-    }
+    // Sempre adiciona o produto como uma linha única com o preço base.
+    // Os componentes BOM são apenas referência para delta — não expandem na encomenda.
+    return ProductPickResult([
+      _PickedLine(nome: p.name, qty: 1, precoUnit: p.basePrice),
+    ]);
   }
 }
