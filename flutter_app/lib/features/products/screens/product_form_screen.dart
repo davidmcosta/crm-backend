@@ -266,7 +266,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             TextFormField(
               controller: _priceCtrl,
               decoration: const InputDecoration(
-                labelText: 'Preço base (€) *',
+                labelText: 'Preço total (€) *',
                 prefixIcon: Icon(Icons.euro_outlined, size: 18),
               ),
               keyboardType:
@@ -337,7 +337,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      'O preço de cada componente serve de referência para calcular a diferença quando se troca um componente numa encomenda.',
+                      'O preço total inclui todos os componentes. Numa encomenda, a linha do produto fica com o preço total menos a soma dos componentes, e cada componente aparece como linha separada editável.',
                       style: TextStyle(fontSize: 11, color: AppTheme.gold),
                     ),
                   ),

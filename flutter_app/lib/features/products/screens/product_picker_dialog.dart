@@ -272,20 +272,28 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   }
 
   ProductPickResult _buildResult(ProductModel p) {
-    final lines = <_PickedLine>[
-      // Linha principal: o produto com o seu preço base
-      _PickedLine(nome: p.name, qty: 1, precoUnit: p.basePrice),
-    ];
-
-    // Linhas dos componentes BOM — aparecem como linhas editáveis
-    // para que o utilizador possa trocar/ajustar preços
-    for (final item in p.bomItems) {
-      lines.add(_PickedLine(
-        nome:      item.componentName,
-        qty:       item.qty,
-        precoUnit: item.includedPrice,
-      ));
+    if (p.bomItems.isEmpty) {
+      return ProductPickResult([
+        _PickedLine(nome: p.name, qty: 1, precoUnit: p.basePrice),
+      ]);
     }
+
+    // Preço da linha principal = preço total - soma dos componentes
+    // (os componentes são adicionados como linhas separadas)
+    final componentTotal = p.bomItems.fold(
+      0.0,
+      (sum, item) => sum + item.includedPrice * item.qty,
+    );
+    final baseLinePrice = p.basePrice - componentTotal;
+
+    final lines = <_PickedLine>[
+      _PickedLine(nome: p.name, qty: 1, precoUnit: baseLinePrice),
+      ...p.bomItems.map((item) => _PickedLine(
+            nome:      item.componentName,
+            qty:       item.qty,
+            precoUnit: item.includedPrice,
+          )),
+    ];
 
     return ProductPickResult(lines);
   }
