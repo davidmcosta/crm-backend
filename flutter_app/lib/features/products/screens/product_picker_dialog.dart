@@ -204,7 +204,8 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
-                            final result = _buildResult(p);
+                            final allProds = ref.read(allProductsProvider).valueOrNull ?? [];
+                            final result = _buildResult(p, allProds);
                             Navigator.pop(context, result);
                           },
                           child: Padding(
@@ -271,30 +272,56 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
     );
   }
 
-  ProductPickResult _buildResult(ProductModel p) {
+  ProductPickResult _buildResult(ProductModel p, List<ProductModel> allProducts) {
+    final lines = <_PickedLine>[];
+    _expandProduct(p, 1.0, allProducts, lines, {});
+    return ProductPickResult(lines);
+  }
+
+  /// Expande um produto recursivamente:
+  /// - linha do produto = totalPrice - soma dos seus componentes directos
+  /// - cada componente ligado a outro produto do catálogo é também expandido
+  /// [visited] evita ciclos infinitos
+  void _expandProduct(
+    ProductModel p,
+    double qty,
+    List<ProductModel> allProducts,
+    List<_PickedLine> out,
+    Set<String> visited,
+  ) {
+    if (visited.contains(p.id)) return; // evitar ciclos
+    visited.add(p.id);
+
     if (p.bomItems.isEmpty) {
-      return ProductPickResult([
-        _PickedLine(nome: p.name, qty: 1, precoUnit: p.basePrice),
-      ]);
+      out.add(_PickedLine(nome: p.name, qty: qty, precoUnit: p.basePrice));
+      return;
     }
 
-    // Preço da linha principal = preço total - soma dos componentes
-    // (os componentes são adicionados como linhas separadas)
+    // Linha do produto = preço total - soma directa dos componentes BOM
     final componentTotal = p.bomItems.fold(
-      0.0,
-      (sum, item) => sum + item.includedPrice * item.qty,
+      0.0, (s, item) => s + item.includedPrice * item.qty,
     );
-    final baseLinePrice = p.basePrice - componentTotal;
+    out.add(_PickedLine(nome: p.name, qty: qty, precoUnit: p.basePrice - componentTotal));
 
-    final lines = <_PickedLine>[
-      _PickedLine(nome: p.name, qty: 1, precoUnit: baseLinePrice),
-      ...p.bomItems.map((item) => _PickedLine(
-            nome:      item.componentName,
-            qty:       item.qty,
-            precoUnit: item.includedPrice,
-          )),
-    ];
-
-    return ProductPickResult(lines);
+    // Expandir cada componente
+    for (final item in p.bomItems) {
+      // Se o componente está ligado a um produto do catálogo, expande recursivamente
+      if (item.componentProductId != null) {
+        ProductModel? linked;
+        for (final ap in allProducts) {
+          if (ap.id == item.componentProductId) { linked = ap; break; }
+        }
+        if (linked != null) {
+          _expandProduct(linked, item.qty * qty, allProducts, out, visited);
+          continue;
+        }
+      }
+      // Componente de texto livre — linha simples
+      out.add(_PickedLine(
+        nome:      item.componentName,
+        qty:       item.qty * qty,
+        precoUnit: item.includedPrice,
+      ));
+    }
   }
 }
