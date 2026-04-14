@@ -20,6 +20,24 @@ const app = (0, fastify_1.default)({
         : true,
 });
 // ─────────────────────────────────────────
+// Content-type parser — aceita body vazio
+// (o Dio envia Content-Type: application/json mesmo em DELETE sem body)
+// ─────────────────────────────────────────
+app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    const str = body;
+    if (!str || str.length === 0) {
+        done(null, null);
+        return;
+    }
+    try {
+        done(null, JSON.parse(str));
+    }
+    catch (err) {
+        err.statusCode = 400;
+        done(err, undefined);
+    }
+});
+// ─────────────────────────────────────────
 // Plugins
 // ─────────────────────────────────────────
 app.register(cors_1.default, {
