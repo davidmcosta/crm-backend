@@ -25,7 +25,7 @@ async function listProducts(query) {
     }
     return prisma.product.findMany({
         where,
-        include: { bomItems: { orderBy: { sortOrder: 'asc' } } },
+        include: { bomItems: { orderBy: { sortOrder: 'asc' }, include: { componentProduct: { select: { id: true, name: true, basePrice: true } } } } },
         orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
 }
@@ -33,7 +33,7 @@ async function listProducts(query) {
 async function getProductById(id) {
     const product = await prisma.product.findUnique({
         where: { id },
-        include: { bomItems: { orderBy: { sortOrder: 'asc' } } },
+        include: { bomItems: { orderBy: { sortOrder: 'asc' }, include: { componentProduct: { select: { id: true, name: true, basePrice: true } } } } },
     });
     if (!product)
         throw { statusCode: 404, message: 'Produto não encontrado' };
@@ -46,10 +46,16 @@ async function createProduct(data) {
         data: {
             ...rest,
             bomItems: {
-                create: bomItems.map((item, i) => ({ ...item, sortOrder: i })),
+                create: bomItems.map((item, i) => ({
+                    componentProductId: item.componentProductId ?? null,
+                    componentName: item.componentName,
+                    qty: item.qty ?? 1,
+                    includedPrice: item.includedPrice ?? 0,
+                    sortOrder: i,
+                })),
             },
         },
-        include: { bomItems: { orderBy: { sortOrder: 'asc' } } },
+        include: { bomItems: { orderBy: { sortOrder: 'asc' }, include: { componentProduct: { select: { id: true, name: true, basePrice: true } } } } },
     });
 }
 // ── Atualizar ────────────────────────────────────────────────────────────────
@@ -66,6 +72,7 @@ async function updateProduct(id, data) {
                 await tx.productBOM.createMany({
                     data: bomItems.map((item, i) => ({
                         productId: id,
+                        componentProductId: item.componentProductId ?? null,
                         componentName: item.componentName,
                         qty: item.qty ?? 1,
                         includedPrice: item.includedPrice ?? 0,
@@ -77,7 +84,7 @@ async function updateProduct(id, data) {
         return tx.product.update({
             where: { id },
             data: { ...rest, updatedAt: new Date() },
-            include: { bomItems: { orderBy: { sortOrder: 'asc' } } },
+            include: { bomItems: { orderBy: { sortOrder: 'asc' }, include: { componentProduct: { select: { id: true, name: true, basePrice: true } } } } },
         });
     });
 }

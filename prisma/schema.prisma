@@ -120,26 +120,30 @@ model Order {
 // ── Catálogo de produtos ──────────────────────────────────────────────────────
 
 model Product {
-  id          String       @id @default(uuid())
-  name        String
-  category    String?
-  description String?      @db.Text
-  basePrice   Decimal      @default(0) @db.Decimal(10, 2)
-  isActive    Boolean      @default(true)
-  bomItems    ProductBOM[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  name           String
+  category       String?
+  description    String?      @db.Text
+  basePrice      Decimal      @default(0) @db.Decimal(10, 2)
+  isActive       Boolean      @default(true)
+  bomItems       ProductBOM[] @relation("ProductBOMParent")
+  usedInBOMs     ProductBOM[] @relation("ProductBOMComponent")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model ProductBOM {
-  id            String   @id @default(uuid())
-  productId     String
-  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  componentName String
-  qty           Float    @default(1)
-  includedPrice Decimal  @default(0) @db.Decimal(10, 2)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
+  id                 String   @id @default(uuid())
+  productId          String
+  product            Product  @relation("ProductBOMParent", fields: [productId], references: [id], onDelete: Cascade)
+  // Componente pode ser um produto do catálogo (opcional) ou texto livre
+  componentProductId String?
+  componentProduct   Product? @relation("ProductBOMComponent", fields: [componentProductId], references: [id], onDelete: SetNull)
+  componentName      String   // nome do componente (pode vir do produto ligado)
+  qty                Float    @default(1)
+  includedPrice      Decimal  @default(0) @db.Decimal(10, 2)
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
 }
 
 // ── Configurações globais ─────────────────────────────────────────────────────

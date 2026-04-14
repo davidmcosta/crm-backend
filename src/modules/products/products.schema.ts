@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
 const bomItemSchema = z.object({
-  componentName: z.string().min(1),
-  qty:           z.number().positive().default(1),
-  includedPrice: z.number().min(0).default(0),
-  sortOrder:     z.number().int().default(0),
+  componentProductId: z.string().optional().nullable(),
+  componentName:      z.string().min(1),
+  qty:                z.number().positive().default(1),
+  includedPrice:      z.number().min(0).default(0),
+  sortOrder:          z.number().int().default(0),
 })
 
 export const createProductSchema = z.object({

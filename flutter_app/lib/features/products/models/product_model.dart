@@ -7,6 +7,7 @@ double _d(dynamic v, [double fallback = 0]) {
 
 class ProductBOMItem {
   final String  id;
+  final String? componentProductId;   // referência ao produto do catálogo (opcional)
   final String  componentName;
   final double  qty;
   final double  includedPrice;
@@ -14,6 +15,7 @@ class ProductBOMItem {
 
   const ProductBOMItem({
     required this.id,
+    this.componentProductId,
     required this.componentName,
     required this.qty,
     required this.includedPrice,
@@ -21,14 +23,17 @@ class ProductBOMItem {
   });
 
   factory ProductBOMItem.fromJson(Map<String, dynamic> j) => ProductBOMItem(
-        id:            j['id']            as String,
-        componentName: j['componentName'] as String,
-        qty:           _d(j['qty'],           1),
-        includedPrice: _d(j['includedPrice'], 0),
-        sortOrder:     (j['sortOrder']    as num? ?? 0).toInt(),
+        id:                 j['id']                 as String,
+        componentProductId: j['componentProductId'] as String?,
+        componentName:      j['componentName']      as String,
+        qty:                _d(j['qty'],           1),
+        includedPrice:      _d(j['includedPrice'], 0),
+        sortOrder:          (j['sortOrder'] as num? ?? 0).toInt(),
       );
 
   Map<String, dynamic> toJson() => {
+        if (componentProductId != null)
+          'componentProductId': componentProductId,
         'componentName': componentName,
         'qty':           qty,
         'includedPrice': includedPrice,

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.listProductsQuerySchema = exports.updateProductSchema = exports.createProductSchema = void 0;
 const zod_1 = require("zod");
 const bomItemSchema = zod_1.z.object({
+    componentProductId: zod_1.z.string().optional().nullable(),
     componentName: zod_1.z.string().min(1),
     qty: zod_1.z.number().positive().default(1),
     includedPrice: zod_1.z.number().min(0).default(0),

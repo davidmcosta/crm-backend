@@ -88,7 +88,8 @@ class AppDrawer extends ConsumerWidget {
             route: '/dashboard',
             currentLocation: location,
           ),
-          const Divider(height: 8, indent: 16, endIndent: 16),
+
+          _DrawerSection('OPERACIONAL'),
           _DrawerItem(
             icon: Icons.inventory_2_outlined,
             label: 'Encomendas',
@@ -101,15 +102,17 @@ class AppDrawer extends ConsumerWidget {
             route: '/customers',
             currentLocation: location,
           ),
-          const Divider(height: 8, indent: 16, endIndent: 16),
+
+          _DrawerSection('CATÁLOGO'),
           _DrawerItem(
             icon: Icons.category_outlined,
             label: 'Produtos',
             route: '/products',
             currentLocation: location,
           ),
+
           if (user?.isAdmin == true || user?.isManager == true) ...[
-            const Divider(height: 8, indent: 16, endIndent: 16),
+            _DrawerSection('ADMINISTRAÇÃO'),
             _DrawerItem(
               icon: Icons.manage_accounts_outlined,
               label: 'Utilizadores',
@@ -139,6 +142,27 @@ class AppDrawer extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
         ],
+      ),
+    );
+  }
+}
+
+class _DrawerSection extends StatelessWidget {
+  final String label;
+  const _DrawerSection(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: AppTheme.textMuted.withOpacity(0.6),
+        ),
       ),
     );
   }

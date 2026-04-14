@@ -6,6 +6,7 @@ export declare const createProductSchema: z.ZodObject<{
     basePrice: z.ZodDefault<z.ZodNumber>;
     isActive: z.ZodDefault<z.ZodBoolean>;
     bomItems: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        componentProductId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         componentName: z.ZodString;
         qty: z.ZodDefault<z.ZodNumber>;
         includedPrice: z.ZodDefault<z.ZodNumber>;
@@ -15,9 +16,11 @@ export declare const createProductSchema: z.ZodObject<{
         componentName: string;
         includedPrice: number;
         sortOrder: number;
+        componentProductId?: string | null | undefined;
     }, {
         componentName: string;
         qty?: number | undefined;
+        componentProductId?: string | null | undefined;
         includedPrice?: number | undefined;
         sortOrder?: number | undefined;
     }>, "many">>;
@@ -30,6 +33,7 @@ export declare const createProductSchema: z.ZodObject<{
         componentName: string;
         includedPrice: number;
         sortOrder: number;
+        componentProductId?: string | null | undefined;
     }[];
     category?: string | undefined;
     description?: string | undefined;
@@ -42,6 +46,7 @@ export declare const createProductSchema: z.ZodObject<{
     bomItems?: {
         componentName: string;
         qty?: number | undefined;
+        componentProductId?: string | null | undefined;
         includedPrice?: number | undefined;
         sortOrder?: number | undefined;
     }[] | undefined;
@@ -53,6 +58,7 @@ export declare const updateProductSchema: z.ZodObject<{
     basePrice: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;
     isActive: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
     bomItems: z.ZodOptional<z.ZodDefault<z.ZodArray<z.ZodObject<{
+        componentProductId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         componentName: z.ZodString;
         qty: z.ZodDefault<z.ZodNumber>;
         includedPrice: z.ZodDefault<z.ZodNumber>;
@@ -62,9 +68,11 @@ export declare const updateProductSchema: z.ZodObject<{
         componentName: string;
         includedPrice: number;
         sortOrder: number;
+        componentProductId?: string | null | undefined;
     }, {
         componentName: string;
         qty?: number | undefined;
+        componentProductId?: string | null | undefined;
         includedPrice?: number | undefined;
         sortOrder?: number | undefined;
     }>, "many">>>;
@@ -79,6 +87,7 @@ export declare const updateProductSchema: z.ZodObject<{
         componentName: string;
         includedPrice: number;
         sortOrder: number;
+        componentProductId?: string | null | undefined;
     }[] | undefined;
 }, {
     name?: string | undefined;
@@ -89,6 +98,7 @@ export declare const updateProductSchema: z.ZodObject<{
     bomItems?: {
         componentName: string;
         qty?: number | undefined;
+        componentProductId?: string | null | undefined;
         includedPrice?: number | undefined;
         sortOrder?: number | undefined;
     }[] | undefined;
