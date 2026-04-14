@@ -5,17 +5,19 @@ import '../../../core/api/api_endpoints.dart';
 // ── Modelo ────────────────────────────────────────────────────────────────────
 
 class UserItem {
-  final String id;
-  final String name;
-  final String email;
-  final String role;
-  final bool isActive;
+  final String  id;
+  final String  name;
+  final String  email;
+  final String? username;
+  final String  role;
+  final bool    isActive;
   final DateTime createdAt;
 
   const UserItem({
     required this.id,
     required this.name,
     required this.email,
+    this.username,
     required this.role,
     required this.isActive,
     required this.createdAt,
@@ -25,6 +27,7 @@ class UserItem {
         id:        j['id']       as String,
         name:      j['name']     as String,
         email:     j['email']    as String,
+        username:  j['username'] as String?,
         role:      j['role']     as String,
         isActive:  j['isActive'] as bool? ?? true,
         createdAt: DateTime.parse(j['createdAt'] as String),
@@ -92,6 +95,14 @@ class UsersNotifier extends StateNotifier<UsersState> {
     await ApiClient().dio.patch(
       ApiEndpoints.userRole(userId),
       data: {'role': newRole},
+    );
+    await load();
+  }
+
+  Future<void> updateUser(String userId, Map<String, dynamic> data) async {
+    await ApiClient().dio.put(
+      ApiEndpoints.userById(userId),
+      data: data,
     );
     await load();
   }

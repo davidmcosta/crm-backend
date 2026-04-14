@@ -151,6 +151,20 @@ class UsersListScreen extends ConsumerWidget {
                                     style: const TextStyle(
                                         fontSize: 13,
                                         color: AppTheme.textMuted)),
+                                if (u.username != null &&
+                                    u.username!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Row(children: [
+                                    const Icon(Icons.alternate_email,
+                                        size: 11,
+                                        color: AppTheme.textMuted),
+                                    const SizedBox(width: 3),
+                                    Text(u.username!,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textMuted)),
+                                  ]),
+                                ],
                                 const SizedBox(height: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -176,6 +190,15 @@ class UsersListScreen extends ConsumerWidget {
                                         _handleAction(
                                             context, ref, u, action),
                                     itemBuilder: (_) => [
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Row(children: [
+                                          Icon(Icons.edit_outlined,
+                                              size: 18),
+                                          SizedBox(width: 8),
+                                          Text('Editar'),
+                                        ]),
+                                      ),
                                       const PopupMenuItem(
                                         value: 'role',
                                         child: Row(children: [
@@ -379,9 +402,134 @@ class UsersListScreen extends ConsumerWidget {
     passwordCtrl.dispose();
   }
 
+  // ── Editar utilizador ─────────────────────────────────────────────────────────
+  Future<void> _showEditUserDialog(
+      BuildContext context, WidgetRef ref, UserItem user) async {
+    final nameCtrl     = TextEditingController(text: user.name);
+    final emailCtrl    = TextEditingController(text: user.email);
+    final usernameCtrl = TextEditingController(text: user.username ?? '');
+    bool isLoading     = false;
+    String? errorMsg;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text('Editar ${user.name}',
+              style: const TextStyle(color: AppTheme.primary)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (errorMsg != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: AppTheme.error.withOpacity(0.3)),
+                    ),
+                    child: Text(errorMsg!,
+                        style: TextStyle(
+                            color: AppTheme.error, fontSize: 13)),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome *',
+                    prefixIcon: Icon(Icons.person_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email *',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: usernameCtrl,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Username (opcional)',
+                    hintText: 'Ex: joao.silva',
+                    prefixIcon: Icon(Icons.alternate_email_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 42)),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final name  = nameCtrl.text.trim();
+                      final email = emailCtrl.text.trim();
+                      if (name.isEmpty || email.isEmpty) {
+                        setState(() => errorMsg = 'Nome e email são obrigatórios');
+                        return;
+                      }
+                      setState(() { isLoading = true; errorMsg = null; });
+                      try {
+                        final payload = <String, dynamic>{
+                          'name':  name,
+                          'email': email,
+                        };
+                        final un = usernameCtrl.text.trim();
+                        if (un.isNotEmpty) payload['username'] = un;
+                        await ref.read(usersProvider.notifier).updateUser(user.id, payload);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Utilizador atualizado!'),
+                              backgroundColor: AppTheme.success,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setState(() {
+                          isLoading = false;
+                          errorMsg  = _extractError(e);
+                        });
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppTheme.primary))
+                  : const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    nameCtrl.dispose();
+    emailCtrl.dispose();
+    usernameCtrl.dispose();
+  }
+
   // ── Ações sobre utilizador existente ──────────────────────────────────────────
   Future<void> _handleAction(BuildContext context, WidgetRef ref,
       UserItem user, String action) async {
+    if (action == 'edit') {
+      await _showEditUserDialog(context, ref, user);
+      return;
+    }
     if (action == 'role') {
       String? selected = user.role;
       await showDialog<void>(
