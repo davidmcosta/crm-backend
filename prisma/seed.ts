@@ -1,5 +1,7 @@
-import { PrismaClient, UserRole } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+
+const UserRole = { ADMIN: 'ADMIN', MANAGER: 'MANAGER', OPERATOR: 'OPERATOR', VIEWER: 'VIEWER' } as const
 
 const prisma = new PrismaClient()
 
@@ -12,10 +14,11 @@ async function main() {
     where: { email: 'admin@empresa.pt' },
     update: {},
     create: {
-      name: 'Administrador',
-      email: 'admin@empresa.pt',
+      name:     'Administrador',
+      email:    'admin@empresa.pt',
+      username: 'admin',
       password: adminPassword,
-      role: UserRole.ADMIN,
+      role:     UserRole.ADMIN,
     },
   })
   console.log(`✅ Admin criado: ${admin.email}`)
@@ -26,10 +29,11 @@ async function main() {
     where: { email: 'operador@empresa.pt' },
     update: {},
     create: {
-      name: 'Operador Exemplo',
-      email: 'operador@empresa.pt',
+      name:     'Operador Exemplo',
+      email:    'operador@empresa.pt',
+      username: 'operador',
       password: operatorPassword,
-      role: UserRole.OPERATOR,
+      role:     UserRole.OPERATOR,
     },
   })
   console.log(`✅ Operador criado: ${operator.email}`)
