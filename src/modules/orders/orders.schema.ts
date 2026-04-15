@@ -57,9 +57,9 @@ export const createOrderSchema = z.object({
 
   valorTotal: z.number().min(0).default(0),
 
-  // Requerente
-  requerente:    z.string().min(1, 'Requerente é obrigatório'),
-  contacto:      z.string().min(1, 'Contacto é obrigatório'),
+  // Requerente (obrigatório apenas quando cliente é Casa das Campas — validado no front)
+  requerente:    z.string().optional().default(''),
+  contacto:      z.string().optional().default(''),
   observacoes:   z.string().optional(),
   descontoPerc:  z.number().min(0).max(100).default(0),
   descontoValor: z.number().min(0).default(0),

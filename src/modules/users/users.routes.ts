@@ -15,6 +15,7 @@ import {
   updateUserRole,
   deactivateUser,
   changePassword,
+  adminResetPassword,
 } from './users.service'
 
 export async function usersRoutes(app: FastifyInstance) {
@@ -86,6 +87,20 @@ export async function usersRoutes(app: FastifyInstance) {
     const user = request.user as { id: string }
     try {
       return reply.send(await deactivateUser(id, user.id))
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message })
+    }
+  })
+
+  // PUT /api/users/:id/password — ADMIN redefine password de qualquer utilizador
+  app.put('/:id/password', { preHandler: [requireAdmin] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { password } = request.body as { password?: string }
+    if (!password || password.length < 8) {
+      return reply.status(400).send({ error: 'A password deve ter pelo menos 8 caracteres' })
+    }
+    try {
+      return reply.send(await adminResetPassword(id, password))
     } catch (err: any) {
       return reply.status(err.statusCode || 500).send({ error: err.message })
     }

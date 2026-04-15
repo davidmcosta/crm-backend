@@ -13,8 +13,8 @@ const _roles      = ['ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER'];
 const _roleLabels = ['Admin', 'Gestor', 'Operador', 'Visualizador'];
 const _roleDescriptions = [
   'Acesso total — gere utilizadores, configurações e todas as encomendas',
-  'Gere encomendas e clientes, sem acesso a utilizadores',
-  'Cria e edita encomendas e clientes',
+  'Cria, edita e elimina encomendas e clientes. Sem acesso a utilizadores ou configurações',
+  'Cria e edita encomendas e clientes. Não pode eliminar',
   'Só consulta — não pode criar nem editar'
 ];
 
@@ -190,7 +190,7 @@ class UsersListScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            trailing: authUser?.isAdmin == true && !isSelf
+                            trailing: authUser?.isAdmin == true
                                 ? PopupMenuButton<String>(
                                     icon: const Icon(Icons.more_vert,
                                         color: AppTheme.textMuted),
@@ -208,27 +208,38 @@ class UsersListScreen extends ConsumerWidget {
                                         ]),
                                       ),
                                       const PopupMenuItem(
-                                        value: 'role',
+                                        value: 'password',
                                         child: Row(children: [
-                                          Icon(Icons.manage_accounts,
+                                          Icon(Icons.lock_reset_outlined,
                                               size: 18),
                                           SizedBox(width: 8),
-                                          Text('Alterar função'),
+                                          Text('Redefinir password'),
                                         ]),
                                       ),
-                                      if (u.isActive)
-                                        PopupMenuItem(
-                                          value: 'deactivate',
+                                      if (!isSelf) ...[
+                                        const PopupMenuItem(
+                                          value: 'role',
                                           child: Row(children: [
-                                            Icon(Icons.delete_outline,
-                                                size: 18,
-                                                color: AppTheme.error),
-                                            const SizedBox(width: 8),
-                                            Text('Eliminar',
-                                                style: TextStyle(
-                                                    color: AppTheme.error)),
+                                            Icon(Icons.manage_accounts,
+                                                size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Alterar função'),
                                           ]),
                                         ),
+                                        if (u.isActive)
+                                          PopupMenuItem(
+                                            value: 'deactivate',
+                                            child: Row(children: [
+                                              Icon(Icons.delete_outline,
+                                                  size: 18,
+                                                  color: AppTheme.error),
+                                              const SizedBox(width: 8),
+                                              Text('Eliminar',
+                                                  style: TextStyle(
+                                                      color: AppTheme.error)),
+                                            ]),
+                                          ),
+                                      ],
                                     ],
                                   )
                                 : null,
@@ -308,6 +319,7 @@ class UsersListScreen extends ConsumerWidget {
                   decoration: const InputDecoration(
                     labelText: 'Password *',
                     prefixIcon: Icon(Icons.lock_outline),
+                    helperText: 'Mínimo 8 caracteres',
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -530,9 +542,104 @@ class UsersListScreen extends ConsumerWidget {
     usernameCtrl.dispose();
   }
 
+  // ── Redefinir password (admin) ────────────────────────────────────────────────
+  Future<void> _showResetPasswordDialog(
+      BuildContext context, WidgetRef ref, UserItem user) async {
+    final passCtrl  = TextEditingController();
+    bool isLoading  = false;
+    String? errorMsg;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: Text('Redefinir password — ${user.name}',
+              style: const TextStyle(color: AppTheme.primary)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (errorMsg != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                  ),
+                  child: Text(errorMsg!,
+                      style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextField(
+                controller: passCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nova password *',
+                  prefixIcon: Icon(Icons.lock_outline),
+                  helperText: 'Mínimo 8 caracteres',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 42)),
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final pass = passCtrl.text;
+                      if (pass.isEmpty) {
+                        setState(() => errorMsg = 'Password obrigatória');
+                        return;
+                      }
+                      setState(() { isLoading = true; errorMsg = null; });
+                      try {
+                        await ApiClient().dio.put(
+                          '${ApiEndpoints.users}/${user.id}/password',
+                          data: {'password': pass},
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Password redefinida!'),
+                              backgroundColor: AppTheme.success,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setState(() {
+                          isLoading = false;
+                          errorMsg  = _extractError(e);
+                        });
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppTheme.primary))
+                  : const Text('Redefinir'),
+            ),
+          ],
+        ),
+      ),
+    );
+    passCtrl.dispose();
+  }
+
   // ── Ações sobre utilizador existente ──────────────────────────────────────────
   Future<void> _handleAction(BuildContext context, WidgetRef ref,
       UserItem user, String action) async {
+    if (action == 'password') {
+      await _showResetPasswordDialog(context, ref, user);
+      return;
+    }
     if (action == 'edit') {
       await _showEditUserDialog(context, ref, user);
       return;

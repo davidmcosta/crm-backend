@@ -125,6 +125,14 @@ export async function deactivateUser(id: string, requestingUserId: string) {
   })
 }
 
+export async function adminResetPassword(id: string, newPassword: string) {
+  const user = await prisma.user.findUnique({ where: { id } })
+  if (!user) throw { statusCode: 404, message: 'Utilizador não encontrado' }
+  const hashed = await hashPassword(newPassword)
+  await prisma.user.update({ where: { id }, data: { password: hashed } })
+  return { message: 'Password redefinida com sucesso' }
+}
+
 export async function changePassword(id: string, data: ChangePasswordInput) {
   const user = await prisma.user.findUnique({ where: { id } })
   if (!user) throw { statusCode: 404, message: 'Utilizador não encontrado' }

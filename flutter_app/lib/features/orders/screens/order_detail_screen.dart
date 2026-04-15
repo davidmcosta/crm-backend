@@ -747,13 +747,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            // ── Desconto de revendedor ────────────────────────────────────────
+            // ── Desconto ─────────────────────────────────────────────────────
             if (order.descontoPerc > 0) ...[
               Card(
-                color: AppTheme.gold.withOpacity(0.08),
+                color: AppTheme.primary.withOpacity(0.06),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppTheme.gold.withOpacity(0.4)),
+                  side: BorderSide(color: AppTheme.primary.withOpacity(0.3)),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -761,20 +761,20 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   child: Row(
                     children: [
                       const Icon(Icons.discount_outlined,
-                          size: 18, color: AppTheme.gold),
+                          size: 18, color: AppTheme.primary),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Desconto revendedor (${order.descontoPerc % 1 == 0 ? order.descontoPerc.toInt() : order.descontoPerc.toStringAsFixed(1)}%)',
+                          'Desconto (${order.descontoPerc % 1 == 0 ? order.descontoPerc.toInt() : order.descontoPerc.toStringAsFixed(1)}%)',
                           style: const TextStyle(
-                              color: AppTheme.gold,
+                              color: AppTheme.primary,
                               fontWeight: FontWeight.w600),
                         ),
                       ),
                       Text(
                         '−${_currency.format(order.descontoValor)}',
                         style: const TextStyle(
-                            color: AppTheme.gold,
+                            color: AppTheme.primary,
                             fontWeight: FontWeight.bold,
                             fontSize: 15),
                       ),
@@ -1058,7 +1058,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 ),
 
               // Botão de eliminar (só para MANAGER+)
-              if (canDelete && order.status == 'CANCELLED') ...[
+              if (canDelete) ...[
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,

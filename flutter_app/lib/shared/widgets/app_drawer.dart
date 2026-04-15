@@ -111,7 +111,7 @@ class AppDrawer extends ConsumerWidget {
             currentLocation: location,
           ),
 
-          if (user?.isAdmin == true || user?.isManager == true) ...[
+          if (user?.isAdmin == true) ...[
             _DrawerSection('ADMINISTRAÇÃO'),
             _DrawerItem(
               icon: Icons.manage_accounts_outlined,

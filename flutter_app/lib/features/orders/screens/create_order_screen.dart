@@ -104,7 +104,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final _observacoesCtrl     = TextEditingController();
 
   String?              _selectedCustomerId;
+  String?              _selectedCustomerName;
   double               _selectedCustomerDiscount = 0;
+
+  bool get _isCasaDasCampas =>
+      _selectedCustomerName?.toLowerCase().contains('casa das campas') == true;
   bool                 _temIVA                   = false;
   List<_FalecidoEntry> _falecidos                = [_FalecidoEntry()];
   List<_ProdRow>  _produtos = [_ProdRow()];
@@ -140,6 +144,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _contactoCtrl.text        = o.contacto;
     _observacoesCtrl.text     = o.observacoes ?? '';
     _selectedCustomerId       = o.customer?.id;
+    _selectedCustomerName     = o.customer?.name;
     _selectedCustomerDiscount = o.descontoPerc;
     _temIVA                   = o.ivaPerc > 0;
 
@@ -452,33 +457,56 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             // ═══════════════════════════════════════
             // 1. CLIENTE
             // ═══════════════════════════════════════
-            _section(Icons.business_outlined, 'Cliente', optional: true),
+            _section(Icons.business_outlined, 'Cliente'),
             customersState.isLoading
                 ? const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                : DropdownButtonFormField<String>(
-                    value: _selectedCustomerId,
-                    decoration: _deco('Associar cliente', Icons.business_outlined),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('— Nenhum —')),
-                      ...customersState.customers.map((c) =>
-                          DropdownMenuItem(value: c.id, child: Text(c.name))),
-                    ],
-                    onChanged: (v) {
-                      double discount = 0;
-                      if (v != null) {
-                        for (final c in customersState.customers) {
-                          if (c.id == v) { discount = c.discount; break; }
-                        }
-                      }
-                      setState(() {
-                        _selectedCustomerId       = v;
-                        _selectedCustomerDiscount = discount;
+                : Builder(builder: (_) {
+                    // Auto-selecionar "Casa das Campas" na criação quando os clientes carregam
+                    if (!_isEdit && _selectedCustomerId == null &&
+                        customersState.customers.isNotEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        final casaDasCampas = customersState.customers.firstWhere(
+                          (c) => c.name.toLowerCase().contains('casa das campas'),
+                          orElse: () => customersState.customers.first,
+                        );
+                        setState(() {
+                          _selectedCustomerId       = casaDasCampas.id;
+                          _selectedCustomerName     = casaDasCampas.name;
+                          _selectedCustomerDiscount = casaDasCampas.discount;
+                        });
                       });
-                    },
-                  ),
+                    }
+                    return DropdownButtonFormField<String>(
+                      value: _selectedCustomerId,
+                      decoration: _deco('Cliente *', Icons.business_outlined),
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Cliente obrigatório' : null,
+                      items: customersState.customers.map((c) =>
+                          DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                      onChanged: (v) {
+                        double discount = 0;
+                        String? name;
+                        if (v != null) {
+                          for (final c in customersState.customers) {
+                            if (c.id == v) {
+                              discount = c.discount;
+                              name     = c.name;
+                              break;
+                            }
+                          }
+                        }
+                        setState(() {
+                          _selectedCustomerId       = v;
+                          _selectedCustomerName     = name;
+                          _selectedCustomerDiscount = discount;
+                        });
+                      },
+                    );
+                  }),
 
             // ═══════════════════════════════════════
             // 2. TRABALHO
@@ -998,26 +1026,32 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             ),
 
             // ═══════════════════════════════════════
-            // 8. REQUERENTE
+            // 8. REQUERENTE (só para Casa das Campas)
             // ═══════════════════════════════════════
-            _gap(),
-            _section(Icons.person_outline, 'Requerente'),
-            _field(
-              ctrl: _requerenteCtrl,
-              label: 'Nome do requerente *',
-              icon: Icons.person_outlined,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
-            ),
-            const SizedBox(height: 10),
-            _field(
-              ctrl: _contactoCtrl,
-              label: 'Contacto *',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
-            ),
+            if (_isCasaDasCampas) ...[
+              _gap(),
+              _section(Icons.person_outline, 'Requerente'),
+              _field(
+                ctrl: _requerenteCtrl,
+                label: 'Nome do requerente *',
+                icon: Icons.person_outlined,
+                validator: (v) =>
+                    _isCasaDasCampas && (v == null || v.trim().isEmpty)
+                        ? 'Campo obrigatório'
+                        : null,
+              ),
+              const SizedBox(height: 10),
+              _field(
+                ctrl: _contactoCtrl,
+                label: 'Contacto *',
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                validator: (v) =>
+                    _isCasaDasCampas && (v == null || v.trim().isEmpty)
+                        ? 'Campo obrigatório'
+                        : null,
+              ),
+            ],
 
             // ═══════════════════════════════════════
             // 9. OBSERVAÇÕES
