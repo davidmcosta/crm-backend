@@ -1,43 +1,45 @@
--- Passo 1a: dar username a utilizadores sem username mas com email (usa prefixo do email)
+-- Passo 1: Atribuir usernames temporários únicos a utilizadores sem username
+-- (baseados no id, garantem ausência de colisão com qualquer valor existente)
 UPDATE "User"
-SET "username" = LOWER(REGEXP_REPLACE(SPLIT_PART("email", '@', 1), '[^a-zA-Z0-9._-]', '', 'g'))
-WHERE "username" IS NULL AND "email" IS NOT NULL;
+SET "username" = '_tmp_' || SUBSTRING("id", 1, 8)
+WHERE "username" IS NULL;
 
--- Passo 1b: dar username a utilizadores sem username e sem email (usa 1ª palavra do nome)
-UPDATE "User"
-SET "username" = LOWER(REGEXP_REPLACE(SPLIT_PART("name", ' ', 1), '[^a-zA-Z0-9._-]', '', 'g'))
-WHERE "username" IS NULL AND ("email" IS NULL OR "username" = '');
-
--- Passo 1c: fallback final — usar os primeiros 8 chars do id
-UPDATE "User"
-SET "username" = SUBSTRING("id", 1, 8)
-WHERE "username" IS NULL OR "username" = '';
-
--- Passo 2: garantir unicidade em caso de colisão (adiciona sufixo numérico)
+-- Passo 2: Substituir os usernames temporários pelos nomes desejados,
+-- processando um de cada vez por ordem de criação para gerir colisões
 DO $$
 DECLARE
-  r RECORD;
-  cnt INT;
-  base_name TEXT;
+  r          RECORD;
+  desired    TEXT;
+  base_name  TEXT;
+  cnt        INT;
 BEGIN
   FOR r IN
-    SELECT id, username FROM "User" WHERE username IS NOT NULL
+    SELECT id, email, name FROM "User"
+    WHERE username LIKE '_tmp_%'
     ORDER BY "createdAt"
   LOOP
-    cnt := 0;
-    base_name := r.username;
-    WHILE EXISTS (
-      SELECT 1 FROM "User" WHERE username = r.username AND id != r.id
-    ) LOOP
-      cnt := cnt + 1;
-      UPDATE "User" SET username = base_name || cnt WHERE id = r.id;
-      SELECT username INTO r.username FROM "User" WHERE id = r.id;
+    -- Derivar username desejado: prefixo do email > 1ª palavra do nome > 8 chars do id
+    base_name := COALESCE(
+      NULLIF(LOWER(REGEXP_REPLACE(SPLIT_PART(COALESCE(r.email, ''), '@', 1), '[^a-zA-Z0-9._-]', '', 'g')), ''),
+      NULLIF(LOWER(REGEXP_REPLACE(SPLIT_PART(r.name, ' ', 1), '[^a-zA-Z0-9._-]', '', 'g')), ''),
+      SUBSTRING(r.id, 1, 8)
+    );
+
+    desired := base_name;
+    cnt     := 0;
+
+    -- Enquanto o username já existir (em qualquer utilizador), adicionar sufixo numérico
+    WHILE EXISTS (SELECT 1 FROM "User" WHERE username = desired) LOOP
+      cnt     := cnt + 1;
+      desired := base_name || cnt;
     END LOOP;
+
+    UPDATE "User" SET username = desired WHERE id = r.id;
   END LOOP;
 END $$;
 
--- Passo 3: tornar username NOT NULL
+-- Passo 3: Tornar username NOT NULL
 ALTER TABLE "User" ALTER COLUMN "username" SET NOT NULL;
 
--- Passo 4: tornar email nullable
+-- Passo 4: Tornar email nullable
 ALTER TABLE "User" ALTER COLUMN "email" DROP NOT NULL;
