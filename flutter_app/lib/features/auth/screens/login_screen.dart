@@ -78,12 +78,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             textInputAction: TextInputAction.next,
                             autocorrect: false,
                             decoration: const InputDecoration(
-                              labelText: 'Email ou username',
-                              prefixIcon: Icon(Icons.person_outline),
+                              labelText: 'Username',
+                              prefixIcon: Icon(Icons.alternate_email_outlined),
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty)
-                                return 'Introduz o email ou username';
+                                return 'Introduz o username';
                               return null;
                             },
                           ),

@@ -7,14 +7,9 @@ const hash_1 = require("../../utils/hash");
 const env_1 = require("../../config/env");
 const prisma = new client_1.PrismaClient();
 async function loginService(app, data) {
-    // Find user by email OR username
-    const user = await prisma.user.findFirst({
-        where: {
-            OR: [
-                { email: data.login },
-                { username: data.login },
-            ],
-        },
+    // Login exclusivamente por username
+    const user = await prisma.user.findUnique({
+        where: { username: data.login },
         select: {
             id: true,
             name: true,
@@ -69,4 +64,3 @@ async function refreshTokenService(app, refreshToken) {
     const accessToken = app.jwt.sign({ id: user.id, email: user.email, role: user.role }, { expiresIn: env_1.env.JWT_EXPIRES_IN });
     return { accessToken };
 }
-//# sourceMappingURL=auth.service.js.map
