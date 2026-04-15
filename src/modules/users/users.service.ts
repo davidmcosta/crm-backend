@@ -43,13 +43,32 @@ export async function createUser(data: CreateUserInput) {
     where: {
       OR: [
         { email: data.email },
-        { username: data.username || undefined },
+        ...(data.username ? [{ username: data.username }] : []),
       ],
     },
   })
-  if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este email ou utilizador' }
 
   const hashedPassword = await hashPassword(data.password)
+
+  // Se já existe mas está inativo, reativa e atualiza em vez de dar erro
+  if (existing) {
+    if (!existing.isActive) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          name:     data.name,
+          email:    data.email,
+          username: data.username ?? null,
+          password: hashedPassword,
+          role:     data.role,
+          isActive: true,
+        },
+        select: { id: true, name: true, email: true, username: true, role: true, isActive: true, createdAt: true },
+      })
+    }
+    throw { statusCode: 409, message: 'Já existe um utilizador ativo com este email ou username' }
+  }
+
   return prisma.user.create({
     data: { ...data, password: hashedPassword },
     select: { id: true, name: true, email: true, username: true, role: true, isActive: true, createdAt: true },
