@@ -8,8 +8,8 @@ const env_1 = require("../../config/env");
 const prisma = new client_1.PrismaClient();
 async function loginService(app, data) {
     // Login exclusivamente por username
-    const user = await prisma.user.findUnique({
-        where: { username: data.login },
+    const user = await prisma.user.findFirst({
+        where: { username: data.login, isActive: true },
         select: {
             id: true,
             name: true,
@@ -19,7 +19,7 @@ async function loginService(app, data) {
             isActive: true,
         },
     });
-    if (!user || !user.isActive) {
+    if (!user) {
         throw { statusCode: 401, message: 'Credenciais inválidas' };
     }
     const passwordMatch = await (0, hash_1.comparePassword)(data.password, user.password);
@@ -48,7 +48,7 @@ async function refreshTokenService(app, refreshToken) {
     try {
         payload = app.jwt.verify(refreshToken);
     }
-    catch {
+    catch (_a) {
         throw { statusCode: 401, message: 'Refresh token inválido ou expirado' };
     }
     if (payload.type !== 'refresh') {

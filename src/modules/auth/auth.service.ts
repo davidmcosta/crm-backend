@@ -8,8 +8,8 @@ const prisma = new PrismaClient()
 
 export async function loginService(app: FastifyInstance, data: LoginInput) {
   // Login exclusivamente por username
-  const user = await (prisma as any).user.findUnique({
-    where: { username: data.login },
+  const user = await (prisma as any).user.findFirst({
+    where: { username: data.login, isActive: true },
     select: {
       id: true,
       name: true,
@@ -20,7 +20,7 @@ export async function loginService(app: FastifyInstance, data: LoginInput) {
     },
   })
 
-  if (!user || !user.isActive) {
+  if (!user) {
     throw { statusCode: 401, message: 'Credenciais inválidas' }
   }
 
