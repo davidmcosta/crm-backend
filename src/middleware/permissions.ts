@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { UserRole } from '@prisma/client'
+import { UserRole } from '../types/enums'
 
 // Hierarquia de permissões (do mais restrito ao mais permissivo)
 const ROLE_HIERARCHY: Record<UserRole, number> = {

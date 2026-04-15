@@ -300,24 +300,38 @@ export declare const updateOrderSchema: z.ZodObject<{
     ivaValor?: number | undefined;
 }>;
 export declare const updateStatusSchema: z.ZodObject<{
-    status: z.ZodNativeEnum<any>;
+    status: z.ZodNativeEnum<{
+        readonly PENDING: "PENDING";
+        readonly CONFIRMED: "CONFIRMED";
+        readonly IN_PRODUCTION: "IN_PRODUCTION";
+        readonly READY: "READY";
+        readonly DELIVERED: "DELIVERED";
+        readonly PAID: "PAID";
+        readonly CANCELLED: "CANCELLED";
+    }>;
     notes: z.ZodOptional<z.ZodString>;
     fotos: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
 }, "strip", z.ZodTypeAny, {
-    [x: string]: any;
-    status?: unknown;
-    notes?: unknown;
-    fotos?: unknown;
+    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "PAID" | "CANCELLED";
+    fotos: string[];
+    notes?: string | undefined;
 }, {
-    [x: string]: any;
-    status?: unknown;
-    notes?: unknown;
-    fotos?: unknown;
+    status: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "PAID" | "CANCELLED";
+    fotos?: string[] | undefined;
+    notes?: string | undefined;
 }>;
 export declare const listOrdersQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodNumber>;
     limit: z.ZodDefault<z.ZodNumber>;
-    status: z.ZodOptional<z.ZodNativeEnum<any>>;
+    status: z.ZodOptional<z.ZodNativeEnum<{
+        readonly PENDING: "PENDING";
+        readonly CONFIRMED: "CONFIRMED";
+        readonly IN_PRODUCTION: "IN_PRODUCTION";
+        readonly READY: "READY";
+        readonly DELIVERED: "DELIVERED";
+        readonly PAID: "PAID";
+        readonly CANCELLED: "CANCELLED";
+    }>>;
     customerId: z.ZodOptional<z.ZodString>;
     search: z.ZodOptional<z.ZodString>;
     cemiterio: z.ZodOptional<z.ZodString>;
@@ -326,29 +340,27 @@ export declare const listOrdersQuerySchema: z.ZodObject<{
     dateFrom: z.ZodOptional<z.ZodString>;
     dateTo: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    [x: string]: any;
-    page?: unknown;
-    limit?: unknown;
-    status?: unknown;
-    customerId?: unknown;
-    search?: unknown;
-    cemiterio?: unknown;
-    trabalho?: unknown;
-    produto?: unknown;
-    dateFrom?: unknown;
-    dateTo?: unknown;
+    page: number;
+    limit: number;
+    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "PAID" | "CANCELLED" | undefined;
+    search?: string | undefined;
+    customerId?: string | undefined;
+    trabalho?: string | undefined;
+    cemiterio?: string | undefined;
+    produto?: string | undefined;
+    dateFrom?: string | undefined;
+    dateTo?: string | undefined;
 }, {
-    [x: string]: any;
-    page?: unknown;
-    limit?: unknown;
-    status?: unknown;
-    customerId?: unknown;
-    search?: unknown;
-    cemiterio?: unknown;
-    trabalho?: unknown;
-    produto?: unknown;
-    dateFrom?: unknown;
-    dateTo?: unknown;
+    status?: "PENDING" | "CONFIRMED" | "IN_PRODUCTION" | "READY" | "DELIVERED" | "PAID" | "CANCELLED" | undefined;
+    search?: string | undefined;
+    customerId?: string | undefined;
+    trabalho?: string | undefined;
+    cemiterio?: string | undefined;
+    page?: number | undefined;
+    limit?: number | undefined;
+    produto?: string | undefined;
+    dateFrom?: string | undefined;
+    dateTo?: string | undefined;
 }>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;

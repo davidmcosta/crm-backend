@@ -3,8 +3,8 @@ export declare function listOrders(query: ListOrdersQuery): Promise<{
     data: any;
     pagination: {
         total: any;
-        page: unknown;
-        limit: unknown;
+        page: number;
+        limit: number;
         totalPages: number;
     };
 }>;

@@ -1,7 +1,17 @@
--- Passo 1: dar username a utilizadores que ainda não têm (usa prefixo do email)
+-- Passo 1a: dar username a utilizadores sem username mas com email (usa prefixo do email)
 UPDATE "User"
 SET "username" = LOWER(REGEXP_REPLACE(SPLIT_PART("email", '@', 1), '[^a-zA-Z0-9._-]', '', 'g'))
 WHERE "username" IS NULL AND "email" IS NOT NULL;
+
+-- Passo 1b: dar username a utilizadores sem username e sem email (usa 1ª palavra do nome)
+UPDATE "User"
+SET "username" = LOWER(REGEXP_REPLACE(SPLIT_PART("name", ' ', 1), '[^a-zA-Z0-9._-]', '', 'g'))
+WHERE "username" IS NULL AND ("email" IS NULL OR "username" = '');
+
+-- Passo 1c: fallback final — usar os primeiros 8 chars do id
+UPDATE "User"
+SET "username" = SUBSTRING("id", 1, 8)
+WHERE "username" IS NULL OR "username" = '';
 
 -- Passo 2: garantir unicidade em caso de colisão (adiciona sufixo numérico)
 DO $$

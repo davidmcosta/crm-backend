@@ -1,4 +1,5 @@
-import { PrismaClient, OrderStatus } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import { OrderStatus } from '../../types/enums'
 import { CreateOrderInput, UpdateOrderInput, UpdateStatusInput, ListOrdersQuery } from './orders.schema'
 
 const prisma = new PrismaClient()

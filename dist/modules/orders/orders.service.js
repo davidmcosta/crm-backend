@@ -9,6 +9,7 @@ exports.getOrderHistory = getOrderHistory;
 exports.cancelOrder = cancelOrder;
 exports.deleteOrder = deleteOrder;
 const client_1 = require("@prisma/client");
+const enums_1 = require("../../types/enums");
 const prisma = new client_1.PrismaClient();
 // ── Número de encomenda 01/26, 02/26, ... ───────────────────────────────────
 async function generateOrderNumber() {
@@ -141,7 +142,7 @@ async function createOrder(data, userId) {
     return prisma.order.create({
         data: {
             orderNumber,
-            status: client_1.OrderStatus.PENDING,
+            status: enums_1.OrderStatus.PENDING,
             createdById: userId,
             customerId: data.customerId ?? null,
             trabalho: data.trabalho,
@@ -173,7 +174,7 @@ async function createOrder(data, userId) {
             contacto: data.contacto,
             observacoes: data.observacoes ?? null,
             statusHistory: {
-                create: { status: client_1.OrderStatus.PENDING, changedById: userId, notes: 'Encomenda criada' },
+                create: { status: enums_1.OrderStatus.PENDING, changedById: userId, notes: 'Encomenda criada' },
             },
         },
         include: { customer: { select: { id: true, name: true } } },
@@ -184,10 +185,10 @@ async function updateOrder(id, data, userId) {
     const existing = await prisma.order.findUnique({ where: { id } });
     if (!existing)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (existing.status === client_1.OrderStatus.CANCELLED) {
+    if (existing.status === enums_1.OrderStatus.CANCELLED) {
         throw { statusCode: 400, message: 'Não é possível editar uma encomenda cancelada' };
     }
-    if (existing.status === client_1.OrderStatus.PAID) {
+    if (existing.status === enums_1.OrderStatus.PAID) {
         throw { statusCode: 400, message: 'Não é possível editar uma encomenda já paga' };
     }
     // Recalcular extrasValor se extras for fornecido
@@ -210,7 +211,7 @@ async function updateOrderStatus(id, data, userId) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (order.status === client_1.OrderStatus.CANCELLED)
+    if (order.status === enums_1.OrderStatus.CANCELLED)
         throw { statusCode: 400, message: 'Não é possível alterar o estado de uma encomenda cancelada' };
     if (order.status === data.status)
         throw { statusCode: 400, message: 'A encomenda já se encontra neste estado' };
@@ -244,14 +245,14 @@ async function cancelOrder(id, userId) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (order.status === client_1.OrderStatus.CANCELLED)
+    if (order.status === enums_1.OrderStatus.CANCELLED)
         throw { statusCode: 400, message: 'A encomenda já está cancelada' };
-    if (order.status === client_1.OrderStatus.PAID)
+    if (order.status === enums_1.OrderStatus.PAID)
         throw { statusCode: 400, message: 'Não é possível cancelar uma encomenda já paga' };
     const [updated] = await prisma.$transaction([
-        prisma.order.update({ where: { id }, data: { status: client_1.OrderStatus.CANCELLED } }),
+        prisma.order.update({ where: { id }, data: { status: enums_1.OrderStatus.CANCELLED } }),
         prisma.orderStatusHistory.create({
-            data: { orderId: id, status: client_1.OrderStatus.CANCELLED, changedById: userId, notes: 'Encomenda cancelada' },
+            data: { orderId: id, status: enums_1.OrderStatus.CANCELLED, changedById: userId, notes: 'Encomenda cancelada' },
         }),
     ]);
     return updated;

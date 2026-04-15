@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireAdmin = exports.requireManager = exports.requireOperator = void 0;
 exports.requireRole = requireRole;
-const client_1 = require("@prisma/client");
+const enums_1 = require("../types/enums");
 // Hierarquia de permissões (do mais restrito ao mais permissivo)
 const ROLE_HIERARCHY = {
     VIEWER: 1,
@@ -31,7 +31,7 @@ function requireRole(minimumRole) {
     };
 }
 // Helpers prontos a usar nas rotas
-exports.requireOperator = requireRole(client_1.UserRole.OPERATOR);
-exports.requireManager = requireRole(client_1.UserRole.MANAGER);
-exports.requireAdmin = requireRole(client_1.UserRole.ADMIN);
+exports.requireOperator = requireRole(enums_1.UserRole.OPERATOR);
+exports.requireManager = requireRole(enums_1.UserRole.MANAGER);
+exports.requireAdmin = requireRole(enums_1.UserRole.ADMIN);
 //# sourceMappingURL=permissions.js.map

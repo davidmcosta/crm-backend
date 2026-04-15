@@ -1,46 +1,52 @@
 import { z } from 'zod';
 export declare const createUserSchema: z.ZodObject<{
     name: z.ZodString;
-    email: z.ZodString;
-    username: z.ZodOptional<z.ZodString>;
+    email: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    username: z.ZodString;
     password: z.ZodString;
-    role: z.ZodDefault<z.ZodNativeEnum<any>>;
+    role: z.ZodDefault<z.ZodNativeEnum<{
+        readonly ADMIN: "ADMIN";
+        readonly MANAGER: "MANAGER";
+        readonly OPERATOR: "OPERATOR";
+        readonly VIEWER: "VIEWER";
+    }>>;
 }, "strip", z.ZodTypeAny, {
-    [x: string]: any;
-    name?: unknown;
-    email?: unknown;
-    username?: unknown;
-    password?: unknown;
-    role?: unknown;
+    password: string;
+    role: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
+    name: string;
+    username: string;
+    email?: string | null | undefined;
 }, {
-    [x: string]: any;
-    name?: unknown;
-    email?: unknown;
-    username?: unknown;
-    password?: unknown;
-    role?: unknown;
+    password: string;
+    name: string;
+    username: string;
+    email?: string | null | undefined;
+    role?: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER" | undefined;
 }>;
 export declare const updateUserSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
-    email: z.ZodOptional<z.ZodString>;
+    email: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     username: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    username?: string | undefined;
-    email?: string | undefined;
+    email?: string | null | undefined;
     name?: string | undefined;
+    username?: string | undefined;
 }, {
-    username?: string | undefined;
-    email?: string | undefined;
+    email?: string | null | undefined;
     name?: string | undefined;
+    username?: string | undefined;
 }>;
 export declare const updateRoleSchema: z.ZodObject<{
-    role: z.ZodNativeEnum<any>;
+    role: z.ZodNativeEnum<{
+        readonly ADMIN: "ADMIN";
+        readonly MANAGER: "MANAGER";
+        readonly OPERATOR: "OPERATOR";
+        readonly VIEWER: "VIEWER";
+    }>;
 }, "strip", z.ZodTypeAny, {
-    [x: string]: any;
-    role?: unknown;
+    role: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
 }, {
-    [x: string]: any;
-    role?: unknown;
+    role: "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
 }>;
 export declare const changePasswordSchema: z.ZodObject<{
     currentPassword: z.ZodString;

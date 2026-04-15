@@ -133,3 +133,4 @@ async function changePassword(id, data) {
     await prisma.user.update({ where: { id }, data: { password: newHash } });
     return { message: 'Password alterada com sucesso' };
 }
+//# sourceMappingURL=users.service.js.map

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listOrdersQuerySchema = exports.updateStatusSchema = exports.updateOrderSchema = exports.createOrderSchema = void 0;
 const zod_1 = require("zod");
-const client_1 = require("@prisma/client");
+const enums_1 = require("../../types/enums");
 const falecidoSchema = zod_1.z.object({
     nome: zod_1.z.string().optional(),
     datas: zod_1.z.string().optional(),
@@ -87,14 +87,14 @@ exports.updateOrderSchema = zod_1.z.object({
     ivaValor: zod_1.z.number().min(0).optional(),
 });
 exports.updateStatusSchema = zod_1.z.object({
-    status: zod_1.z.nativeEnum(client_1.OrderStatus, { errorMap: () => ({ message: 'Estado inválido' }) }),
+    status: zod_1.z.nativeEnum(enums_1.OrderStatus, { errorMap: () => ({ message: 'Estado inválido' }) }),
     notes: zod_1.z.string().optional(),
     fotos: zod_1.z.array(zod_1.z.string()).optional().default([]),
 });
 exports.listOrdersQuerySchema = zod_1.z.object({
     page: zod_1.z.coerce.number().int().positive().default(1),
     limit: zod_1.z.coerce.number().int().positive().max(100).default(20),
-    status: zod_1.z.nativeEnum(client_1.OrderStatus).optional(),
+    status: zod_1.z.nativeEnum(enums_1.OrderStatus).optional(),
     customerId: zod_1.z.string().optional(),
     search: zod_1.z.string().optional(),
     cemiterio: zod_1.z.string().optional(),

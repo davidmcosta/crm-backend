@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus } from '../../types/enums'
 
 const falecidoSchema = z.object({
   nome:       z.string().optional(),

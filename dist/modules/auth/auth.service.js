@@ -48,7 +48,7 @@ async function refreshTokenService(app, refreshToken) {
     try {
         payload = app.jwt.verify(refreshToken);
     }
-    catch (_a) {
+    catch {
         throw { statusCode: 401, message: 'Refresh token inválido ou expirado' };
     }
     if (payload.type !== 'refresh') {
@@ -64,3 +64,4 @@ async function refreshTokenService(app, refreshToken) {
     const accessToken = app.jwt.sign({ id: user.id, email: user.email, role: user.role }, { expiresIn: env_1.env.JWT_EXPIRES_IN });
     return { accessToken };
 }
+//# sourceMappingURL=auth.service.js.map
