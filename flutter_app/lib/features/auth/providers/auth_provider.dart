@@ -52,7 +52,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       await Future.wait([
         AuthStorage.saveTokens(accessToken: accessToken, refreshToken: refreshToken),
-        AuthStorage.saveUser(id: user.id, name: user.name, email: user.email, role: user.role),
+        AuthStorage.saveUser(id: user.id, name: user.name, email: user.email ?? '', role: user.role),
       ]);
 
       state = AuthState(user: user);

@@ -39,26 +39,28 @@ export async function getUserById(id: string) {
 }
 
 export async function createUser(data: CreateUserInput) {
-  const existing = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { email: data.email },
-        ...(data.username ? [{ username: data.username }] : []),
-      ],
-    },
+  // Verificar conflito de username (sempre obrigatório)
+  const existingByUsername = await (prisma as any).user.findFirst({
+    where: { username: data.username },
   })
 
+  // Verificar conflito de email (só se fornecido)
+  const existingByEmail = data.email
+    ? await (prisma as any).user.findFirst({ where: { email: data.email } })
+    : null
+
+  const existing = existingByUsername || existingByEmail
   const hashedPassword = await hashPassword(data.password)
 
   // Se já existe mas está inativo, reativa e atualiza em vez de dar erro
   if (existing) {
     if (!existing.isActive) {
-      return prisma.user.update({
+      return (prisma as any).user.update({
         where: { id: existing.id },
         data: {
           name:     data.name,
-          email:    data.email,
-          username: data.username ?? null,
+          email:    data.email ?? null,
+          username: data.username,
           password: hashedPassword,
           role:     data.role,
           isActive: true,
@@ -66,30 +68,31 @@ export async function createUser(data: CreateUserInput) {
         select: { id: true, name: true, email: true, username: true, role: true, isActive: true, createdAt: true },
       })
     }
-    throw { statusCode: 409, message: 'Já existe um utilizador ativo com este email ou username' }
+    if (existingByUsername) throw { statusCode: 409, message: 'Já existe um utilizador ativo com este username' }
+    throw { statusCode: 409, message: 'Já existe um utilizador ativo com este email' }
   }
 
-  return prisma.user.create({
+  return (prisma as any).user.create({
     data: { ...data, password: hashedPassword },
     select: { id: true, name: true, email: true, username: true, role: true, isActive: true, createdAt: true },
   })
 }
 
 export async function updateUser(id: string, data: UpdateUserInput) {
-  const user = await prisma.user.findUnique({ where: { id } })
+  const user = await (prisma as any).user.findUnique({ where: { id } })
   if (!user) throw { statusCode: 404, message: 'Utilizador não encontrado' }
 
   if (data.email && data.email !== user.email) {
-    const existing = await prisma.user.findUnique({ where: { email: data.email } })
+    const existing = await (prisma as any).user.findFirst({ where: { email: data.email } })
     if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este email' }
   }
 
   if (data.username && data.username !== user.username) {
-    const existing = await prisma.user.findUnique({ where: { username: data.username } })
-    if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este nome de utilizador' }
+    const existing = await (prisma as any).user.findFirst({ where: { username: data.username } })
+    if (existing) throw { statusCode: 409, message: 'Já existe um utilizador com este username' }
   }
 
-  return prisma.user.update({
+  return (prisma as any).user.update({
     where: { id },
     data,
     select: { id: true, name: true, email: true, username: true, role: true, isActive: true },

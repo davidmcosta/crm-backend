@@ -7,7 +7,7 @@ import '../../../core/api/api_endpoints.dart';
 class UserItem {
   final String  id;
   final String  name;
-  final String  email;
+  final String? email;
   final String? username;
   final String  role;
   final bool    isActive;
@@ -16,7 +16,7 @@ class UserItem {
   const UserItem({
     required this.id,
     required this.name,
-    required this.email,
+    this.email,
     this.username,
     required this.role,
     required this.isActive,
@@ -26,7 +26,7 @@ class UserItem {
   factory UserItem.fromJson(Map<String, dynamic> j) => UserItem(
         id:        j['id']       as String,
         name:      j['name']     as String,
-        email:     j['email']    as String,
+        email:     j['email']    as String?,
         username:  j['username'] as String?,
         role:      j['role']     as String,
         isActive:  j['isActive'] as bool? ?? true,

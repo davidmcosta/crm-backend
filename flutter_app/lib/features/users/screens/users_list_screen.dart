@@ -147,19 +147,27 @@ class UsersListScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 2),
-                                Text(u.email,
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppTheme.textMuted)),
-                                if (u.username != null &&
-                                    u.username!.isNotEmpty) ...[
+                                // Username (sempre presente)
+                                Row(children: [
+                                  const Icon(Icons.alternate_email,
+                                      size: 11,
+                                      color: AppTheme.textMuted),
+                                  const SizedBox(width: 3),
+                                  Text(u.username ?? '—',
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppTheme.textMuted)),
+                                ]),
+                                // Email (opcional)
+                                if (u.email != null &&
+                                    u.email!.isNotEmpty) ...[
                                   const SizedBox(height: 2),
                                   Row(children: [
-                                    const Icon(Icons.alternate_email,
+                                    const Icon(Icons.email_outlined,
                                         size: 11,
                                         color: AppTheme.textMuted),
                                     const SizedBox(width: 3),
-                                    Text(u.username!,
+                                    Text(u.email!,
                                         style: const TextStyle(
                                             fontSize: 12,
                                             color: AppTheme.textMuted)),
@@ -235,8 +243,8 @@ class UsersListScreen extends ConsumerWidget {
   Future<void> _showCreateUserDialog(
       BuildContext context, WidgetRef ref) async {
     final nameCtrl     = TextEditingController();
-    final emailCtrl    = TextEditingController();
     final usernameCtrl = TextEditingController();
+    final emailCtrl    = TextEditingController();
     final passwordCtrl = TextEditingController();
     String selectedRole = 'OPERATOR';
     bool isLoading      = false;
@@ -276,21 +284,21 @@ class UsersListScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: usernameCtrl,
+                  autocorrect: false,
                   decoration: const InputDecoration(
-                    labelText: 'Email *',
-                    prefixIcon: Icon(Icons.email_outlined),
+                    labelText: 'Username *',
+                    hintText: 'Ex: joao.silva',
+                    prefixIcon: Icon(Icons.alternate_email_outlined),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: usernameCtrl,
-                  autocorrect: false,
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Username (opcional)',
-                    hintText: 'Ex: joao.silva',
-                    prefixIcon: Icon(Icons.alternate_email_outlined),
+                    labelText: 'Email (opcional)',
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -338,12 +346,13 @@ class UsersListScreen extends ConsumerWidget {
               onPressed: isLoading
                   ? null
                   : () async {
-                      final name  = nameCtrl.text.trim();
-                      final email = emailCtrl.text.trim();
-                      final pass  = passwordCtrl.text;
-                      if (name.isEmpty || email.isEmpty || pass.isEmpty) {
+                      final name     = nameCtrl.text.trim();
+                      final username = usernameCtrl.text.trim();
+                      final email    = emailCtrl.text.trim();
+                      final pass     = passwordCtrl.text;
+                      if (name.isEmpty || username.isEmpty || pass.isEmpty) {
                         setState(() =>
-                            errorMsg = 'Nome, email e password são obrigatórios');
+                            errorMsg = 'Nome, username e password são obrigatórios');
                         return;
                       }
                       setState(() {
@@ -353,12 +362,11 @@ class UsersListScreen extends ConsumerWidget {
                       try {
                         final payload = <String, dynamic>{
                           'name':     name,
-                          'email':    email,
+                          'username': username,
                           'password': pass,
                           'role':     selectedRole,
                         };
-                        final username = usernameCtrl.text.trim();
-                        if (username.isNotEmpty) payload['username'] = username;
+                        if (email.isNotEmpty) payload['email'] = email;
                         await ApiClient().dio.post(
                           ApiEndpoints.users,
                           data: jsonEncode(payload),
@@ -397,8 +405,8 @@ class UsersListScreen extends ConsumerWidget {
     );
 
     nameCtrl.dispose();
-    emailCtrl.dispose();
     usernameCtrl.dispose();
+    emailCtrl.dispose();
     passwordCtrl.dispose();
   }
 
@@ -406,8 +414,8 @@ class UsersListScreen extends ConsumerWidget {
   Future<void> _showEditUserDialog(
       BuildContext context, WidgetRef ref, UserItem user) async {
     final nameCtrl     = TextEditingController(text: user.name);
-    final emailCtrl    = TextEditingController(text: user.email);
     final usernameCtrl = TextEditingController(text: user.username ?? '');
+    final emailCtrl    = TextEditingController(text: user.email ?? '');
     bool isLoading     = false;
     String? errorMsg;
 
@@ -445,21 +453,20 @@ class UsersListScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
+                  controller: usernameCtrl,
+                  autocorrect: false,
                   decoration: const InputDecoration(
-                    labelText: 'Email *',
-                    prefixIcon: Icon(Icons.email_outlined),
+                    labelText: 'Username *',
+                    prefixIcon: Icon(Icons.alternate_email_outlined),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: usernameCtrl,
-                  autocorrect: false,
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Username (opcional)',
-                    hintText: 'Ex: joao.silva',
-                    prefixIcon: Icon(Icons.alternate_email_outlined),
+                    labelText: 'Email (opcional)',
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                 ),
               ],
@@ -475,20 +482,20 @@ class UsersListScreen extends ConsumerWidget {
               onPressed: isLoading
                   ? null
                   : () async {
-                      final name  = nameCtrl.text.trim();
-                      final email = emailCtrl.text.trim();
-                      if (name.isEmpty || email.isEmpty) {
-                        setState(() => errorMsg = 'Nome e email são obrigatórios');
+                      final name     = nameCtrl.text.trim();
+                      final username = usernameCtrl.text.trim();
+                      final email    = emailCtrl.text.trim();
+                      if (name.isEmpty || username.isEmpty) {
+                        setState(() => errorMsg = 'Nome e username são obrigatórios');
                         return;
                       }
                       setState(() { isLoading = true; errorMsg = null; });
                       try {
                         final payload = <String, dynamic>{
-                          'name':  name,
-                          'email': email,
+                          'name':     name,
+                          'username': username,
                         };
-                        final un = usernameCtrl.text.trim();
-                        if (un.isNotEmpty) payload['username'] = un;
+                        if (email.isNotEmpty) payload['email'] = email;
                         await ref.read(usersProvider.notifier).updateUser(user.id, payload);
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (context.mounted) {
