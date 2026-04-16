@@ -422,7 +422,32 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       ),
       body: orderAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.receipt_long_outlined, size: 56,
+                    color: AppTheme.textMuted.withOpacity(0.5)),
+                const SizedBox(height: 16),
+                Text(
+                  friendlyError(e),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppTheme.textMuted, fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Tentar novamente'),
+                  onPressed: () =>
+                      ref.invalidate(orderDetailProvider(widget.orderId)),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (order) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -1200,7 +1225,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao guardar foto: $e')),
+          SnackBar(
+            content: Text('Não foi possível guardar a foto. ${friendlyError(e)}'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     }

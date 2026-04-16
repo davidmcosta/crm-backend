@@ -76,8 +76,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Erro: $e'),
-              backgroundColor: AppTheme.error),
+            content: Text(friendlyError(e)),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -94,7 +95,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: const Text('Configurações')),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('Erro: $e')),
+        error:   (e, _) => _buildErrorView(
+          friendlyError(e),
+          () => ref.invalidate(settingsProvider),
+        ),
         data:    (settings) {
           _populate(settings);
           return ListView(
@@ -340,3 +344,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ]),
       );
 }
+
+Widget _buildErrorView(String message, VoidCallback onRetry) => Center(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 32),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.cloud_off_rounded, size: 56,
+            color: AppTheme.textMuted.withOpacity(0.5)),
+        const SizedBox(height: 16),
+        Text(message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Tentar novamente'),
+          onPressed: onRetry,
+        ),
+      ],
+    ),
+  ),
+);

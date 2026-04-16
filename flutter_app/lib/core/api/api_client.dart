@@ -79,9 +79,34 @@ class _AuthInterceptor extends QueuedInterceptorsWrapper {
   }
 }
 
-String extractErrorMessage(DioException e) {
-  final data = e.response?.data;
-  if (data is Map && data.containsKey('error')) return data['error'] as String;
-  if (data is Map && data.containsKey('message')) return data['message'] as String;
-  return 'Ocorreu um erro inesperado. Tenta novamente.';
+/// Extrai mensagem amigável de qualquer exceção (DioException ou genérica).
+String friendlyError(dynamic e) {
+  if (e is DioException) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final msg = (data['error'] ?? data['message'])?.toString() ?? '';
+      if (msg.isNotEmpty) return msg;
+    }
+    switch (e.response?.statusCode) {
+      case 400: return 'Pedido inválido. Verifique os dados introduzidos.';
+      case 401: return 'Sessão expirada. Por favor inicie sessão novamente.';
+      case 403: return 'Sem permissão para realizar esta operação.';
+      case 404: return 'Registo não encontrado.';
+      case 409: return 'Conflito de dados. Verifique as informações introduzidas.';
+      case 500: return 'Erro interno do servidor. Tente mais tarde.';
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return 'Tempo de resposta excedido. Verifique a ligação à rede.';
+    }
+    if (e.type == DioExceptionType.connectionError) {
+      return 'Sem ligação ao servidor. Verifique a rede e tente novamente.';
+    }
+    return 'Erro de ligação. Verifique a rede e tente novamente.';
+  }
+  return e.toString().replaceAll('Exception: ', '');
 }
+
+/// Mantido por compatibilidade — usa friendlyError internamente.
+String extractErrorMessage(DioException e) => friendlyError(e);

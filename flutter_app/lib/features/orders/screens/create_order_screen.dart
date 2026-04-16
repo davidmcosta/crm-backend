@@ -349,14 +349,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   // ── Guardar ───────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
-    final isValid = _formKey.currentState!.validate();
-    if (!isValid) {
-      // Mostrar aviso claro com os campos em falta
-      final missing = <String>[];
-      if (_selectedCustomerId == null) missing.add('Cliente');
-      if (_trabalhoCtrl.text.trim().isEmpty) missing.add('Descrição do trabalho');
-      if (_isCasaDasCampas && _requerenteCtrl.text.trim().isEmpty) missing.add('Requerente');
-      if (_isCasaDasCampas && _contactoCtrl.text.trim().isEmpty) missing.add('Contacto');
+    // Verificar campos obrigatórios explicitamente (antes de chamar validate)
+    // para garantir que o campo cliente é sempre validado, independentemente
+    // de o seu validator estar ou não registado no Form.
+    final missing = <String>[];
+    if (_selectedCustomerId == null) missing.add('Cliente');
+    if (_trabalhoCtrl.text.trim().isEmpty) missing.add('Descrição do trabalho');
+    if (_isCasaDasCampas && _requerenteCtrl.text.trim().isEmpty) missing.add('Requerente');
+    if (_isCasaDasCampas && _contactoCtrl.text.trim().isEmpty) missing.add('Contacto');
+
+    final formValid = _formKey.currentState!.validate();
+
+    if (!formValid || missing.isNotEmpty) {
       final msg = missing.isEmpty
           ? 'Preencha os campos obrigatórios assinalados.'
           : 'Campos obrigatórios em falta: ${missing.join(', ')}.';
@@ -391,10 +395,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           .toList();
 
       final body = <String, dynamic>{
-        'trabalho':           _trabalhoCtrl.text.trim(),
-        'requerente':         _requerenteCtrl.text.trim(),
-        'contacto':           _contactoCtrl.text.trim(),
-        'produtos':           produtosJson,
+        'trabalho': _trabalhoCtrl.text.trim(),
+        'produtos': produtosJson,
         'extras':             extrasJson,
         'valorSepultura':     _subtotalProdutos,
         'portagens':          (double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0) * 2,
@@ -410,6 +412,16 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
       // customerId is required — validation above already ensures it's not null
       body['customerId'] = _selectedCustomerId;
+
+      // Requerente e contacto só são enviados quando preenchidos.
+      // O schema do backend rejeita strings vazias (min(1)), por isso nunca
+      // enviamos '' — para clientes que não são Casa das Campas estes campos
+      // ficam simplesmente fora do body.
+      if (_requerenteCtrl.text.trim().isNotEmpty)
+        body['requerente'] = _requerenteCtrl.text.trim();
+      if (_contactoCtrl.text.trim().isNotEmpty)
+        body['contacto'] = _contactoCtrl.text.trim();
+
       if (_kmCtrl.text.trim().isNotEmpty)
         body['km'] = double.tryParse(_kmCtrl.text.replaceAll(',', '.')) ?? 0;
       if (_cemiterioCtrl.text.trim().isNotEmpty)

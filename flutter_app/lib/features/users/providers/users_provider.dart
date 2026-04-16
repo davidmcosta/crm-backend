@@ -87,7 +87,7 @@ class UsersNotifier extends StateNotifier<UsersState> {
           .toList();
       state = UsersState(users: list);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyError(e));
     }
   }
 

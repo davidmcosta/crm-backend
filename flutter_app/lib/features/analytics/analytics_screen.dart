@@ -37,7 +37,31 @@ class AnalyticsScreen extends ConsumerWidget {
       ),
       body: statsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('Erro: $e')),
+        error:   (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.bar_chart_outlined, size: 56,
+                    color: AppTheme.textMuted.withOpacity(0.5)),
+                const SizedBox(height: 16),
+                Text(
+                  friendlyError(e),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppTheme.textMuted, fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Tentar novamente'),
+                  onPressed: () => ref.invalidate(statsProvider),
+                ),
+              ],
+            ),
+          ),
+        ),
         data:    (data) => _AnalyticsBody(data: data),
       ),
     );
@@ -71,7 +95,7 @@ class _AnalyticsBody extends StatelessWidget {
           crossAxisCount: 3,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
-          childAspectRatio: 1.45,
+          childAspectRatio: 1.75,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
@@ -226,41 +250,43 @@ class _KpiTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     margin: EdgeInsets.zero,
     child: Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(9, 7, 7, 7),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Text(label,
-                  style: const TextStyle(
-                    fontSize: 10, color: AppTheme.textMuted, height: 1.3),
-                ),
-              ),
               Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.10),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                child: Icon(icon, size: 12, color: color),
+                child: Icon(icon, size: 11, color: color),
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 9.5, color: AppTheme.textMuted, height: 1.25),
+                ),
               ),
             ],
           ),
-          const Spacer(),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.bottomLeft,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-                height: 1.1,
-              ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: color,
+              height: 1.1,
             ),
           ),
         ],

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/products_provider.dart';
 import '../models/product_model.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 
 // ── BOM row state ─────────────────────────────────────────────────────────────
@@ -165,7 +166,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text(friendlyError(e)),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -198,7 +202,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text(friendlyError(e)),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {

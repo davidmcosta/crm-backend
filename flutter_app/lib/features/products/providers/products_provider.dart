@@ -84,7 +84,7 @@ class ProductsNotifier extends StateNotifier<ProductsState> {
         selectedCategory: category,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyError(e));
     }
   }
 

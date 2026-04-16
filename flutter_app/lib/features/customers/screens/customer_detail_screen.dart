@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/customers_provider.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../orders/widgets/status_badge.dart';
 
@@ -32,11 +33,17 @@ class CustomerDetailScreen extends ConsumerWidget {
       ),
       body: customerAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:   (e, _) => Center(child: Text('Erro: $e')),
+        error:   (e, _) => _buildErrorView(
+          friendlyError(e),
+          () => ref.invalidate(customerDetailProvider(customerId)),
+        ),
         data: (customer) {
           return ordersAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error:   (e, _) => Center(child: Text('Erro: $e')),
+            error:   (e, _) => _buildErrorView(
+              friendlyError(e),
+              () => ref.invalidate(customerOrdersProvider(customerId)),
+            ),
             data: (orders) {
               // ── Cálculos financeiros ──────────────────────────────────
               final active = orders.where((o) => o['status'] != 'CANCELLED').toList();
@@ -381,3 +388,26 @@ class CustomerDetailScreen extends ConsumerWidget {
     }
   }
 }
+
+Widget _buildErrorView(String message, VoidCallback onRetry) => Center(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 32),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.cloud_off_rounded, size: 56,
+            color: AppTheme.textMuted.withOpacity(0.5)),
+        const SizedBox(height: 16),
+        Text(message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Tentar novamente'),
+          onPressed: onRetry,
+        ),
+      ],
+    ),
+  ),
+);
