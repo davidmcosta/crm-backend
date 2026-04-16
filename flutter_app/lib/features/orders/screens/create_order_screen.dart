@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../models/order_model.dart';
 import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
+import '../../customers/models/customer_model.dart';
 import '../../products/screens/product_picker_dialog.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -463,50 +464,29 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                : Builder(builder: (_) {
-                    // Auto-selecionar "Casa das Campas" na criação quando os clientes carregam
-                    if (!_isEdit && _selectedCustomerId == null &&
-                        customersState.customers.isNotEmpty) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted) return;
-                        final casaDasCampas = customersState.customers.firstWhere(
-                          (c) => c.name.toLowerCase().contains('casa das campas'),
-                          orElse: () => customersState.customers.first,
-                        );
+                : _CustomerAutocomplete(
+                    customers:    customersState.customers,
+                    selectedId:   _selectedCustomerId,
+                    selectedName: _selectedCustomerName,
+                    isEdit:       _isEdit,
+                    onSelected: (c) => setState(() {
+                      _selectedCustomerId       = c?.id;
+                      _selectedCustomerName     = c?.name;
+                      _selectedCustomerDiscount = c?.discount ?? 0;
+                    }),
+                    onAutoSelected: (c) {
+                      // Chamado quando "Casa das Campas" é auto-selecionado
+                      if (_selectedCustomerId == null) {
                         setState(() {
-                          _selectedCustomerId       = casaDasCampas.id;
-                          _selectedCustomerName     = casaDasCampas.name;
-                          _selectedCustomerDiscount = casaDasCampas.discount;
+                          _selectedCustomerId       = c.id;
+                          _selectedCustomerName     = c.name;
+                          _selectedCustomerDiscount = c.discount;
                         });
-                      });
-                    }
-                    return DropdownButtonFormField<String>(
-                      value: _selectedCustomerId,
-                      decoration: _deco('Cliente *', Icons.business_outlined),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Cliente obrigatório' : null,
-                      items: customersState.customers.map((c) =>
-                          DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                      onChanged: (v) {
-                        double discount = 0;
-                        String? name;
-                        if (v != null) {
-                          for (final c in customersState.customers) {
-                            if (c.id == v) {
-                              discount = c.discount;
-                              name     = c.name;
-                              break;
-                            }
-                          }
-                        }
-                        setState(() {
-                          _selectedCustomerId       = v;
-                          _selectedCustomerName     = name;
-                          _selectedCustomerDiscount = discount;
-                        });
-                      },
-                    );
-                  }),
+                      }
+                    },
+                    validator: (_) =>
+                        _selectedCustomerId == null ? 'Cliente obrigatório' : null,
+                  ),
 
             // ═══════════════════════════════════════
             // 2. TRABALHO
@@ -1306,4 +1286,162 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
 extension on double {
   double truncate() => truncateToDouble();
+}
+
+// ── Autocomplete de cliente ───────────────────────────────────────────────────
+
+class _CustomerAutocomplete extends StatefulWidget {
+  final List<CustomerModel>           customers;
+  final String?                       selectedId;
+  final String?                       selectedName;
+  final bool                          isEdit;
+  final void Function(CustomerModel?) onSelected;
+  final void Function(CustomerModel)  onAutoSelected;
+  final String? Function(String?)     validator;
+
+  const _CustomerAutocomplete({
+    required this.customers,
+    required this.selectedId,
+    required this.selectedName,
+    required this.isEdit,
+    required this.onSelected,
+    required this.onAutoSelected,
+    required this.validator,
+  });
+
+  @override
+  State<_CustomerAutocomplete> createState() => _CustomerAutocompleteState();
+}
+
+class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
+  final _ctrl       = TextEditingController();
+  final _focusNode  = FocusNode();
+  bool  _autoSet    = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Se estamos em edição e já há cliente, pré-preencher o campo
+    if (widget.selectedName != null) {
+      _ctrl.text = widget.selectedName!;
+      _autoSet   = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_CustomerAutocomplete old) {
+    super.didUpdateWidget(old);
+    // Auto-selecionar "Casa das Campas" quando os clientes carregam (nova encomenda)
+    if (!widget.isEdit && !_autoSet && widget.customers.isNotEmpty) {
+      _autoSet = true;
+      final casaDasCampas = widget.customers.firstWhere(
+        (c) => c.name.toLowerCase().contains('casa das campas'),
+        orElse: () => widget.customers.first,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _ctrl.text = casaDasCampas.name;
+        widget.onAutoSelected(casaDasCampas);
+      });
+    }
+    // Sincronizar texto quando o selectedName muda externamente (ex: prefill em edição)
+    if (widget.selectedName != null && _ctrl.text != widget.selectedName) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _ctrl.text = widget.selectedName!;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  List<CustomerModel> get _filtered {
+    final q = _ctrl.text.toLowerCase();
+    if (q.isEmpty) return widget.customers;
+    return widget.customers
+        .where((c) => c.name.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawAutocomplete<CustomerModel>(
+      textEditingController: _ctrl,
+      focusNode: _focusNode,
+      displayStringForOption: (c) => c.name,
+      optionsBuilder: (_) => _filtered,
+      onSelected: (c) {
+        _ctrl.text = c.name;
+        widget.onSelected(c);
+      },
+      fieldViewBuilder: (ctx, ctrl, fn, onSubmit) => TextFormField(
+        controller: ctrl,
+        focusNode: fn,
+        decoration: InputDecoration(
+          labelText: 'Cliente *',
+          prefixIcon: const Icon(Icons.business_outlined),
+          suffixIcon: ctrl.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    ctrl.clear();
+                    widget.onSelected(null);
+                    fn.requestFocus();
+                  },
+                )
+              : const Icon(Icons.search, size: 18,
+                  color: AppTheme.textMuted),
+        ),
+        validator: widget.validator,
+        onChanged: (_) => setState(() {}),
+      ),
+      optionsViewBuilder: (ctx, onSelected, options) => Align(
+        alignment: Alignment.topLeft,
+        child: Material(
+          elevation: 6,
+          borderRadius: BorderRadius.circular(10),
+          color: AppTheme.cardColor,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 220, maxWidth: 420),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              shrinkWrap: true,
+              itemCount: options.length,
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: AppTheme.border),
+              itemBuilder: (ctx, i) {
+                final c = options.elementAt(i);
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppTheme.primary.withOpacity(0.1),
+                    child: Text(c.name[0].toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  title: Text(c.name,
+                      style: const TextStyle(fontSize: 14)),
+                  subtitle: c.isReseller
+                      ? Text(
+                          'Revendedor · ${c.discount.toStringAsFixed(0)}% desconto',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppTheme.textMuted))
+                      : null,
+                  onTap: () => onSelected(c),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
