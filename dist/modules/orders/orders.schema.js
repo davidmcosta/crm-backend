@@ -20,7 +20,8 @@ const extraSchema = zod_1.z.object({
     valor: zod_1.z.number().min(0),
 });
 exports.createOrderSchema = zod_1.z.object({
-    customerId: zod_1.z.string().optional(),
+    customerId: zod_1.z.string({ required_error: 'Cliente é obrigatório' })
+        .min(1, 'Cliente é obrigatório'),
     // Trabalho
     trabalho: zod_1.z.string().min(1, 'Trabalho é obrigatório'),
     // Cemitério

@@ -21,7 +21,8 @@ const extraSchema = z.object({
 })
 
 export const createOrderSchema = z.object({
-  customerId: z.string().optional(),
+  customerId: z.string({ required_error: 'Cliente é obrigatório' })
+               .min(1, 'Cliente é obrigatório'),
 
   // Trabalho
   trabalho: z.string().min(1, 'Trabalho é obrigatório'),

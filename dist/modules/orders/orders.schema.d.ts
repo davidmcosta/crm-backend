@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export declare const createOrderSchema: z.ZodObject<{
-    customerId: z.ZodOptional<z.ZodString>;
+    customerId: z.ZodString;
     trabalho: z.ZodString;
     cemiterio: z.ZodOptional<z.ZodString>;
     talhao: z.ZodOptional<z.ZodString>;
@@ -67,6 +67,7 @@ export declare const createOrderSchema: z.ZodObject<{
     ivaPerc: z.ZodDefault<z.ZodNumber>;
     ivaValor: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
+    customerId: string;
     trabalho: string;
     falecidos: {
         fotos: string[];
@@ -98,7 +99,6 @@ export declare const createOrderSchema: z.ZodObject<{
     ivaPerc: number;
     ivaValor: number;
     dedicatoria?: string | undefined;
-    customerId?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;
@@ -108,9 +108,9 @@ export declare const createOrderSchema: z.ZodObject<{
     km?: number | undefined;
     observacoes?: string | undefined;
 }, {
+    customerId: string;
     trabalho: string;
     dedicatoria?: string | undefined;
-    customerId?: string | undefined;
     cemiterio?: string | undefined;
     talhao?: string | undefined;
     numeroSepultura?: string | undefined;

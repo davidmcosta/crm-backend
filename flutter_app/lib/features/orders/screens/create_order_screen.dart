@@ -408,7 +408,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         'valorTotal':         _valorTotal,
       };
 
-      if (_selectedCustomerId != null) body['customerId'] = _selectedCustomerId;
+      // customerId is required — validation above already ensures it's not null
+      body['customerId'] = _selectedCustomerId;
       if (_kmCtrl.text.trim().isNotEmpty)
         body['km'] = double.tryParse(_kmCtrl.text.replaceAll(',', '.')) ?? 0;
       if (_cemiterioCtrl.text.trim().isNotEmpty)
