@@ -350,6 +350,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       await ApiClient().dio.delete(ApiEndpoints.orderById(id));
       if (mounted) {
         ref.read(ordersProvider.notifier).removeOrder(id);
+        // Invalidate all cached order details so isLastOrder is recalculated
+        // on the next open (the order before this one is now the last)
+        ref.invalidate(orderDetailProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Encomenda eliminada'),
