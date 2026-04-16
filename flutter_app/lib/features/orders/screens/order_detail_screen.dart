@@ -917,22 +917,23 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             ),
             const SizedBox(height: 12),
 
-            // ── Requerente ────────────────────────────────────────────────────
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _cardTitle(Icons.person_outline, 'Requerente'),
-                    const SizedBox(height: 12),
-                    _row(Icons.person_outlined, 'Nome', order.requerente),
-                    const SizedBox(height: 8),
-                    _row(Icons.phone_outlined, 'Contacto', order.contacto),
-                  ],
+            // ── Requerente (só para Casa das Campas) ──────────────────────────
+            if (order.customer?.name.toLowerCase().contains('casa das campas') == true)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _cardTitle(Icons.person_outline, 'Requerente'),
+                      const SizedBox(height: 12),
+                      _row(Icons.person_outlined, 'Nome', order.requerente),
+                      const SizedBox(height: 8),
+                      _row(Icons.phone_outlined, 'Contacto', order.contacto),
+                    ],
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 12),
 
             // ── Observações ───────────────────────────────────────────────────
