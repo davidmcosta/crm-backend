@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -498,7 +501,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                     ? Center(
                                         child: GestureDetector(
                                           onTap: () => _showPhotoDialog(
-                                              context, f.fotos, 0),
+                                              context, f.fotos, 0, order.orderNumber),
                                           child: ClipRRect(
                                             borderRadius:
                                                 BorderRadius.circular(10),
@@ -518,7 +521,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         itemBuilder: (_, pi) =>
                                             GestureDetector(
                                           onTap: () => _showPhotoDialog(
-                                              context, f.fotos, pi),
+                                              context, f.fotos, pi, order.orderNumber),
                                           child: ClipRRect(
                                             borderRadius:
                                                 BorderRadius.circular(10),
@@ -980,7 +983,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                                   ? h.fotos[i].split(',').last
                                                   : h.fotos[i];
                                               return GestureDetector(
-                                                onTap: () => _showPhoto(context, b64),
+                                                onTap: () => _showPhoto(context, b64, order.orderNumber, i),
                                                 child: ClipRRect(
                                                   borderRadius: BorderRadius.circular(6),
                                                   child: Image.memory(
@@ -1093,8 +1096,61 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     return base64Decode(b64);
   }
 
+  String _photoMimeExt(String dataUrl) {
+    if (dataUrl.startsWith('data:image/png')) return 'png';
+    if (dataUrl.startsWith('data:image/gif')) return 'gif';
+    if (dataUrl.startsWith('data:image/webp')) return 'webp';
+    return 'jpg';
+  }
+
+  Future<void> _savePhoto(BuildContext context, String dataUrl, String orderNumber, int index) async {
+    try {
+      final bytes = _decodePhoto(dataUrl);
+      final ext = _photoMimeExt(dataUrl);
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final filename = 'encomenda_${orderNumber.replaceAll('/', '-')}_foto${index + 1}_$ts.$ext';
+
+      Directory? dir;
+      if (!kIsWeb) {
+        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+          dir = await getDownloadsDirectory();
+        } else {
+          dir = await getApplicationDocumentsDirectory();
+        }
+      }
+
+      if (dir == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Não foi possível determinar a pasta de destino.')),
+          );
+        }
+        return;
+      }
+
+      final file = File('${dir.path}/$filename');
+      await file.writeAsBytes(bytes);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Foto guardada em: ${file.path}'),
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(label: 'OK', onPressed: () {}),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao guardar foto: $e')),
+        );
+      }
+    }
+  }
+
   void _showPhotoDialog(
-      BuildContext context, List<String> fotos, int initialIndex) {
+      BuildContext context, List<String> fotos, int initialIndex, String orderNumber) {
     showDialog(
       context: context,
       builder: (_) {
@@ -1119,9 +1175,19 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                             color: Colors.white70, fontSize: 13),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      icon: const Icon(Icons.close, color: Colors.white),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Guardar foto',
+                          onPressed: () => _savePhoto(context, fotos[current], orderNumber, current),
+                          icon: const Icon(Icons.download, color: Colors.white70),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1201,17 +1267,38 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         ],
       );
 
-  void _showPhoto(BuildContext context, String b64) {
+  void _showPhoto(BuildContext context, String b64, String orderNumber, int index) {
+    final dataUrl = b64.contains(',') ? b64 : 'data:image/jpeg;base64,$b64';
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.memory(base64Decode(b64), fit: BoxFit.contain),
-          ),
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: 'Guardar foto',
+                  onPressed: () => _savePhoto(context, dataUrl, orderNumber, index),
+                  icon: const Icon(Icons.download, color: Colors.white70),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ],
+            ),
+            InteractiveViewer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.memory(base64Decode(b64), fit: BoxFit.contain),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
