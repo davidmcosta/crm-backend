@@ -45,9 +45,35 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     final fotosB64   = <String>[];      // base64 para enviar
 
     Future<void> pickPhoto(StateSetter setModal) async {
+      // On desktop there is no camera — skip the picker
+      final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+      ImageSource? source = ImageSource.gallery;
+      if (!isDesktop) {
+        source = await showModalBottomSheet<ImageSource>(
+          context: context,
+          builder: (_) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Câmara'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Biblioteca de fotos'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (source == null) return;
+      }
       try {
         final file = await ImagePicker().pickImage(
-          source: ImageSource.gallery,
+          source: source,
           maxWidth: 1200, maxHeight: 1200, imageQuality: 80,
         );
         if (file == null) return;

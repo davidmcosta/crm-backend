@@ -14,16 +14,18 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final _anoCtrl    = TextEditingController();
-  final _kmCtrl     = TextEditingController();
-  final _mealCtrl   = TextEditingController();
-  bool _saving      = false;
-  bool _loaded      = false;
-  List<int> _anosVisiveis = [];
+  final _anoCtrl            = TextEditingController();
+  final _numeroInicialCtrl  = TextEditingController();
+  final _kmCtrl             = TextEditingController();
+  final _mealCtrl           = TextEditingController();
+  bool _saving              = false;
+  bool _loaded              = false;
+  List<int> _anosVisiveis   = [];
 
   @override
   void dispose() {
     _anoCtrl.dispose();
+    _numeroInicialCtrl.dispose();
     _kmCtrl.dispose();
     _mealCtrl.dispose();
     super.dispose();
@@ -31,10 +33,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _populate(AppSettings s) {
     if (_loaded) return;
-    _anoCtrl.text   = s.anoAtual > 0 ? s.anoAtual.toString() : '';
-    _kmCtrl.text    = s.kmRate.toString();
-    _mealCtrl.text  = s.mealCost.toString();
-    _anosVisiveis   = List<int>.from(s.anosVisiveis);
+    _anoCtrl.text            = s.anoAtual > 0 ? s.anoAtual.toString() : '';
+    _numeroInicialCtrl.text  = s.numeroInicial > 1 ? s.numeroInicial.toString() : '';
+    _kmCtrl.text             = s.kmRate.toString();
+    _mealCtrl.text           = s.mealCost.toString();
+    _anosVisiveis            = List<int>.from(s.anosVisiveis);
     _loaded = true;
   }
 
@@ -46,16 +49,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final anoText = _anoCtrl.text.trim();
-      final ano     = anoText.isEmpty ? 0 : int.tryParse(anoText) ?? 0;
-      final km      = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))   ?? 0.36;
-      final meal    = double.tryParse(_mealCtrl.text.replaceAll(',', '.')) ?? 12.0;
+      final anoText     = _anoCtrl.text.trim();
+      final numIniText  = _numeroInicialCtrl.text.trim();
+      final ano         = anoText.isEmpty    ? 0 : int.tryParse(anoText)    ?? 0;
+      final numInicial  = numIniText.isEmpty ? 1 : int.tryParse(numIniText) ?? 1;
+      final km          = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))   ?? 0.36;
+      final meal        = double.tryParse(_mealCtrl.text.replaceAll(',', '.')) ?? 12.0;
 
       await ApiClient().dio.put(ApiEndpoints.settings, data: {
-        'anoAtual':     ano,
-        'kmRate':       km,
-        'mealCost':     meal,
-        'anosVisiveis': _anosVisiveis,
+        'anoAtual':      ano,
+        'numeroInicial': numInicial,
+        'kmRate':        km,
+        'mealCost':      meal,
+        'anosVisiveis':  _anosVisiveis,
       });
 
       ref.invalidate(settingsProvider);
@@ -128,6 +134,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         keyboardType: TextInputType.number,
                       ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Número inicial',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Número a partir do qual começa a contagem quando não '
+                        'existem encomendas no ano em uso. Deixe em branco para começar em 1.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _numeroInicialCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Número inicial (ex: 50)',
+                          hintText: 'Deixar vazio = começa em 1',
+                          prefixIcon: Icon(Icons.pin_outlined, size: 18),
+                          isDense: true,
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.all(10),
@@ -149,60 +179,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ]),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Custos de deslocação ──────────────────────────────────────
-              _sectionHeader(
-                  Icons.directions_car_outlined, 'Custos de deslocação'),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Estes valores são usados para calcular os custos '
-                        'de deslocação nas encomendas.',
-                        style: TextStyle(
-                            fontSize: 12, color: AppTheme.textMuted),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _kmCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Custo por km (€/km)',
-                              prefixIcon:
-                                  Icon(Icons.route_outlined, size: 18),
-                              isDense: true,
-                            ),
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _mealCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Custo por refeição (€)',
-                              prefixIcon:
-                                  Icon(Icons.restaurant_outlined, size: 18),
-                              isDense: true,
-                            ),
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
-                          ),
-                        ),
-                      ]),
                     ],
                   ),
                 ),
@@ -276,6 +252,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 color: AppTheme.success),
                           ),
                         ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Custos de deslocação ──────────────────────────────────────
+              _sectionHeader(
+                  Icons.directions_car_outlined, 'Custos de deslocação'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Estes valores são usados para calcular os custos '
+                        'de deslocação nas encomendas.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _kmCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Custo por km (€/km)',
+                              prefixIcon: Icon(Icons.route_outlined, size: 18),
+                              isDense: true,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _mealCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Custo por refeição (€)',
+                              prefixIcon: Icon(Icons.restaurant_outlined, size: 18),
+                              isDense: true,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                      ]),
                     ],
                   ),
                 ),

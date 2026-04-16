@@ -13,14 +13,15 @@ export async function getSettings() {
 }
 
 export async function updateSettings(data: {
-  anoAtual?: number
-  kmRate?:   number
-  mealCost?: number
-  anosVisiveis?: number[]
+  anoAtual?:      number
+  numeroInicial?: number
+  kmRate?:        number
+  mealCost?:      number
+  anosVisiveis?:  number[]
 }) {
   return prisma.settings.upsert({
     where:  { id: 'global' },
-    create: { id: 'global', anoAtual: 0, kmRate: 0.36, mealCost: 12, anosVisiveis: [], ...data },
+    create: { id: 'global', anoAtual: 0, numeroInicial: 1, kmRate: 0.36, mealCost: 12, anosVisiveis: [], ...data },
     update: { ...data, updatedAt: new Date() },
   })
 }

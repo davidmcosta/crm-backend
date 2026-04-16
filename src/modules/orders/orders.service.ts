@@ -8,9 +8,11 @@ const prisma = new PrismaClient()
 async function generateOrderNumber(): Promise<string> {
   // Use settings anoAtual if set; otherwise current year
   let yearFull = new Date().getFullYear()
+  let numeroInicial = 1
   try {
     const settings = await (prisma as any).settings.findUnique({ where: { id: 'global' } })
     if (settings && settings.anoAtual > 0) yearFull = settings.anoAtual
+    if (settings && settings.numeroInicial > 1) numeroInicial = settings.numeroInicial
   } catch {}
   const year = String(yearFull).slice(-2)
   const last = await prisma.order.findFirst({
@@ -18,7 +20,8 @@ async function generateOrderNumber(): Promise<string> {
     orderBy: { createdAt: 'desc' },
     select: { orderNumber: true },
   })
-  const next = last ? parseInt(last.orderNumber.split('/')[0], 10) + 1 : 1
+  // If no orders exist for this year, start at numeroInicial; otherwise increment last
+  const next = last ? parseInt(last.orderNumber.split('/')[0], 10) + 1 : numeroInicial
   return `${String(next).padStart(2, '0')}/${year}`
 }
 

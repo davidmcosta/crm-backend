@@ -79,59 +79,65 @@ class AppDrawer extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 8),
+          // ── Navegação (scrollable) ────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  _DrawerItem(
+                    icon: Icons.home_outlined,
+                    label: 'Início',
+                    route: '/dashboard',
+                    currentLocation: location,
+                  ),
 
-          // ── Navegação ─────────────────────────────────────────────────────
-          _DrawerItem(
-            icon: Icons.home_outlined,
-            label: 'Início',
-            route: '/dashboard',
-            currentLocation: location,
+                  _DrawerSection('OPERACIONAL'),
+                  _DrawerItem(
+                    icon: Icons.inventory_2_outlined,
+                    label: 'Encomendas',
+                    route: '/orders',
+                    currentLocation: location,
+                  ),
+                  if (user?.isManager == true)
+                    _DrawerItem(
+                      icon: Icons.people_outline,
+                      label: 'Clientes',
+                      route: '/customers',
+                      currentLocation: location,
+                    ),
+
+                  _DrawerSection('CATÁLOGO'),
+                  _DrawerItem(
+                    icon: Icons.category_outlined,
+                    label: 'Produtos',
+                    route: '/products',
+                    currentLocation: location,
+                  ),
+
+                  if (user?.isAdmin == true) ...[
+                    _DrawerSection('ADMINISTRAÇÃO'),
+                    _DrawerItem(
+                      icon: Icons.manage_accounts_outlined,
+                      label: 'Utilizadores',
+                      route: '/users',
+                      currentLocation: location,
+                    ),
+                    _DrawerItem(
+                      icon: Icons.settings_outlined,
+                      label: 'Configurações',
+                      route: '/settings',
+                      currentLocation: location,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
           ),
 
-          _DrawerSection('OPERACIONAL'),
-          _DrawerItem(
-            icon: Icons.inventory_2_outlined,
-            label: 'Encomendas',
-            route: '/orders',
-            currentLocation: location,
-          ),
-          if (user?.isManager == true)
-            _DrawerItem(
-              icon: Icons.people_outline,
-              label: 'Clientes',
-              route: '/customers',
-              currentLocation: location,
-            ),
-
-          _DrawerSection('CATÁLOGO'),
-          _DrawerItem(
-            icon: Icons.category_outlined,
-            label: 'Produtos',
-            route: '/products',
-            currentLocation: location,
-          ),
-
-          if (user?.isAdmin == true) ...[
-            _DrawerSection('ADMINISTRAÇÃO'),
-            _DrawerItem(
-              icon: Icons.manage_accounts_outlined,
-              label: 'Utilizadores',
-              route: '/users',
-              currentLocation: location,
-            ),
-            _DrawerItem(
-              icon: Icons.settings_outlined,
-              label: 'Configurações',
-              route: '/settings',
-              currentLocation: location,
-            ),
-          ],
-
-          const Spacer(),
-          const Divider(indent: 16, endIndent: 16),
-
-          // ── Logout ────────────────────────────────────────────────────────
+          // ── Logout (sempre visível no fundo) ──────────────────────────────
+          const Divider(indent: 16, endIndent: 16, height: 1),
           ListTile(
             leading: const Icon(Icons.logout, color: AppTheme.error),
             title: const Text('Sair',

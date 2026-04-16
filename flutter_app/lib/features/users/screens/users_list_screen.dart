@@ -12,10 +12,10 @@ import '../../../core/theme/app_theme.dart';
 const _roles      = ['ADMIN', 'MANAGER', 'OPERATOR', 'VIEWER'];
 const _roleLabels = ['Admin', 'Gestor', 'Operador', 'Visualizador'];
 const _roleDescriptions = [
-  'Acesso total — gere utilizadores, configurações e todas as encomendas',
+  'Acesso total — gere utilizadores, clientes, encomendas e configurações',
   'Cria, edita e elimina encomendas e clientes. Sem acesso a utilizadores ou configurações',
-  'Cria e edita encomendas e clientes. Não pode eliminar',
-  'Só consulta — não pode criar nem editar'
+  'Cria e edita encomendas. Não pode eliminar',
+  'Só consulta — não pode criar, editar ou eliminar',
 ];
 
 // ── Helper de extração de erro ─────────────────────────────────────────────────
