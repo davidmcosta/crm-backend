@@ -125,12 +125,16 @@ export async function getOrderById(id: string) {
   })
   if (!order) throw { statusCode: 404, message: 'Encomenda não encontrada' }
 
-  // Verificar se esta é a encomenda mais recente (sem nenhuma criada depois)
-  const newerOrder = await prisma.order.findFirst({
-    where: { createdAt: { gt: order.createdAt } },
+  // isLastOrder: true if this is the highest-numbered order within its year.
+  // Uses the order number year suffix (e.g. "26") so an order from year 2026
+  // can be the "last" independently of orders from 2025 or 2027.
+  const yearSuffix = order.orderNumber.split('/')[1]
+  const maxInYear = await prisma.order.findFirst({
+    where: { orderNumber: { endsWith: `/${yearSuffix}` } },
+    orderBy: { orderNumber: 'desc' }, // zero-padded → lexicographic == numeric
     select: { id: true },
   })
-  return { ...order, isLastOrder: newerOrder === null }
+  return { ...order, isLastOrder: maxInYear?.id === order.id }
 }
 
 // ── Criar ────────────────────────────────────────────────────────────────────
