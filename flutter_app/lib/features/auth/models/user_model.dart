@@ -18,7 +18,8 @@ class UserModel {
         role:  json['role']  as String,
       );
 
-  bool get isAdmin    => role == 'ADMIN';
-  bool get isManager  => role == 'ADMIN' || role == 'MANAGER';
-  bool get isOperator => role != 'VIEWER';
+  bool get isAdmin        => role == 'ADMIN';
+  bool get isManager      => role == 'ADMIN' || role == 'MANAGER';
+  bool get isOperator     => role != 'VIEWER';
+  bool get isOnlyOperator => role == 'OPERATOR'; // OPERATOR but not MANAGER/ADMIN
 }

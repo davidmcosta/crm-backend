@@ -96,12 +96,13 @@ class AppDrawer extends ConsumerWidget {
             route: '/orders',
             currentLocation: location,
           ),
-          _DrawerItem(
-            icon: Icons.people_outline,
-            label: 'Clientes',
-            route: '/customers',
-            currentLocation: location,
-          ),
+          if (user?.isManager == true)
+            _DrawerItem(
+              icon: Icons.people_outline,
+              label: 'Clientes',
+              route: '/customers',
+              currentLocation: location,
+            ),
 
           _DrawerSection('CATÁLOGO'),
           _DrawerItem(

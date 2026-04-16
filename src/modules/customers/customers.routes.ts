@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { authenticate } from '../../middleware/auth'
-import { requireOperator } from '../../middleware/permissions'
+import { requireManager, requireOperator } from '../../middleware/permissions'
 import {
   createCustomerSchema,
   updateCustomerSchema,
@@ -51,8 +51,8 @@ export async function customersRoutes(app: FastifyInstance) {
     }
   })
 
-  // POST /api/customers (OPERATOR+)
-  app.post('/', { preHandler: [requireOperator] }, async (request, reply) => {
+  // POST /api/customers (MANAGER+)
+  app.post('/', { preHandler: [requireManager] }, async (request, reply) => {
     const result = createCustomerSchema.safeParse(request.body)
     if (!result.success) {
       return reply.status(400).send({ error: 'Dados inválidos', details: result.error.flatten().fieldErrors })
@@ -64,8 +64,8 @@ export async function customersRoutes(app: FastifyInstance) {
     }
   })
 
-  // PUT /api/customers/:id (OPERATOR+)
-  app.put('/:id', { preHandler: [requireOperator] }, async (request, reply) => {
+  // PUT /api/customers/:id (MANAGER+)
+  app.put('/:id', { preHandler: [requireManager] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const result = updateCustomerSchema.safeParse(request.body)
     if (!result.success) {
@@ -78,8 +78,8 @@ export async function customersRoutes(app: FastifyInstance) {
     }
   })
 
-  // DELETE /api/customers/:id (OPERATOR+)
-  app.delete('/:id', { preHandler: [requireOperator] }, async (request, reply) => {
+  // DELETE /api/customers/:id (MANAGER+)
+  app.delete('/:id', { preHandler: [requireManager] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     try {
       return reply.send(await deleteCustomer(id))

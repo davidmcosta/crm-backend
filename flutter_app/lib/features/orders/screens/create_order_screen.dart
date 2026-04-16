@@ -12,6 +12,7 @@ import '../../customers/models/customer_model.dart';
 import '../../products/screens/product_picker_dialog.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 // ── Falecido entry ────────────────────────────────────────────────────────────
 
@@ -421,6 +422,28 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   @override
   Widget build(BuildContext context) {
     final customersState  = ref.watch(customersProvider);
+    final currentUser     = ref.watch(authProvider).user;
+    final isOnlyOperator  = currentUser?.isOnlyOperator == true;
+
+    // OPERATOR: auto-select Casa das Campas as soon as customers load
+    if (isOnlyOperator && _selectedCustomerId == null && customersState.customers.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        try {
+          final casaDasCampas = customersState.customers.firstWhere(
+            (c) => c.name.toLowerCase().contains('casa das campas'),
+          );
+          setState(() {
+            _selectedCustomerId       = casaDasCampas.id;
+            _selectedCustomerName     = casaDasCampas.name;
+            _selectedCustomerDiscount = casaDasCampas.discount;
+          });
+        } catch (_) {
+          // "Casa das Campas" not found — leave field empty
+        }
+      });
+    }
+
     // Apply settings-based travel rates whenever settings load/change
     ref.watch(settingsProvider).whenData((s) {
       if (s.kmRate != _kmRateCurrent || s.mealCost != _mealCostCurrent) {
@@ -459,34 +482,50 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             // 1. CLIENTE
             // ═══════════════════════════════════════
             _section(Icons.business_outlined, 'Cliente'),
-            customersState.isLoading
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : _CustomerAutocomplete(
-                    customers:    customersState.customers,
-                    selectedId:   _selectedCustomerId,
-                    selectedName: _selectedCustomerName,
-                    isEdit:       _isEdit,
-                    onSelected: (c) => setState(() {
-                      _selectedCustomerId       = c?.id;
-                      _selectedCustomerName     = c?.name;
-                      _selectedCustomerDiscount = c?.discount ?? 0;
-                    }),
-                    onAutoSelected: (c) {
-                      // Chamado quando "Casa das Campas" é auto-selecionado
-                      if (_selectedCustomerId == null) {
-                        setState(() {
-                          _selectedCustomerId       = c.id;
-                          _selectedCustomerName     = c.name;
-                          _selectedCustomerDiscount = c.discount;
-                        });
-                      }
-                    },
-                    validator: (_) =>
-                        _selectedCustomerId == null ? 'Cliente obrigatório' : null,
+            if (isOnlyOperator)
+              // OPERATOR: field locked to Casa das Campas — auto-selected in background
+              InputDecorator(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  suffixIcon: Tooltip(
+                    message: 'O Operador usa sempre o cliente padrão',
+                    child: Icon(Icons.lock_outline, size: 18, color: Colors.grey),
                   ),
+                ),
+                child: Text(
+                  _selectedCustomerName ?? 'Casa das Campas',
+                  style: const TextStyle(fontSize: 15),
+                ),
+              )
+            else if (customersState.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              _CustomerAutocomplete(
+                customers:    customersState.customers,
+                selectedId:   _selectedCustomerId,
+                selectedName: _selectedCustomerName,
+                isEdit:       _isEdit,
+                onSelected: (c) => setState(() {
+                  _selectedCustomerId       = c?.id;
+                  _selectedCustomerName     = c?.name;
+                  _selectedCustomerDiscount = c?.discount ?? 0;
+                }),
+                onAutoSelected: (c) {
+                  if (_selectedCustomerId == null) {
+                    setState(() {
+                      _selectedCustomerId       = c.id;
+                      _selectedCustomerName     = c.name;
+                      _selectedCustomerDiscount = c.discount;
+                    });
+                  }
+                },
+                validator: (_) =>
+                    _selectedCustomerId == null ? 'Cliente obrigatório' : null,
+              ),
 
             // ═══════════════════════════════════════
             // 2. TRABALHO
