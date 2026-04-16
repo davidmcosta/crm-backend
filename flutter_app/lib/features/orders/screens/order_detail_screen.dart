@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -205,6 +206,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                               fotos: fotosB64,
                             );
                             ref.invalidate(orderDetailProvider(widget.orderId));
+                            // Refresh the orders list so the new status is
+                            // visible immediately when navigating back.
+                            ref.read(ordersProvider.notifier).refresh();
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -216,7 +220,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(e.toString()),
+                                    content: Text(_shortError(e)),
                                     backgroundColor: AppTheme.error),
                               );
                             }
@@ -294,6 +298,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             : notesCtrl.text.trim(),
       );
       ref.invalidate(orderDetailProvider(widget.orderId));
+      ref.read(ordersProvider.notifier).refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -306,7 +311,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(e.toString()),
+              content: Text(_shortError(e)),
               backgroundColor: AppTheme.error),
         );
       }
@@ -365,12 +370,29 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(_shortError(e)),
             backgroundColor: AppTheme.error,
           ),
         );
       }
     }
+  }
+
+  /// Returns a short, human-readable Portuguese error message.
+  static String _shortError(dynamic e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map) {
+        final msg = data['error']?.toString() ?? '';
+        if (msg.isNotEmpty) return msg;
+      }
+      final code = e.response?.statusCode;
+      if (code == 400) return 'Pedido inválido. Verifique os dados.';
+      if (code == 403) return 'Sem permissão para esta operação.';
+      if (code == 404) return 'Registo não encontrado.';
+      return 'Erro de ligação. Verifique a rede e tente novamente.';
+    }
+    return e.toString().replaceAll('Exception: ', '');
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────────

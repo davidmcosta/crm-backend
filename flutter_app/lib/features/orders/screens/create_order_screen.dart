@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -459,13 +460,53 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
+          content: Text(_friendlyError(e)),
           backgroundColor: AppTheme.error,
         ));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Converts a raw exception (especially DioException 400) into a short,
+  /// human-readable Portuguese message.
+  static String _friendlyError(dynamic e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map) {
+        // Backend returns { error: '...', details: { field: ['msg'] } }
+        final details = data['details'];
+        if (details is Map && details.isNotEmpty) {
+          final fields = details.entries.map((entry) {
+            final label = _fieldLabel(entry.key as String);
+            final msgs  = (entry.value as List?)?.cast<String>() ?? [];
+            return msgs.isEmpty ? label : '$label: ${msgs.first}';
+          }).join('\n');
+          return 'Dados inválidos:\n$fields';
+        }
+        final msg = data['error']?.toString() ?? '';
+        if (msg.isNotEmpty) return msg;
+      }
+      if (e.response?.statusCode == 400) {
+        return 'Dados inválidos. Verifique os campos e tente novamente.';
+      }
+      return 'Erro de ligação. Verifique a rede e tente novamente.';
+    }
+    return e.toString().replaceAll('Exception: ', '');
+  }
+
+  static String _fieldLabel(String key) {
+    const labels = {
+      'trabalho':           'Descrição do trabalho',
+      'requerente':         'Requerente',
+      'contacto':           'Contacto',
+      'customerId':         'Cliente',
+      'produtos':           'Produtos',
+      'valorTotal':         'Valor total',
+      'deslocacaoMontagem': 'Deslocação',
+    };
+    return labels[key] ?? key;
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────────
@@ -525,17 +566,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       _selectedCustomerName     = c?.name;
                       _selectedCustomerDiscount = c?.discount ?? 0;
                     }),
-                    onAutoSelected: (c) {
-                      if (_selectedCustomerId == null) {
-                        setState(() {
-                          _selectedCustomerId       = c.id;
-                          _selectedCustomerName     = c.name;
-                          _selectedCustomerDiscount = c.discount;
-                        });
-                      }
-                    },
                     validator: (_) =>
-                        _selectedCustomerId == null ? 'Cliente obrigatório' : null,
+                        _selectedCustomerId == null ? 'Selecione um cliente' : null,
                   ),
 
             // ═══════════════════════════════════════
@@ -1346,7 +1378,6 @@ class _CustomerAutocomplete extends StatefulWidget {
   final String?                       selectedName;
   final bool                          isEdit;
   final void Function(CustomerModel?) onSelected;
-  final void Function(CustomerModel)  onAutoSelected;
   final String? Function(String?)     validator;
 
   const _CustomerAutocomplete({
@@ -1355,7 +1386,6 @@ class _CustomerAutocomplete extends StatefulWidget {
     required this.selectedName,
     required this.isEdit,
     required this.onSelected,
-    required this.onAutoSelected,
     required this.validator,
   });
 
@@ -1364,52 +1394,24 @@ class _CustomerAutocomplete extends StatefulWidget {
 }
 
 class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
-  final _ctrl       = TextEditingController();
-  final _focusNode  = FocusNode();
-  bool  _autoSet    = false;
+  final _ctrl      = TextEditingController();
+  final _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    // In edit mode, pre-fill the field with the existing customer name.
+    // In new order mode, the field starts empty — user picks from the list.
     if (widget.selectedName != null) {
-      // Edição ou cliente já conhecido — pré-preencher
       _ctrl.text = widget.selectedName!;
-      _autoSet   = true;
-    } else if (!widget.isEdit && widget.customers.isNotEmpty) {
-      // Clientes já em cache — auto-selecionar imediatamente
-      _autoSet = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final casaDasCampas = widget.customers.firstWhere(
-          (c) => c.name.toLowerCase().contains('casa das campas'),
-          orElse: () => widget.customers.first,
-        );
-        _ctrl.text = casaDasCampas.name;
-        widget.onAutoSelected(casaDasCampas);
-      });
     }
   }
 
   @override
   void didUpdateWidget(_CustomerAutocomplete old) {
     super.didUpdateWidget(old);
-    // Auto-selecionar "Casa das Campas" quando os clientes carregam (nova encomenda),
-    // mas apenas se ainda nenhum cliente foi selecionado pelo utilizador.
-    if (!widget.isEdit && !_autoSet && widget.customers.isNotEmpty &&
-        widget.selectedId == null) {
-      _autoSet = true;
-      final casaDasCampas = widget.customers.firstWhere(
-        (c) => c.name.toLowerCase().contains('casa das campas'),
-        orElse: () => widget.customers.first,
-      );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _ctrl.text = casaDasCampas.name;
-        widget.onAutoSelected(casaDasCampas);
-      });
-    }
-    // Sincronizar texto apenas quando o selectedId muda externamente
-    // (ex: prefill em modo edição) e o campo não está em foco.
+    // Sync text only when the selected customer changes externally (edit
+    // pre-fill) and the user is not actively typing in the field.
     if (widget.selectedId != old.selectedId &&
         widget.selectedName != null &&
         !_focusNode.hasFocus) {
@@ -1427,12 +1429,23 @@ class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
     super.dispose();
   }
 
+  /// Casa das Campas sempre primeiro; depois por ordem alfabética.
+  List<CustomerModel> get _sorted {
+    final list = [...widget.customers];
+    list.sort((a, b) {
+      final aIsCDC = a.name.toLowerCase().contains('casa das campas');
+      final bIsCDC = b.name.toLowerCase().contains('casa das campas');
+      if (aIsCDC && !bIsCDC) return -1;
+      if (!aIsCDC && bIsCDC) return 1;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return list;
+  }
+
   List<CustomerModel> get _filtered {
     final q = _ctrl.text.toLowerCase();
-    if (q.isEmpty) return widget.customers;
-    return widget.customers
-        .where((c) => c.name.toLowerCase().contains(q))
-        .toList();
+    if (q.isEmpty) return _sorted;
+    return _sorted.where((c) => c.name.toLowerCase().contains(q)).toList();
   }
 
   @override
