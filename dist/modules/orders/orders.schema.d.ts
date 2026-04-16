@@ -59,8 +59,8 @@ export declare const createOrderSchema: z.ZodObject<{
     }>, "many">>>;
     extrasValor: z.ZodDefault<z.ZodNumber>;
     valorTotal: z.ZodDefault<z.ZodNumber>;
-    requerente: z.ZodString;
-    contacto: z.ZodString;
+    requerente: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+    contacto: z.ZodDefault<z.ZodOptional<z.ZodString>>;
     observacoes: z.ZodOptional<z.ZodString>;
     descontoPerc: z.ZodDefault<z.ZodNumber>;
     descontoValor: z.ZodDefault<z.ZodNumber>;
@@ -109,8 +109,6 @@ export declare const createOrderSchema: z.ZodObject<{
     observacoes?: string | undefined;
 }, {
     trabalho: string;
-    requerente: string;
-    contacto: string;
     dedicatoria?: string | undefined;
     customerId?: string | undefined;
     cemiterio?: string | undefined;
@@ -143,6 +141,8 @@ export declare const createOrderSchema: z.ZodObject<{
     }[] | undefined;
     extrasValor?: number | undefined;
     valorTotal?: number | undefined;
+    requerente?: string | undefined;
+    contacto?: string | undefined;
     observacoes?: string | undefined;
     descontoPerc?: number | undefined;
     descontoValor?: number | undefined;

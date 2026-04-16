@@ -14,16 +14,18 @@ const customers_routes_1 = require("./modules/customers/customers.routes");
 const users_routes_1 = require("./modules/users/users.routes");
 const products_routes_1 = require("./modules/products/products.routes");
 const settings_routes_1 = require("./modules/settings/settings.routes");
+const stats_routes_1 = require("./modules/stats/stats.routes");
 const app = (0, fastify_1.default)({
     logger: env_1.env.NODE_ENV === 'development'
         ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
         : true,
+    bodyLimit: 52_428_800, // 50 MB
 });
 // ─────────────────────────────────────────
 // Content-type parser — aceita body vazio
 // (o Dio envia Content-Type: application/json mesmo em DELETE sem body)
 // ─────────────────────────────────────────
-app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+app.addContentTypeParser('application/json', { parseAs: 'string', bodyLimit: 52_428_800 }, (_req, body, done) => {
     const str = body;
     if (!str || str.length === 0) {
         done(null, null);
@@ -56,6 +58,7 @@ app.register(customers_routes_1.customersRoutes, { prefix: '/api/customers' });
 app.register(users_routes_1.usersRoutes, { prefix: '/api/users' });
 app.register(products_routes_1.productsRoutes, { prefix: '/api/products' });
 app.register(settings_routes_1.settingsRoutes, { prefix: '/api/settings' });
+app.register(stats_routes_1.statsRoutes, { prefix: '/api/stats' });
 // Health check
 app.get('/health', async () => ({
     status: 'ok',

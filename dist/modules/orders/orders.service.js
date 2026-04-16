@@ -15,10 +15,13 @@ const prisma = new client_1.PrismaClient();
 async function generateOrderNumber() {
     // Use settings anoAtual if set; otherwise current year
     let yearFull = new Date().getFullYear();
+    let numeroInicial = 1;
     try {
         const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
         if (settings && settings.anoAtual > 0)
             yearFull = settings.anoAtual;
+        if (settings && settings.numeroInicial > 1)
+            numeroInicial = settings.numeroInicial;
     }
     catch { }
     const year = String(yearFull).slice(-2);
@@ -27,7 +30,8 @@ async function generateOrderNumber() {
         orderBy: { createdAt: 'desc' },
         select: { orderNumber: true },
     });
-    const next = last ? parseInt(last.orderNumber.split('/')[0], 10) + 1 : 1;
+    // If no orders exist for this year, start at numeroInicial; otherwise increment last
+    const next = last ? parseInt(last.orderNumber.split('/')[0], 10) + 1 : numeroInicial;
     return `${String(next).padStart(2, '0')}/${year}`;
 }
 // ── Listagem ─────────────────────────────────────────────────────────────────
@@ -35,20 +39,24 @@ async function listOrders(query) {
     const { page, limit, status, customerId, search, cemiterio, trabalho, produto, dateFrom, dateTo } = query;
     const skip = (page - 1) * limit;
     const where = {};
-    // Load settings and apply year filter if anosVisiveis is set
-    try {
-        const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
-        if (settings && Array.isArray(settings.anosVisiveis) && settings.anosVisiveis.length > 0) {
-            const years = settings.anosVisiveis;
-            const minYear = Math.min(...years);
-            const maxYear = Math.max(...years);
-            where.createdAt = {
-                gte: new Date(minYear, 0, 1),
-                lte: new Date(maxYear, 11, 31, 23, 59, 59, 999),
-            };
+    // Collects multiple AND-combined conditions (each may be an OR block)
+    const andConditions = [];
+    // Load settings — apply year filter based on orderNumber suffix (e.g. "01/25")
+    // Only applies when no explicit dateFrom/dateTo filter is active
+    if (!dateFrom && !dateTo) {
+        try {
+            const settings = await prisma.settings.findUnique({ where: { id: 'global' } });
+            if (settings && Array.isArray(settings.anosVisiveis) && settings.anosVisiveis.length > 0) {
+                const years = settings.anosVisiveis;
+                andConditions.push({
+                    OR: years.map((y) => ({
+                        orderNumber: { endsWith: `/${String(y).slice(-2)}` },
+                    })),
+                });
+            }
         }
+        catch { }
     }
-    catch { }
     if (status)
         where.status = status;
     if (customerId)
@@ -58,7 +66,7 @@ async function listOrders(query) {
         where.cemiterio = { contains: cemiterio, mode: 'insensitive' };
     if (trabalho)
         where.trabalho = { contains: trabalho, mode: 'insensitive' };
-    // Filtro por intervalo de datas (sobrescreve o filtro de anosVisiveis se especificado)
+    // Filtro por intervalo de datas explícito
     if (dateFrom || dateTo) {
         const dateFilter = {};
         if (dateFrom)
@@ -72,31 +80,25 @@ async function listOrders(query) {
     }
     // Pesquisa de texto geral (ordem, falecido, requerente, cemitério, obs, dedicatória, cliente)
     if (search) {
-        const searchOr = [
-            { orderNumber: { contains: search, mode: 'insensitive' } },
-            { nomeFalecido: { contains: search, mode: 'insensitive' } },
-            { requerente: { contains: search, mode: 'insensitive' } },
-            { cemiterio: { contains: search, mode: 'insensitive' } },
-            { observacoes: { contains: search, mode: 'insensitive' } },
-            { dedicatoria: { contains: search, mode: 'insensitive' } },
-            { customer: { name: { contains: search, mode: 'insensitive' } } },
-        ];
-        where.OR = searchOr;
+        andConditions.push({ OR: [
+                { orderNumber: { contains: search, mode: 'insensitive' } },
+                { nomeFalecido: { contains: search, mode: 'insensitive' } },
+                { requerente: { contains: search, mode: 'insensitive' } },
+                { cemiterio: { contains: search, mode: 'insensitive' } },
+                { observacoes: { contains: search, mode: 'insensitive' } },
+                { dedicatoria: { contains: search, mode: 'insensitive' } },
+                { customer: { name: { contains: search, mode: 'insensitive' } } },
+            ] });
     }
     // Pesquisa por nome de produto (dentro do campo trabalho e também texto livre)
     if (produto) {
-        const prodOr = [
-            { trabalho: { contains: produto, mode: 'insensitive' } },
-            { nomeFalecido: { contains: produto, mode: 'insensitive' } },
-        ];
-        if (where.OR) {
-            // Combina com AND: (existing OR) AND (produto OR)
-            where.AND = [{ OR: where.OR }, { OR: prodOr }];
-            delete where.OR;
-        }
-        else {
-            where.OR = prodOr;
-        }
+        andConditions.push({ OR: [
+                { trabalho: { contains: produto, mode: 'insensitive' } },
+                { nomeFalecido: { contains: produto, mode: 'insensitive' } },
+            ] });
+    }
+    if (andConditions.length > 0) {
+        where.AND = andConditions;
     }
     const [orders, total] = await Promise.all([
         prisma.order.findMany({
@@ -128,7 +130,12 @@ async function getOrderById(id) {
     });
     if (!order)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    return order;
+    // Verificar se esta é a encomenda mais recente (sem nenhuma criada depois)
+    const newerOrder = await prisma.order.findFirst({
+        where: { createdAt: { gt: order.createdAt } },
+        select: { id: true },
+    });
+    return { ...order, isLastOrder: newerOrder === null };
 }
 // ── Criar ────────────────────────────────────────────────────────────────────
 async function createOrder(data, userId) {
@@ -185,9 +192,6 @@ async function updateOrder(id, data, userId) {
     const existing = await prisma.order.findUnique({ where: { id } });
     if (!existing)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (existing.status === enums_1.OrderStatus.CANCELLED) {
-        throw { statusCode: 400, message: 'Não é possível editar uma encomenda cancelada' };
-    }
     if (existing.status === enums_1.OrderStatus.PAID) {
         throw { statusCode: 400, message: 'Não é possível editar uma encomenda já paga' };
     }
@@ -211,8 +215,6 @@ async function updateOrderStatus(id, data, userId) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    if (order.status === enums_1.OrderStatus.CANCELLED)
-        throw { statusCode: 400, message: 'Não é possível alterar o estado de uma encomenda cancelada' };
     if (order.status === data.status)
         throw { statusCode: 400, message: 'A encomenda já se encontra neste estado' };
     const [updated] = await prisma.$transaction([
@@ -262,7 +264,17 @@ async function deleteOrder(id) {
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order)
         throw { statusCode: 404, message: 'Encomenda não encontrada' };
-    // Delete the order (cascade deletes statusHistory via schema)
+    // Só permite eliminar a encomenda mais recente para evitar lacunas na numeração
+    const newerOrder = await prisma.order.findFirst({
+        where: { createdAt: { gt: order.createdAt } },
+        select: { orderNumber: true },
+    });
+    if (newerOrder) {
+        throw {
+            statusCode: 409,
+            message: `Não é possível eliminar esta encomenda. Existe a encomenda ${newerOrder.orderNumber} criada depois. Só a encomenda mais recente pode ser eliminada para não criar lacunas na numeração.`,
+        };
+    }
     await prisma.order.delete({ where: { id } });
     return { success: true };
 }

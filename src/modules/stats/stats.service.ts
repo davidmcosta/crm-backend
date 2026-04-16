@@ -25,10 +25,15 @@ export async function getStats() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
   // Fetch all orders (small dataset for a stonework business)
+  type ORow = {
+    id: string; status: string; createdAt: Date; valorTotal: unknown
+    customerId: string | null; trabalho: string | null; produtos: unknown
+    customer: { id: string; name: string } | null
+  }
   const allOrders = await prisma.order.findMany({
     include: { customer: { select: { id: true, name: true } } },
     orderBy: { createdAt: 'asc' },
-  })
+  }) as ORow[]
 
   // ── Summary ────────────────────────────────────────────────────────────────
   const ordersThisYear  = allOrders.filter(o => o.createdAt >= yearStart)

@@ -30,20 +30,24 @@ export async function listOrders(query: ListOrdersQuery) {
   const { page, limit, status, customerId, search, cemiterio, trabalho, produto, dateFrom, dateTo } = query
   const skip  = (page - 1) * limit
   const where: any = {}
+  // Collects multiple AND-combined conditions (each may be an OR block)
+  const andConditions: any[] = []
 
-  // Load settings and apply year filter if anosVisiveis is set
-  try {
-    const settings = await (prisma as any).settings.findUnique({ where: { id: 'global' } })
-    if (settings && Array.isArray(settings.anosVisiveis) && settings.anosVisiveis.length > 0) {
-      const years = settings.anosVisiveis as number[]
-      const minYear = Math.min(...years)
-      const maxYear = Math.max(...years)
-      where.createdAt = {
-        gte: new Date(minYear, 0, 1),
-        lte: new Date(maxYear, 11, 31, 23, 59, 59, 999),
+  // Load settings — apply year filter based on orderNumber suffix (e.g. "01/25")
+  // Only applies when no explicit dateFrom/dateTo filter is active
+  if (!dateFrom && !dateTo) {
+    try {
+      const settings = await (prisma as any).settings.findUnique({ where: { id: 'global' } })
+      if (settings && Array.isArray(settings.anosVisiveis) && settings.anosVisiveis.length > 0) {
+        const years = settings.anosVisiveis as number[]
+        andConditions.push({
+          OR: years.map((y: number) => ({
+            orderNumber: { endsWith: `/${String(y).slice(-2)}` },
+          })),
+        })
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   if (status)     where.status     = status
   if (customerId) where.customerId = customerId
@@ -52,7 +56,7 @@ export async function listOrders(query: ListOrdersQuery) {
   if (cemiterio) where.cemiterio = { contains: cemiterio, mode: 'insensitive' }
   if (trabalho)  where.trabalho  = { contains: trabalho,  mode: 'insensitive' }
 
-  // Filtro por intervalo de datas (sobrescreve o filtro de anosVisiveis se especificado)
+  // Filtro por intervalo de datas explícito
   if (dateFrom || dateTo) {
     const dateFilter: Record<string, Date> = {}
     if (dateFrom) dateFilter['gte'] = new Date(dateFrom as string)
@@ -66,7 +70,7 @@ export async function listOrders(query: ListOrdersQuery) {
 
   // Pesquisa de texto geral (ordem, falecido, requerente, cemitério, obs, dedicatória, cliente)
   if (search) {
-    const searchOr = [
+    andConditions.push({ OR: [
       { orderNumber:  { contains: search, mode: 'insensitive' } },
       { nomeFalecido: { contains: search, mode: 'insensitive' } },
       { requerente:   { contains: search, mode: 'insensitive' } },
@@ -74,23 +78,19 @@ export async function listOrders(query: ListOrdersQuery) {
       { observacoes:  { contains: search, mode: 'insensitive' } },
       { dedicatoria:  { contains: search, mode: 'insensitive' } },
       { customer: { name: { contains: search, mode: 'insensitive' } } },
-    ]
-    where.OR = searchOr
+    ]})
   }
 
   // Pesquisa por nome de produto (dentro do campo trabalho e também texto livre)
   if (produto) {
-    const prodOr = [
+    andConditions.push({ OR: [
       { trabalho: { contains: produto, mode: 'insensitive' } },
       { nomeFalecido: { contains: produto, mode: 'insensitive' } },
-    ]
-    if (where.OR) {
-      // Combina com AND: (existing OR) AND (produto OR)
-      where.AND = [{ OR: where.OR }, { OR: prodOr }]
-      delete where.OR
-    } else {
-      where.OR = prodOr
-    }
+    ]})
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions
   }
 
   const [orders, total] = await Promise.all([

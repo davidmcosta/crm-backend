@@ -78,6 +78,20 @@ async function usersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
+    // PUT /api/users/:id/password — ADMIN redefine password de qualquer utilizador
+    app.put('/:id/password', { preHandler: [permissions_1.requireAdmin] }, async (request, reply) => {
+        const { id } = request.params;
+        const { password } = request.body;
+        if (!password || password.length < 8) {
+            return reply.status(400).send({ error: 'A password deve ter pelo menos 8 caracteres' });
+        }
+        try {
+            return reply.send(await (0, users_service_1.adminResetPassword)(id, password));
+        }
+        catch (err) {
+            return reply.status(err.statusCode || 500).send({ error: err.message });
+        }
+    });
     // PATCH /api/users/me/password — qualquer utilizador pode mudar a sua própria password
     app.patch('/me/password', async (request, reply) => {
         const user = request.user;

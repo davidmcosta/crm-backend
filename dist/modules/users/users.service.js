@@ -6,6 +6,7 @@ exports.createUser = createUser;
 exports.updateUser = updateUser;
 exports.updateUserRole = updateUserRole;
 exports.deactivateUser = deactivateUser;
+exports.adminResetPassword = adminResetPassword;
 exports.changePassword = changePassword;
 const client_1 = require("@prisma/client");
 const hash_1 = require("../../utils/hash");
@@ -121,6 +122,14 @@ async function deactivateUser(id, requestingUserId) {
         data: { isActive: false },
         select: { id: true, name: true, isActive: true },
     });
+}
+async function adminResetPassword(id, newPassword) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user)
+        throw { statusCode: 404, message: 'Utilizador não encontrado' };
+    const hashed = await (0, hash_1.hashPassword)(newPassword);
+    await prisma.user.update({ where: { id }, data: { password: hashed } });
+    return { message: 'Password redefinida com sucesso' };
 }
 async function changePassword(id, data) {
     const user = await prisma.user.findUnique({ where: { id } });

@@ -40,8 +40,8 @@ async function customersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
-    // POST /api/customers (OPERATOR+)
-    app.post('/', { preHandler: [permissions_1.requireOperator] }, async (request, reply) => {
+    // POST /api/customers (MANAGER+)
+    app.post('/', { preHandler: [permissions_1.requireManager] }, async (request, reply) => {
         const result = customers_schema_1.createCustomerSchema.safeParse(request.body);
         if (!result.success) {
             return reply.status(400).send({ error: 'Dados inválidos', details: result.error.flatten().fieldErrors });
@@ -53,8 +53,8 @@ async function customersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
-    // PUT /api/customers/:id (OPERATOR+)
-    app.put('/:id', { preHandler: [permissions_1.requireOperator] }, async (request, reply) => {
+    // PUT /api/customers/:id (MANAGER+)
+    app.put('/:id', { preHandler: [permissions_1.requireManager] }, async (request, reply) => {
         const { id } = request.params;
         const result = customers_schema_1.updateCustomerSchema.safeParse(request.body);
         if (!result.success) {
@@ -67,8 +67,8 @@ async function customersRoutes(app) {
             return reply.status(err.statusCode || 500).send({ error: err.message });
         }
     });
-    // DELETE /api/customers/:id (OPERATOR+)
-    app.delete('/:id', { preHandler: [permissions_1.requireOperator] }, async (request, reply) => {
+    // DELETE /api/customers/:id (MANAGER+)
+    app.delete('/:id', { preHandler: [permissions_1.requireManager] }, async (request, reply) => {
         const { id } = request.params;
         try {
             return reply.send(await (0, customers_service_1.deleteCustomer)(id));

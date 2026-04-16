@@ -7,6 +7,7 @@ const settings_service_1 = require("./settings.service");
 const zod_1 = require("zod");
 const updateSettingsSchema = zod_1.z.object({
     anoAtual: zod_1.z.number().int().min(0).optional(),
+    numeroInicial: zod_1.z.number().int().min(1).optional(),
     kmRate: zod_1.z.number().min(0).optional(),
     mealCost: zod_1.z.number().min(0).optional(),
     anosVisiveis: zod_1.z.array(zod_1.z.number().int()).optional(),

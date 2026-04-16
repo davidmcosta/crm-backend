@@ -48,9 +48,9 @@ exports.createOrderSchema = zod_1.z.object({
     // mantidos para compatibilidade retroactiva — calculados no service
     extrasValor: zod_1.z.number().min(0).default(0),
     valorTotal: zod_1.z.number().min(0).default(0),
-    // Requerente
-    requerente: zod_1.z.string().min(1, 'Requerente é obrigatório'),
-    contacto: zod_1.z.string().min(1, 'Contacto é obrigatório'),
+    // Requerente (obrigatório apenas quando cliente é Casa das Campas — validado no front)
+    requerente: zod_1.z.string().optional().default(''),
+    contacto: zod_1.z.string().optional().default(''),
     observacoes: zod_1.z.string().optional(),
     descontoPerc: zod_1.z.number().min(0).max(100).default(0),
     descontoValor: zod_1.z.number().min(0).default(0),
