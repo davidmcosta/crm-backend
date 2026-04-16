@@ -177,6 +177,14 @@ class DashboardScreen extends ConsumerWidget {
               color: const Color(0xFF8A5C2A),
               onTap: () => context.go('/users'),
             ),
+            const SizedBox(height: 8),
+            _QuickAction(
+              icon: Icons.settings_outlined,
+              label: 'Configurações',
+              description: 'Numeração, custos e anos visíveis',
+              color: AppTheme.primary,
+              onTap: () => context.go('/settings'),
+            ),
           ],
 
           const SizedBox(height: 32),
