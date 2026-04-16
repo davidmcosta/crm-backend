@@ -5,10 +5,11 @@ import { getSettings, updateSettings } from './settings.service'
 import { z } from 'zod'
 
 const updateSettingsSchema = z.object({
-  anoAtual:  z.number().int().min(0).optional(),
-  kmRate:    z.number().min(0).optional(),
-  mealCost:  z.number().min(0).optional(),
-  anosVisiveis: z.array(z.number().int()).optional(),
+  anoAtual:      z.number().int().min(0).optional(),
+  numeroInicial: z.number().int().min(1).optional(),
+  kmRate:        z.number().min(0).optional(),
+  mealCost:      z.number().min(0).optional(),
+  anosVisiveis:  z.array(z.number().int()).optional(),
 })
 
 export async function settingsRoutes(app: FastifyInstance) {
