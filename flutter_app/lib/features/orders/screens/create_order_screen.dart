@@ -348,7 +348,31 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   // ── Guardar ───────────────────────────────────────────────────────────────────
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final isValid = _formKey.currentState!.validate();
+    if (!isValid) {
+      // Mostrar aviso claro com os campos em falta
+      final missing = <String>[];
+      if (_selectedCustomerId == null) missing.add('Cliente');
+      if (_trabalhoCtrl.text.trim().isEmpty) missing.add('Descrição do trabalho');
+      if (_isCasaDasCampas && _requerenteCtrl.text.trim().isEmpty) missing.add('Requerente');
+      if (_isCasaDasCampas && _contactoCtrl.text.trim().isEmpty) missing.add('Contacto');
+      final msg = missing.isEmpty
+          ? 'Preencha os campos obrigatórios assinalados.'
+          : 'Campos obrigatórios em falta: ${missing.join(', ')}.';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg)),
+          ]),
+          backgroundColor: AppTheme.warning,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ));
+      }
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
@@ -1347,18 +1371,32 @@ class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
   @override
   void initState() {
     super.initState();
-    // Se estamos em edição e já há cliente, pré-preencher o campo
     if (widget.selectedName != null) {
+      // Edição ou cliente já conhecido — pré-preencher
       _ctrl.text = widget.selectedName!;
       _autoSet   = true;
+    } else if (!widget.isEdit && widget.customers.isNotEmpty) {
+      // Clientes já em cache — auto-selecionar imediatamente
+      _autoSet = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final casaDasCampas = widget.customers.firstWhere(
+          (c) => c.name.toLowerCase().contains('casa das campas'),
+          orElse: () => widget.customers.first,
+        );
+        _ctrl.text = casaDasCampas.name;
+        widget.onAutoSelected(casaDasCampas);
+      });
     }
   }
 
   @override
   void didUpdateWidget(_CustomerAutocomplete old) {
     super.didUpdateWidget(old);
-    // Auto-selecionar "Casa das Campas" quando os clientes carregam (nova encomenda)
-    if (!widget.isEdit && !_autoSet && widget.customers.isNotEmpty) {
+    // Auto-selecionar "Casa das Campas" quando os clientes carregam (nova encomenda),
+    // mas apenas se ainda nenhum cliente foi selecionado pelo utilizador.
+    if (!widget.isEdit && !_autoSet && widget.customers.isNotEmpty &&
+        widget.selectedId == null) {
       _autoSet = true;
       final casaDasCampas = widget.customers.firstWhere(
         (c) => c.name.toLowerCase().contains('casa das campas'),
@@ -1370,8 +1408,11 @@ class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
         widget.onAutoSelected(casaDasCampas);
       });
     }
-    // Sincronizar texto quando o selectedName muda externamente (ex: prefill em edição)
-    if (widget.selectedName != null && _ctrl.text != widget.selectedName) {
+    // Sincronizar texto apenas quando o selectedId muda externamente
+    // (ex: prefill em modo edição) e o campo não está em foco.
+    if (widget.selectedId != old.selectedId &&
+        widget.selectedName != null &&
+        !_focusNode.hasFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _ctrl.text = widget.selectedName!;
