@@ -1119,11 +1119,12 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           label: 'Imagem',
           extensions: [ext],
         );
-        savePath = await getSavePath(
+        final location = await getSaveLocation(
           suggestedName: suggestedName,
           acceptedTypeGroups: [typeGroup],
         );
-        if (savePath == null) return; // user cancelled
+        if (location == null) return; // user cancelled
+        savePath = location.path;
       } else if (!kIsWeb) {
         // Mobile: save to documents directory silently
         final dir = await getApplicationDocumentsDirectory();
