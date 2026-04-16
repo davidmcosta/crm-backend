@@ -14,6 +14,7 @@ const app = Fastify({
   logger: env.NODE_ENV === 'development'
     ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
     : true,
+  bodyLimit: 52_428_800, // 50 MB
 })
 
 // ─────────────────────────────────────────
@@ -23,7 +24,7 @@ const app = Fastify({
 
 app.addContentTypeParser(
   'application/json',
-  { parseAs: 'string' },
+  { parseAs: 'string', bodyLimit: 52_428_800 },
   (_req, body, done) => {
     const str = body as string
     if (!str || str.length === 0) {

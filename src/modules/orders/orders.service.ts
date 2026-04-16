@@ -192,9 +192,6 @@ export async function createOrder(data: CreateOrderInput, userId: string) {
 export async function updateOrder(id: string, data: UpdateOrderInput, userId: string) {
   const existing = await prisma.order.findUnique({ where: { id } })
   if (!existing) throw { statusCode: 404, message: 'Encomenda não encontrada' }
-  if (existing.status === OrderStatus.CANCELLED) {
-    throw { statusCode: 400, message: 'Não é possível editar uma encomenda cancelada' }
-  }
   if (existing.status === OrderStatus.PAID) {
     throw { statusCode: 400, message: 'Não é possível editar uma encomenda já paga' }
   }
@@ -220,8 +217,6 @@ export async function updateOrder(id: string, data: UpdateOrderInput, userId: st
 export async function updateOrderStatus(id: string, data: UpdateStatusInput, userId: string) {
   const order = await prisma.order.findUnique({ where: { id } })
   if (!order) throw { statusCode: 404, message: 'Encomenda não encontrada' }
-  if (order.status === OrderStatus.CANCELLED)
-    throw { statusCode: 400, message: 'Não é possível alterar o estado de uma encomenda cancelada' }
   if (order.status === data.status)
     throw { statusCode: 400, message: 'A encomenda já se encontra neste estado' }
 

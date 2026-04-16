@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1108,35 +1109,37 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       final bytes = _decodePhoto(dataUrl);
       final ext = _photoMimeExt(dataUrl);
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final filename = 'encomenda_${orderNumber.replaceAll('/', '-')}_foto${index + 1}_$ts.$ext';
+      final suggestedName = 'encomenda_${orderNumber.replaceAll('/', '-')}_foto${index + 1}_$ts.$ext';
 
-      Directory? dir;
-      if (!kIsWeb) {
-        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-          dir = await getDownloadsDirectory();
-        } else {
-          dir = await getApplicationDocumentsDirectory();
-        }
+      String? savePath;
+
+      if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+        // Desktop: show native Save As dialog
+        final typeGroup = XTypeGroup(
+          label: 'Imagem',
+          extensions: [ext],
+        );
+        savePath = await getSavePath(
+          suggestedName: suggestedName,
+          acceptedTypeGroups: [typeGroup],
+        );
+        if (savePath == null) return; // user cancelled
+      } else if (!kIsWeb) {
+        // Mobile: save to documents directory silently
+        final dir = await getApplicationDocumentsDirectory();
+        savePath = '${dir.path}/$suggestedName';
       }
 
-      if (dir == null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Não foi possível determinar a pasta de destino.')),
-          );
-        }
-        return;
-      }
+      if (savePath == null) return;
 
-      final file = File('${dir.path}/$filename');
+      final file = File(savePath);
       await file.writeAsBytes(bytes);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Foto guardada em: ${file.path}'),
+            content: Text('Foto guardada em: $savePath'),
             duration: const Duration(seconds: 4),
-            action: SnackBarAction(label: 'OK', onPressed: () {}),
           ),
         );
       }
@@ -1156,85 +1159,97 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       builder: (_) {
         int current = initialIndex;
         return StatefulBuilder(
-          builder: (ctx, setState) => Dialog(
-            backgroundColor: Colors.black,
-            insetPadding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          builder: (ctx, setState) {
+            final screenSize = MediaQuery.of(ctx).size;
+            final maxW = screenSize.width  - 48;
+            final maxH = screenSize.height - 120; // leave room for toolbar + nav row
+            return Dialog(
+              backgroundColor: Colors.black,
+              insetPadding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH + 80),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12),
-                      child: Text(
-                        fotos.length > 1
-                            ? 'Foto ${current + 1} / ${fotos.length}'
-                            : 'Foto',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13),
-                      ),
-                    ),
+                    // ── toolbar ─────────────────────────────────────────
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          tooltip: 'Guardar foto',
-                          onPressed: () => _savePhoto(context, fotos[current], orderNumber, current),
-                          icon: const Icon(Icons.download, color: Colors.white70),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Text(
+                            fotos.length > 1
+                                ? 'Foto ${current + 1} / ${fotos.length}'
+                                : 'Foto',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
                         ),
-                        IconButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          icon: const Icon(Icons.close, color: Colors.white),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Guardar foto',
+                              onPressed: () => _savePhoto(context, fotos[current], orderNumber, current),
+                              icon: const Icon(Icons.download, color: Colors.white70),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              icon: const Icon(Icons.close, color: Colors.white),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-                InteractiveViewer(
-                  child: Image.memory(
-                    _decodePhoto(fotos[current]),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                if (fotos.length > 1) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: current > 0
-                            ? () => setState(() => current--)
-                            : null,
-                        icon: const Icon(Icons.chevron_left,
-                            color: Colors.white),
+                    // ── image (constrained, zoom-able) ───────────────────
+                    SizedBox(
+                      width:  maxW,
+                      height: maxH,
+                      child: InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 5.0,
+                        child: Image.memory(
+                          _decodePhoto(fotos[current]),
+                          fit: BoxFit.contain,
+                          width:  maxW,
+                          height: maxH,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      ...List.generate(fotos.length, (i) => Container(
-                            width: 8, height: 8,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: i == current
-                                  ? Colors.white
-                                  : Colors.white38,
-                            ),
-                          )),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: current < fotos.length - 1
-                            ? () => setState(() => current++)
-                            : null,
-                        icon: const Icon(Icons.chevron_right,
-                            color: Colors.white),
+                    ),
+                    // ── prev / dots / next ───────────────────────────────
+                    if (fotos.length > 1) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: current > 0 ? () => setState(() => current--) : null,
+                            icon: const Icon(Icons.chevron_left, color: Colors.white),
+                          ),
+                          const SizedBox(width: 4),
+                          ...List.generate(fotos.length, (i) => Container(
+                                width: 8, height: 8,
+                                margin: const EdgeInsets.symmetric(horizontal: 3),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: i == current ? Colors.white : Colors.white38,
+                                ),
+                              )),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: current < fotos.length - 1
+                                ? () => setState(() => current++)
+                                : null,
+                            icon: const Icon(Icons.chevron_right, color: Colors.white),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                ],
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -1271,36 +1286,52 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     final dataUrl = b64.contains(',') ? b64 : 'data:image/jpeg;base64,$b64';
     showDialog(
       context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      builder: (ctx) {
+        final screenSize = MediaQuery.of(ctx).size;
+        final maxW = screenSize.width  - 48;
+        final maxH = screenSize.height - 120;
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH + 56),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: 'Guardar foto',
-                  onPressed: () => _savePhoto(context, dataUrl, orderNumber, index),
-                  icon: const Icon(Icons.download, color: Colors.white70),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      tooltip: 'Guardar foto',
+                      onPressed: () => _savePhoto(context, dataUrl, orderNumber, index),
+                      icon: const Icon(Icons.download, color: Colors.white70),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.white),
+                SizedBox(
+                  width:  maxW,
+                  height: maxH,
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 5.0,
+                    child: Image.memory(
+                      base64Decode(b64),
+                      fit: BoxFit.contain,
+                      width:  maxW,
+                      height: maxH,
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 8),
               ],
             ),
-            InteractiveViewer(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.memory(base64Decode(b64), fit: BoxFit.contain),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
