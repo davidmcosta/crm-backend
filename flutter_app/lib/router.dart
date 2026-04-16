@@ -18,6 +18,7 @@ import 'features/products/models/product_model.dart';
 import 'features/products/screens/products_list_screen.dart';
 import 'features/products/screens/product_form_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
+import 'features/analytics/analytics_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -126,6 +127,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (_, __) => const SettingsScreen(),
+      ),
+
+      // ── Desempenho ─────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/analytics',
+        builder: (_, __) => const AnalyticsScreen(),
       ),
     ],
   );

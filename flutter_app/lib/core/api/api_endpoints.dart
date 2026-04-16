@@ -32,4 +32,7 @@ class ApiEndpoints {
 
   // Configurações
   static const String settings = '/settings';
+
+  // Estatísticas
+  static const String stats = '/stats';
 }

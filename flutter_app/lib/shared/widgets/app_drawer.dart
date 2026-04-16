@@ -129,6 +129,12 @@ class AppDrawer extends ConsumerWidget {
                       route: '/settings',
                       currentLocation: location,
                     ),
+                    _DrawerItem(
+                      icon: Icons.bar_chart_outlined,
+                      label: 'Desempenho',
+                      route: '/analytics',
+                      currentLocation: location,
+                    ),
                   ],
                   const SizedBox(height: 8),
                 ],

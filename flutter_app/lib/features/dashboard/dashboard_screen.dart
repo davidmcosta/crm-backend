@@ -185,6 +185,14 @@ class DashboardScreen extends ConsumerWidget {
               color: AppTheme.primary,
               onTap: () => context.go('/settings'),
             ),
+            const SizedBox(height: 8),
+            _QuickAction(
+              icon: Icons.bar_chart_outlined,
+              label: 'Desempenho',
+              description: 'Gráficos, estatísticas e faturação',
+              color: AppTheme.gold,
+              onTap: () => context.go('/analytics'),
+            ),
           ],
 
           const SizedBox(height: 32),
