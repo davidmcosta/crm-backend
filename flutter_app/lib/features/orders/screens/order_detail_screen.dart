@@ -26,13 +26,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   final _currency   = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
   final _allStatuses = [
-    'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED', 'PAID'
+    'PENDING', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED', 'PAID', 'CANCELLED'
   ];
 
   // ── Alterar estado ────────────────────────────────────────────────────────────
   Future<void> _changeStatus(String currentStatus) async {
     final available = _allStatuses
-        .where((s) => s != currentStatus && s != 'CANCELLED')
+        .where((s) => s != currentStatus)
         .toList();
 
     String?          selected;
@@ -1028,22 +1028,25 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   ),
                 ),
 
-              if (canEdit && order.status != 'PAID' && order.status != 'CANCELLED')
+              if (canEdit && order.status != 'PAID')
                 Row(
                   children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 44,
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.push(
-                              '/orders/${order.id}/edit',
-                              extra: order),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Editar'),
+                    // Botão Editar — oculto para encomendas canceladas
+                    if (order.status != 'CANCELLED') ...[
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton.icon(
+                            onPressed: () => context.push(
+                                '/orders/${order.id}/edit',
+                                extra: order),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text('Editar'),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
+                    ],
                     Expanded(
                       child: SizedBox(
                         height: 44,
