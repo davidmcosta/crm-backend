@@ -349,6 +349,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     try {
       await ApiClient().dio.delete(ApiEndpoints.orderById(id));
       if (mounted) {
+        ref.read(ordersProvider.notifier).removeOrder(id);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Encomenda eliminada'),

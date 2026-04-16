@@ -191,6 +191,14 @@ class OrdersNotifier extends StateNotifier<OrdersState> {
   Future<void> refresh() => load(filter: state.filter);
 
   void setFilter(OrdersFilter filter) => load(filter: filter);
+
+  /// Remove a deleted order from the local list immediately (no reload needed)
+  void removeOrder(String id) {
+    state = state.copyWith(
+      orders: state.orders.where((o) => o.id != id).toList(),
+      total: (state.total - 1).clamp(0, double.maxFinite.toInt()),
+    );
+  }
 }
 
 final ordersProvider = StateNotifierProvider<OrdersNotifier, OrdersState>(
