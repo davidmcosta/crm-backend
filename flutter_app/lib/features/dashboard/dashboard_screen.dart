@@ -16,7 +16,8 @@ class DashboardScreen extends ConsumerWidget {
     final auth      = ref.watch(authProvider);
     final user      = auth.user;
     final orders    = ref.watch(ordersProvider);
-    final customers = ref.watch(customersProvider);
+    final canSeeCustomers = user?.isManager == true;
+    final customers = canSeeCustomers ? ref.watch(customersProvider) : null;
 
     const greeting = 'Bem-vindo';
 
@@ -83,16 +84,18 @@ class DashboardScreen extends ConsumerWidget {
                 onTap: () => context.go('/orders'),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.people_outline,
-                label: 'Clientes',
-                value: customers.isLoading ? '…' : '${customers.total}',
-                color: AppTheme.gold,
-                onTap: () => context.go('/customers'),
+            if (canSeeCustomers) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.people_outline,
+                  label: 'Clientes',
+                  value: customers == null || customers.isLoading ? '…' : '${customers.total}',
+                  color: AppTheme.gold,
+                  onTap: () => context.go('/customers'),
+                ),
               ),
-            ),
+            ],
           ]),
           const SizedBox(height: 12),
           Row(children: [
@@ -155,14 +158,16 @@ class DashboardScreen extends ConsumerWidget {
             color: AppTheme.primary,
             onTap: () => context.go('/orders'),
           ),
-          const SizedBox(height: 8),
-          _QuickAction(
-            icon: Icons.people_outline,
-            label: 'Clientes',
-            description: 'Gerir base de clientes',
-            color: const Color(0xFF6B6355),
-            onTap: () => context.go('/customers'),
-          ),
+          if (canSeeCustomers) ...[
+            const SizedBox(height: 8),
+            _QuickAction(
+              icon: Icons.people_outline,
+              label: 'Clientes',
+              description: 'Gerir base de clientes',
+              color: const Color(0xFF6B6355),
+              onTap: () => context.go('/customers'),
+            ),
+          ],
           if (user?.isAdmin == true) ...[
             const SizedBox(height: 8),
             _QuickAction(
