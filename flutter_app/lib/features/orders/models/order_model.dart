@@ -186,6 +186,10 @@ class OrderModel {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Verdadeiro quando não existe nenhuma encomenda criada depois desta.
+  /// Só a encomenda mais recente pode ser eliminada.
+  final bool isLastOrder;
+
   const OrderModel({
     required this.id,
     required this.orderNumber,
@@ -220,6 +224,7 @@ class OrderModel {
     this.statusHistory = const [],
     required this.createdAt,
     required this.updatedAt,
+    this.isLastOrder = false,
   });
 
   double get extrasValor => extras.fold(0.0, (s, e) => s + e.valor);
@@ -291,6 +296,7 @@ class OrderModel {
         createdAt: DateTime.parse(j['createdAt'] as String),
         updatedAt: DateTime.parse(
             j['updatedAt'] as String? ?? j['createdAt'] as String),
+        isLastOrder: j['isLastOrder'] as bool? ?? false,
       );
 
   static double _d(dynamic v) =>

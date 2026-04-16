@@ -1057,8 +1057,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   ],
                 ),
 
-              // Botão de eliminar (só para MANAGER+)
-              if (canDelete) ...[
+              // Botão de eliminar — só para MANAGER+ e só na encomenda mais recente
+              if (canDelete && order.isLastOrder) ...[
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,

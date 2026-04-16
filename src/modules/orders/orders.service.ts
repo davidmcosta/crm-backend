@@ -121,7 +121,13 @@ export async function getOrderById(id: string) {
     },
   })
   if (!order) throw { statusCode: 404, message: 'Encomenda não encontrada' }
-  return order
+
+  // Verificar se esta é a encomenda mais recente (sem nenhuma criada depois)
+  const newerOrder = await prisma.order.findFirst({
+    where: { createdAt: { gt: order.createdAt } },
+    select: { id: true },
+  })
+  return { ...order, isLastOrder: newerOrder === null }
 }
 
 // ── Criar ────────────────────────────────────────────────────────────────────
@@ -268,7 +274,18 @@ export async function deleteOrder(id: string) {
   const order = await prisma.order.findUnique({ where: { id } })
   if (!order) throw { statusCode: 404, message: 'Encomenda não encontrada' }
 
-  // Delete the order (cascade deletes statusHistory via schema)
+  // Só permite eliminar a encomenda mais recente para evitar lacunas na numeração
+  const newerOrder = await prisma.order.findFirst({
+    where: { createdAt: { gt: order.createdAt } },
+    select: { orderNumber: true },
+  })
+  if (newerOrder) {
+    throw {
+      statusCode: 409,
+      message: `Não é possível eliminar esta encomenda. Existe a encomenda ${newerOrder.orderNumber} criada depois. Só a encomenda mais recente pode ser eliminada para não criar lacunas na numeração.`,
+    }
+  }
+
   await prisma.order.delete({ where: { id } })
   return { success: true }
 }
