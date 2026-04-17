@@ -1526,9 +1526,14 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
                         errorMsg   = null;
                       });
                       try {
+                        // O scraper Puppeteer pode demorar até 2 min
                         final response = await ApiClient().dio.post(
                           ApiEndpoints.viaVerde,
                           data: {'moradaDestino': dest},
+                          options: Options(
+                            receiveTimeout: const Duration(minutes: 2),
+                            sendTimeout:    const Duration(minutes: 2),
+                          ),
                         );
                         final km        = (response.data['km']        as num).toDouble();
                         final portagens = (response.data['portagens'] as num).toDouble();
@@ -1553,10 +1558,17 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
 
   static String _extractVvError(dynamic e) {
     if (e is DioException) {
+      // Erro com resposta do servidor
       final data = e.response?.data;
       if (data is Map) {
         final msg = data['error']?.toString();
         if (msg != null && msg.isNotEmpty) return msg;
+      }
+      // Timeout — o scraper demorou demasiado
+      if (e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.connectionTimeout) {
+        return 'O cálculo demorou demasiado. Tenta novamente ou preenche manualmente.';
       }
     }
     return 'Não foi possível calcular. Tenta novamente ou preenche manualmente.';

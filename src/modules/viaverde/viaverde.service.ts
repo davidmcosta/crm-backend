@@ -139,7 +139,8 @@ export async function calcularViaVerde(
     // ── 1. Navegar ────────────────────────────────────────────────────────────
     console.log('[ViaVerde] A navegar...')
     await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })
-    await new Promise(r => setTimeout(r, 3_000))
+    // Aguarda que o campo de origem exista (indica que o JS da página carregou)
+    await page.waitForSelector('#txtStartPos', { timeout: 20_000 })
     console.log('[ViaVerde] Página carregada:', await page.title())
 
     // ── 2. Cookies ────────────────────────────────────────────────────────────
@@ -161,7 +162,6 @@ export async function calcularViaVerde(
     } catch { /* sem banner */ }
 
     // ── 3. Preencher origem (#txtStartPos) ────────────────────────────────────
-    await page.waitForSelector('#txtStartPos', { timeout: 10_000 })
     await page.click('#txtStartPos', { clickCount: 3 })
     await new Promise(r => setTimeout(r, 200))
     await page.type('#txtStartPos', moradaOrigem, { delay: 60 })
