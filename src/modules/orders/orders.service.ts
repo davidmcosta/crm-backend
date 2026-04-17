@@ -276,15 +276,17 @@ export async function deleteOrder(id: string) {
   const order = await prisma.order.findUnique({ where: { id } })
   if (!order) throw { statusCode: 404, message: 'Encomenda não encontrada' }
 
-  // Só permite eliminar a encomenda mais recente para evitar lacunas na numeração
-  const newerOrder = await prisma.order.findFirst({
-    where: { createdAt: { gt: order.createdAt } },
-    select: { orderNumber: true },
+  // Só permite eliminar a encomenda com o número mais alto do seu ano
+  const yearSuffix = order.orderNumber.split('/')[1]
+  const lastInYear = await prisma.order.findFirst({
+    where:   { orderNumber: { endsWith: `/${yearSuffix}` } },
+    orderBy: { orderNumber: 'desc' }, // zero-padded → lexicográfico == numérico
+    select:  { id: true, orderNumber: true },
   })
-  if (newerOrder) {
+  if (lastInYear && lastInYear.id !== order.id) {
     throw {
       statusCode: 409,
-      message: `Não é possível eliminar esta encomenda. Existe a encomenda ${newerOrder.orderNumber} criada depois. Só a encomenda mais recente pode ser eliminada para não criar lacunas na numeração.`,
+      message: `Não é possível eliminar esta encomenda. A encomenda ${lastInYear.orderNumber} tem um número superior. Só a encomenda com o número mais alto do ano pode ser eliminada para não criar lacunas na numeração.`,
     }
   }
 

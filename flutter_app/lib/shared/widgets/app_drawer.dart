@@ -118,6 +118,12 @@ class AppDrawer extends ConsumerWidget {
                   if (user?.isAdmin == true) ...[
                     _DrawerSection('ADMINISTRAÇÃO'),
                     _DrawerItem(
+                      icon: Icons.bar_chart_outlined,
+                      label: 'Desempenho',
+                      route: '/analytics',
+                      currentLocation: location,
+                    ),
+                    _DrawerItem(
                       icon: Icons.manage_accounts_outlined,
                       label: 'Utilizadores',
                       route: '/users',
@@ -127,12 +133,6 @@ class AppDrawer extends ConsumerWidget {
                       icon: Icons.settings_outlined,
                       label: 'Configurações',
                       route: '/settings',
-                      currentLocation: location,
-                    ),
-                    _DrawerItem(
-                      icon: Icons.bar_chart_outlined,
-                      label: 'Desempenho',
-                      route: '/analytics',
                       currentLocation: location,
                     ),
                   ],
