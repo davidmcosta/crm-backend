@@ -18,9 +18,7 @@ export async function viaverdeRoutes(app: FastifyInstance) {
     }
   })
 
-  app.addHook('preHandler', authenticate)
-
-  app.post('/calcular', async (request, reply) => {
+  app.post('/calcular', { preHandler: authenticate }, async (request, reply) => {
     const { moradaDestino, moradaOrigem: bodyOrigem } = request.body as {
       moradaDestino?: string
       moradaOrigem?:  string
