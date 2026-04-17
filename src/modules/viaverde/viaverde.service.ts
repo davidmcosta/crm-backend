@@ -89,7 +89,7 @@ export async function debugViaVerde(): Promise<object> {
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
     )
-    await page.goto(VV_URL, { waitUntil: 'networkidle2', timeout: 30_000 })
+    await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })
 
     try {
       const btn = await page.$('#onetrust-accept-btn-handler')
@@ -149,8 +149,11 @@ export async function calcularViaVerde(
 
     // ── 1. Navegar ────────────────────────────────────────────────────────────
     console.log('[ViaVerde] A navegar...')
-    await page.goto(VV_URL, { waitUntil: 'networkidle2', timeout: 30_000 })
+    await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })
     console.log('[ViaVerde] Título:', await page.title())
+
+    // Deixa o JS da página terminar de renderizar os campos
+    await new Promise(r => setTimeout(r, 3_000))
 
     // ── 2. Cookies ────────────────────────────────────────────────────────────
     try {
