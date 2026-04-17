@@ -9,8 +9,9 @@ import 'status_badge.dart';
 
 class OrderCard extends StatelessWidget {
   final OrderModel order;
+  final VoidCallback? onReturn;
 
-  const OrderCard({super.key, required this.order});
+  const OrderCard({super.key, required this.order, this.onReturn});
 
   /// Recolhe até [max] fotos de todos os falecidos (nova estrutura + legado).
   List<Uint8List> _allPhotoBytes({int max = 4}) {
@@ -84,7 +85,7 @@ class OrderCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/orders/${order.id}'),
+        onTap: () => context.push('/orders/${order.id}').then((_) => onReturn?.call()),
         child: Padding(
           padding: const EdgeInsets.all(14),
           // LayoutBuilder para saber exactamente quantas fotos cabem
@@ -115,7 +116,23 @@ class OrderCard extends StatelessWidget {
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 15),
                       ),
-                      const SizedBox(height: 5),
+                      if (order.customer != null) ...[
+                        const SizedBox(height: 3),
+                        Row(children: [
+                          const Icon(Icons.business_outlined,
+                              size: 13, color: AppTheme.textMuted),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              order.customer!.name,
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppTheme.textMuted),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ]),
+                      ],
+                      const SizedBox(height: 3),
                       Row(children: [
                         const Icon(Icons.calendar_today_outlined,
                             size: 13, color: AppTheme.textMuted),

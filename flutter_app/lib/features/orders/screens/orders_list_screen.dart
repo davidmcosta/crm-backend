@@ -22,7 +22,7 @@ const _statusLabels = [
   'Todos',
   'Pendentes',
   'Confirmadas',
-  'Em Progresso',
+  'Em Processo',
   'Concluídas',
   'Entregues',
   'Pagas',
@@ -39,6 +39,12 @@ class OrdersListScreen extends ConsumerStatefulWidget {
 class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   final _searchCtrl = TextEditingController();
   int _selectedStatusIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(ordersProvider.notifier).refresh());
+  }
 
   @override
   void didChangeDependencies() {
@@ -156,7 +162,9 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
-              onPressed: () => context.push('/orders/new'),
+              onPressed: () => context.push('/orders/new').then((_) {
+                if (mounted) ref.read(ordersProvider.notifier).refresh();
+              }),
               icon: const Icon(Icons.add),
               label: const Text('Nova Encomenda'),
             )
@@ -365,7 +373,10 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                                   const EdgeInsets.only(bottom: 80),
                               itemCount: state.orders.length,
                               itemBuilder: (_, i) =>
-                                  OrderCard(order: state.orders[i]),
+                                  OrderCard(
+                                    order: state.orders[i],
+                                    onReturn: () => ref.read(ordersProvider.notifier).refresh(),
+                                  ),
                             ),
                           ),
           ),

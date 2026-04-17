@@ -72,12 +72,12 @@ final customersProvider = StateNotifierProvider<CustomersNotifier, CustomersStat
   (_) => CustomersNotifier(),
 );
 
-final customerDetailProvider = FutureProvider.family<CustomerModel, String>((ref, id) async {
+final customerDetailProvider = FutureProvider.autoDispose.family<CustomerModel, String>((ref, id) async {
   final response = await ApiClient().dio.get(ApiEndpoints.customerById(id));
   return CustomerModel.fromJson(response.data as Map<String, dynamic>);
 });
 
-final customerOrdersProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, customerId) async {
+final customerOrdersProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, customerId) async {
   final response = await ApiClient().dio.get(ApiEndpoints.customerOrders(customerId));
   return (response.data as List).cast<Map<String, dynamic>>();
 });

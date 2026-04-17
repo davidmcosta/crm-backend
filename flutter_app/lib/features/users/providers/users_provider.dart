@@ -11,6 +11,7 @@ class UserItem {
   final String? username;
   final String  role;
   final bool    isActive;
+  final bool    isMaster;
   final DateTime createdAt;
 
   const UserItem({
@@ -20,6 +21,7 @@ class UserItem {
     this.username,
     required this.role,
     required this.isActive,
+    required this.isMaster,
     required this.createdAt,
   });
 
@@ -30,6 +32,7 @@ class UserItem {
         username:  j['username'] as String?,
         role:      j['role']     as String,
         isActive:  j['isActive'] as bool? ?? true,
+        isMaster:  j['isMaster'] as bool? ?? false,
         createdAt: DateTime.parse(j['createdAt'] as String),
       );
 

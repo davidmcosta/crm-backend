@@ -72,7 +72,12 @@ class _ProductsListScreenState extends ConsumerState<ProductsListScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Novo produto',
-            onPressed: () => context.push('/products/new'),
+            onPressed: () => context.push('/products/new').then((_) {
+              if (mounted) {
+                ref.read(productsNotifierProvider.notifier).load();
+                ref.invalidate(productCategoriesProvider);
+              }
+            }),
           ),
         ],
       ),
@@ -290,7 +295,12 @@ class _ProductCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/products/${product.id}/edit', extra: product),
+        onTap: () => context.push('/products/${product.id}/edit', extra: product).then((_) {
+          if (context.mounted) {
+            ref.read(productsNotifierProvider.notifier).load();
+            ref.invalidate(productCategoriesProvider);
+          }
+        }),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(

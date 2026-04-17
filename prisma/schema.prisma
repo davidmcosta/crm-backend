@@ -37,6 +37,7 @@ model User {
   name          String
   role          UserRole             @default(OPERATOR)
   isActive      Boolean              @default(true)
+  isMaster      Boolean              @default(false)
   orders        Order[]              @relation("OrdersCreatedBy")
   statusChanges OrderStatusHistory[]
   createdAt     DateTime             @default(now())

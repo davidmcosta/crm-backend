@@ -9,7 +9,7 @@ import '../../shared/widgets/app_drawer.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final statsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final statsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final r = await ApiClient().dio.get(ApiEndpoints.stats);
   return r.data as Map<String, dynamic>;
 });

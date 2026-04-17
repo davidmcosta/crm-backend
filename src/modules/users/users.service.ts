@@ -14,9 +14,10 @@ export async function listUsers() {
       username: true,
       role: true,
       isActive: true,
+      isMaster: true,
       createdAt: true,
     },
-    orderBy: { name: 'asc' },
+    orderBy: [{ isMaster: 'desc' }, { name: 'asc' }],
   })
 }
 
@@ -115,8 +116,14 @@ export async function deactivateUser(id: string, requestingUserId: string) {
     throw { statusCode: 400, message: 'Não podes desativar a tua própria conta' }
   }
 
-  const user = await prisma.user.findUnique({ where: { id } })
-  if (!user) throw { statusCode: 404, message: 'Utilizador não encontrado' }
+  const target    = await prisma.user.findUnique({ where: { id } })
+  if (!target) throw { statusCode: 404, message: 'Utilizador não encontrado' }
+  if (target.isMaster) throw { statusCode: 403, message: 'A conta Master Admin não pode ser removida' }
+
+  const requester = await prisma.user.findUnique({ where: { id: requestingUserId } })
+  if (!requester?.isMaster && target.role === 'ADMIN') {
+    throw { statusCode: 403, message: 'Apenas o Master Admin pode remover outros administradores' }
+  }
 
   return prisma.user.update({
     where: { id },
@@ -125,9 +132,17 @@ export async function deactivateUser(id: string, requestingUserId: string) {
   })
 }
 
-export async function adminResetPassword(id: string, newPassword: string) {
-  const user = await prisma.user.findUnique({ where: { id } })
-  if (!user) throw { statusCode: 404, message: 'Utilizador não encontrado' }
+export async function adminResetPassword(id: string, newPassword: string, requestingUserId: string) {
+  const target    = await prisma.user.findUnique({ where: { id } })
+  if (!target) throw { statusCode: 404, message: 'Utilizador não encontrado' }
+
+  const requester = await prisma.user.findUnique({ where: { id: requestingUserId } })
+
+  // Admins normais só podem redefinir passwords de utilizadores com funções inferiores
+  if (!requester?.isMaster && target.role === 'ADMIN' && id !== requestingUserId) {
+    throw { statusCode: 403, message: 'Apenas o Master Admin pode redefinir a password de outros administradores' }
+  }
+
   const hashed = await hashPassword(newPassword)
   await prisma.user.update({ where: { id }, data: { password: hashed } })
   return { message: 'Password redefinida com sucesso' }

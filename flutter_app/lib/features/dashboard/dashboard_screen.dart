@@ -119,7 +119,7 @@ class DashboardScreen extends ConsumerWidget {
             Expanded(
               child: _StatCard(
                 icon: Icons.precision_manufacturing_outlined,
-                label: 'Em progresso',
+                label: 'Em processo',
                 value: orders.isLoading
                     ? '…'
                     : '${orders.orders.where((o) => o.status == 'IN_PRODUCTION').length}',

@@ -31,11 +31,22 @@ String _extractError(dynamic e) {
   return e.toString().replaceAll('Exception: ', '');
 }
 
-class UsersListScreen extends ConsumerWidget {
+class UsersListScreen extends ConsumerStatefulWidget {
   const UsersListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UsersListScreen> createState() => _UsersListScreenState();
+}
+
+class _UsersListScreenState extends ConsumerState<UsersListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(usersProvider.notifier).load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state    = ref.watch(usersProvider);
     final authUser = ref.watch(authProvider).user;
 
@@ -98,151 +109,158 @@ class UsersListScreen extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                       itemCount: state.users.length,
                       itemBuilder: (_, i) {
-                        final u      = state.users[i];
-                        final isSelf = u.id == authUser?.id;
-                        final roleColor = _roleColor(u.role);
+                        final u           = state.users[i];
+                        final isSelf      = u.id == authUser?.id;
+                        final iAmMaster   = state.users.any((x) => x.id == authUser?.id && x.isMaster);
+                        final roleColor   = u.isMaster ? AppTheme.gold : _roleColor(u.role);
+                        // Acções disponíveis conforme quem está a ver
+                        final canEdit         = !u.isMaster && (iAmMaster || !isSelf);
+                        final canResetPass    = iAmMaster || isSelf || (u.role != 'ADMIN');
+                        final canChangeRole   = !u.isMaster && !isSelf && (iAmMaster || u.role != 'ADMIN');
+                        final canDeactivate   = !u.isMaster && !isSelf && (iAmMaster || u.role != 'ADMIN');
+                        final hasMenu         = authUser?.isAdmin == true &&
+                            (canEdit || canResetPass || canChangeRole || canDeactivate);
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  roleColor.withOpacity(0.12),
-                              child: Text(
-                                u.name[0].toUpperCase(),
-                                style: TextStyle(
-                                    color: roleColor,
-                                    fontWeight: FontWeight.bold),
+                        return Opacity(
+                          opacity: u.isMaster ? 0.72 : 1.0,
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            shape: u.isMaster
+                                ? RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(color: AppTheme.gold.withOpacity(0.4)),
+                                  )
+                                : null,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              leading: CircleAvatar(
+                                backgroundColor: roleColor.withOpacity(0.15),
+                                child: u.isMaster
+                                    ? Icon(Icons.shield_outlined, size: 20, color: AppTheme.gold)
+                                    : Text(
+                                        u.name[0].toUpperCase(),
+                                        style: TextStyle(
+                                            color: roleColor,
+                                            fontWeight: FontWeight.bold),
+                                      ),
                               ),
-                            ),
-                            title: Row(children: [
-                              Expanded(
-                                child: Text(
-                                  u.name + (isSelf ? ' (eu)' : ''),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.primary),
-                                ),
-                              ),
-                              if (!u.isActive)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.error.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                        color: AppTheme.error
-                                            .withOpacity(0.3)),
+                              title: Row(children: [
+                                Expanded(
+                                  child: Text(
+                                    u.name + (isSelf ? ' (eu)' : ''),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: u.isMaster ? AppTheme.gold : AppTheme.primary),
                                   ),
-                                  child: Text('Inativo',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          color: AppTheme.error)),
                                 ),
-                            ]),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 2),
-                                // Username (sempre presente)
-                                Row(children: [
-                                  const Icon(Icons.alternate_email,
-                                      size: 11,
-                                      color: AppTheme.textMuted),
-                                  const SizedBox(width: 3),
-                                  Text(u.username ?? '—',
-                                      style: const TextStyle(
-                                          fontSize: 13,
-                                          color: AppTheme.textMuted)),
-                                ]),
-                                // Email (opcional)
-                                if (u.email != null &&
-                                    u.email!.isNotEmpty) ...[
+                                if (u.isMaster)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.gold.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.gold.withOpacity(0.4)),
+                                    ),
+                                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                      Icon(Icons.lock_outline, size: 10, color: AppTheme.gold),
+                                      SizedBox(width: 3),
+                                      Text('Master', style: TextStyle(fontSize: 11, color: AppTheme.gold)),
+                                    ]),
+                                  ),
+                                if (!u.isActive && !u.isMaster)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.error.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                                    ),
+                                    child: Text('Inativo',
+                                        style: TextStyle(fontSize: 11, color: AppTheme.error)),
+                                  ),
+                              ]),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   const SizedBox(height: 2),
                                   Row(children: [
-                                    const Icon(Icons.email_outlined,
-                                        size: 11,
-                                        color: AppTheme.textMuted),
+                                    const Icon(Icons.alternate_email, size: 11, color: AppTheme.textMuted),
                                     const SizedBox(width: 3),
-                                    Text(u.email!,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.textMuted)),
+                                    Text(u.username ?? '—',
+                                        style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
                                   ]),
-                                ],
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: roleColor.withOpacity(0.1),
-                                    borderRadius:
-                                        BorderRadius.circular(12),
+                                  if (u.email != null && u.email!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Row(children: [
+                                      const Icon(Icons.email_outlined, size: 11, color: AppTheme.textMuted),
+                                      const SizedBox(width: 3),
+                                      Text(u.email!,
+                                          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                                    ]),
+                                  ],
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: roleColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(u.roleLabel,
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: roleColor,
+                                            fontWeight: FontWeight.w500)),
                                   ),
-                                  child: Text(u.roleLabel,
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: roleColor,
-                                          fontWeight: FontWeight.w500)),
-                                ),
-                              ],
-                            ),
-                            trailing: authUser?.isAdmin == true
-                                ? PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert,
-                                        color: AppTheme.textMuted),
-                                    onSelected: (action) =>
-                                        _handleAction(
-                                            context, ref, u, action),
-                                    itemBuilder: (_) => [
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(children: [
-                                          Icon(Icons.edit_outlined,
-                                              size: 18),
-                                          SizedBox(width: 8),
-                                          Text('Editar'),
-                                        ]),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'password',
-                                        child: Row(children: [
-                                          Icon(Icons.lock_reset_outlined,
-                                              size: 18),
-                                          SizedBox(width: 8),
-                                          Text('Redefinir password'),
-                                        ]),
-                                      ),
-                                      if (!isSelf) ...[
-                                        const PopupMenuItem(
-                                          value: 'role',
-                                          child: Row(children: [
-                                            Icon(Icons.manage_accounts,
-                                                size: 18),
-                                            SizedBox(width: 8),
-                                            Text('Alterar função'),
-                                          ]),
-                                        ),
-                                        if (u.isActive)
+                                ],
+                              ),
+                              trailing: hasMenu
+                                  ? PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, color: AppTheme.textMuted),
+                                      onSelected: (action) => _handleAction(context, ref, u, action),
+                                      itemBuilder: (_) => [
+                                        if (canEdit)
+                                          const PopupMenuItem(
+                                            value: 'edit',
+                                            child: Row(children: [
+                                              Icon(Icons.edit_outlined, size: 18),
+                                              SizedBox(width: 8),
+                                              Text('Editar'),
+                                            ]),
+                                          ),
+                                        if (canResetPass)
+                                          const PopupMenuItem(
+                                            value: 'password',
+                                            child: Row(children: [
+                                              Icon(Icons.lock_reset_outlined, size: 18),
+                                              SizedBox(width: 8),
+                                              Text('Redefinir password'),
+                                            ]),
+                                          ),
+                                        if (canChangeRole)
+                                          const PopupMenuItem(
+                                            value: 'role',
+                                            child: Row(children: [
+                                              Icon(Icons.manage_accounts, size: 18),
+                                              SizedBox(width: 8),
+                                              Text('Alterar função'),
+                                            ]),
+                                          ),
+                                        if (canDeactivate && u.isActive)
                                           PopupMenuItem(
                                             value: 'deactivate',
                                             child: Row(children: [
-                                              Icon(Icons.delete_outline,
-                                                  size: 18,
-                                                  color: AppTheme.error),
+                                              Icon(Icons.delete_outline, size: 18, color: AppTheme.error),
                                               const SizedBox(width: 8),
-                                              Text('Eliminar',
-                                                  style: TextStyle(
-                                                      color: AppTheme.error)),
+                                              Text('Eliminar', style: TextStyle(color: AppTheme.error)),
                                             ]),
                                           ),
                                       ],
-                                    ],
-                                  )
-                                : null,
+                                    )
+                                  : null,
+                            ),
                           ),
                         );
                       },

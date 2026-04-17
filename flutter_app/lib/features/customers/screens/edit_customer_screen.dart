@@ -197,7 +197,7 @@ class _EditCustomerScreenState extends ConsumerState<EditCustomerScreen> {
 
                     const SizedBox(height: 20),
                     // ── Secção: Desconto ──────────────────────────────────
-                    _sectionHeader(Icons.discount_outlined, 'Desconto de revendedor'),
+                    _sectionHeader(Icons.discount_outlined, 'Desconto'),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _discountCtrl,
@@ -229,7 +229,7 @@ class _EditCustomerScreenState extends ConsumerState<EditCustomerScreen> {
                             const Icon(Icons.stars_outlined, size: 14, color: AppTheme.gold),
                             const SizedBox(width: 6),
                             Text(
-                              'Revendedor — ${_discountCtrl.text}% aplicado automaticamente nas encomendas',
+                              '${_discountCtrl.text}% aplicado automaticamente nas encomendas',
                               style: const TextStyle(fontSize: 12, color: AppTheme.gold),
                             ),
                           ]),

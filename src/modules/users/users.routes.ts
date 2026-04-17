@@ -92,15 +92,16 @@ export async function usersRoutes(app: FastifyInstance) {
     }
   })
 
-  // PUT /api/users/:id/password — ADMIN redefine password de qualquer utilizador
+  // PUT /api/users/:id/password — ADMIN redefine password (master: qualquer; admin normal: só não-admins)
   app.put('/:id/password', { preHandler: [requireAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { password } = request.body as { password?: string }
+    const requestingUser = request.user as { id: string }
     if (!password || password.length < 8) {
       return reply.status(400).send({ error: 'A password deve ter pelo menos 8 caracteres' })
     }
     try {
-      return reply.send(await adminResetPassword(id, password))
+      return reply.send(await adminResetPassword(id, password, requestingUser.id))
     } catch (err: any) {
       return reply.status(err.statusCode || 500).send({ error: err.message })
     }

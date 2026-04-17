@@ -39,7 +39,7 @@ class AppSettings {
   int get effectiveYear => anoAtual > 0 ? anoAtual : DateTime.now().year;
 }
 
-final settingsProvider = FutureProvider<AppSettings>((ref) async {
+final settingsProvider = FutureProvider.autoDispose<AppSettings>((ref) async {
   final response = await ApiClient().dio.get(ApiEndpoints.settings);
   return AppSettings.fromJson(response.data as Map<String, dynamic>);
 });

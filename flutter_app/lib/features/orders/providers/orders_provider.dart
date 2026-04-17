@@ -208,14 +208,14 @@ final ordersProvider = StateNotifierProvider<OrdersNotifier, OrdersState>(
 // ── Detalhe de uma encomenda ─────────────────────────────────────────────────
 
 final orderDetailProvider =
-    FutureProvider.family<OrderModel, String>((ref, id) async {
+    FutureProvider.autoDispose.family<OrderModel, String>((ref, id) async {
   final response =
       await ApiClient().dio.get(ApiEndpoints.orderById(id));
   return OrderModel.fromJson(response.data as Map<String, dynamic>);
 });
 
 final orderHistoryProvider =
-    FutureProvider.family<List<StatusHistoryEntry>, String>((ref, id) async {
+    FutureProvider.autoDispose.family<List<StatusHistoryEntry>, String>((ref, id) async {
   final response =
       await ApiClient().dio.get(ApiEndpoints.orderHistory(id));
   return (response.data as List)

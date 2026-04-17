@@ -139,7 +139,7 @@ class _CreateCustomerScreenState
                       const Icon(Icons.discount_outlined,
                           size: 16, color: AppTheme.gold),
                       const SizedBox(width: 6),
-                      const Text('Desconto de revendedor',
+                      const Text('Desconto',
                           style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: AppTheme.primary,
@@ -177,7 +177,7 @@ class _CreateCustomerScreenState
                                 size: 14, color: AppTheme.gold),
                             const SizedBox(width: 6),
                             Text(
-                              'Revendedor com ${_discountCtrl.text}% de desconto nas encomendas',
+                              '${_discountCtrl.text}% de desconto nas encomendas',
                               style: const TextStyle(
                                   fontSize: 12, color: AppTheme.gold),
                             ),

@@ -252,12 +252,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            _CategoryField(
               controller: _catCtrl,
-              decoration: const InputDecoration(
-                  labelText: 'Categoria',
-                  hintText: 'ex: Campas, Lápides, Acessórios',
-                  prefixIcon: Icon(Icons.folder_outlined, size: 18)),
+              categoriesAsync: ref.watch(productCategoriesProvider),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -383,6 +380,133 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           const Expanded(child: Divider()),
         ]),
       );
+}
+
+// ── Campo de categoria com sugestões ─────────────────────────────────────────
+
+class _CategoryField extends StatefulWidget {
+  final TextEditingController controller;
+  final AsyncValue<List<String>> categoriesAsync;
+
+  const _CategoryField({
+    required this.controller,
+    required this.categoriesAsync,
+  });
+
+  @override
+  State<_CategoryField> createState() => _CategoryFieldState();
+}
+
+class _CategoryFieldState extends State<_CategoryField> {
+  final _focusNode = FocusNode();
+  VoidCallback? _onAutocompleteSubmit;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.onKeyEvent = (node, event) {
+      if (event is KeyDownEvent &&
+          event.logicalKey == LogicalKeyboardKey.tab) {
+        _onAutocompleteSubmit?.call();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) FocusScope.of(context).nextFocus();
+        });
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = widget.categoriesAsync.valueOrNull ?? [];
+
+    return RawAutocomplete<String>(
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
+      displayStringForOption: (c) => c,
+      optionsBuilder: (textEditingValue) {
+        final q = textEditingValue.text.toLowerCase();
+        if (q.isEmpty) return categories;
+        return categories.where((c) => c.toLowerCase().contains(q));
+      },
+      onSelected: (value) => widget.controller.text = value,
+      fieldViewBuilder: (ctx, ctrl, fn, onFieldSubmitted) {
+        _onAutocompleteSubmit = onFieldSubmitted;
+        return TextFormField(
+        controller: ctrl,
+        focusNode: fn,
+        onFieldSubmitted: (_) => onFieldSubmitted(),
+        decoration: InputDecoration(
+          labelText: 'Categoria',
+          hintText: 'ex: Campas, Lápides, Acessórios',
+          prefixIcon: const Icon(Icons.folder_outlined, size: 18),
+          suffixIcon: ctrl.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    ctrl.clear();
+                    fn.requestFocus();
+                  },
+                )
+              : null,
+        ),
+        );
+      },
+      optionsViewBuilder: (ctx, onSelected, options) {
+        final highlightedIndex = AutocompleteHighlightedOption.of(ctx);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(10),
+            color: AppTheme.cardColor,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 380),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, color: AppTheme.border),
+                itemBuilder: (_, i) {
+                  final c           = options.elementAt(i);
+                  final isHighlight = i == highlightedIndex;
+                  return ListTile(
+                    dense: true,
+                    tileColor: isHighlight
+                        ? AppTheme.gold.withOpacity(0.12)
+                        : null,
+                    leading: Icon(
+                      Icons.folder_outlined,
+                      size: 16,
+                      color: isHighlight ? AppTheme.gold : AppTheme.textMuted,
+                    ),
+                    title: Text(c,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: isHighlight
+                                ? AppTheme.gold
+                                : AppTheme.primary,
+                            fontWeight: isHighlight
+                                ? FontWeight.w600
+                                : FontWeight.normal)),
+                    onTap: () => onSelected(c),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 // ── BOM row widget ────────────────────────────────────────────────────────────

@@ -1409,6 +1409,7 @@ class _CustomerAutocomplete extends StatefulWidget {
 class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
   final _ctrl      = TextEditingController();
   final _focusNode = FocusNode();
+  VoidCallback? _onAutocompleteSubmit;
 
   @override
   void initState() {
@@ -1418,6 +1419,17 @@ class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
     if (widget.selectedName != null) {
       _ctrl.text = widget.selectedName!;
     }
+    _focusNode.onKeyEvent = (node, event) {
+      if (event is KeyDownEvent &&
+          event.logicalKey == LogicalKeyboardKey.tab) {
+        _onAutocompleteSubmit?.call();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) FocusScope.of(context).nextFocus();
+        });
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
   }
 
   @override
@@ -1472,9 +1484,12 @@ class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
         _ctrl.text = c.name;
         widget.onSelected(c);
       },
-      fieldViewBuilder: (ctx, ctrl, fn, onSubmit) => TextFormField(
+      fieldViewBuilder: (ctx, ctrl, fn, onSubmit) {
+        _onAutocompleteSubmit = onSubmit;
+        return TextFormField(
         controller: ctrl,
         focusNode: fn,
+        onFieldSubmitted: (_) => onSubmit(),
         decoration: InputDecoration(
           labelText: 'Cliente *',
           prefixIcon: const Icon(Icons.business_outlined),
@@ -1492,49 +1507,64 @@ class _CustomerAutocompleteState extends State<_CustomerAutocomplete> {
         ),
         validator: widget.validator,
         onChanged: (_) => setState(() {}),
-      ),
-      optionsViewBuilder: (ctx, onSelected, options) => Align(
-        alignment: Alignment.topLeft,
-        child: Material(
-          elevation: 6,
-          borderRadius: BorderRadius.circular(10),
-          color: AppTheme.cardColor,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 220, maxWidth: 420),
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              shrinkWrap: true,
-              itemCount: options.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(height: 1, color: AppTheme.border),
-              itemBuilder: (ctx, i) {
-                final c = options.elementAt(i);
-                return ListTile(
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: AppTheme.primary.withOpacity(0.1),
-                    child: Text(c.name[0].toUpperCase(),
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  title: Text(c.name,
-                      style: const TextStyle(fontSize: 14)),
-                  subtitle: c.isReseller
-                      ? Text(
-                          'Revendedor · ${c.discount.toStringAsFixed(0)}% desconto',
-                          style: const TextStyle(
-                              fontSize: 11, color: AppTheme.textMuted))
-                      : null,
-                  onTap: () => onSelected(c),
-                );
-              },
+        );
+      },
+      optionsViewBuilder: (ctx, onSelected, options) {
+        final highlightedIndex = AutocompleteHighlightedOption.of(ctx);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(10),
+            color: AppTheme.cardColor,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220, maxWidth: 420),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, color: AppTheme.border),
+                itemBuilder: (_, i) {
+                  final c           = options.elementAt(i);
+                  final isHighlight = i == highlightedIndex;
+                  return ListTile(
+                    dense: true,
+                    tileColor: isHighlight
+                        ? AppTheme.gold.withOpacity(0.12)
+                        : null,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                            i == 0 ? 10 : (i == options.length - 1 ? 10 : 0))),
+                    leading: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: isHighlight
+                          ? AppTheme.gold.withOpacity(0.2)
+                          : AppTheme.primary.withOpacity(0.1),
+                      child: Text(c.name[0].toUpperCase(),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isHighlight
+                                  ? AppTheme.gold
+                                  : AppTheme.primary,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text(c.name,
+                        style: const TextStyle(fontSize: 14)),
+                    subtitle: c.isReseller
+                        ? Text(
+                            '${c.discount.toStringAsFixed(0)}% desconto',
+                            style: const TextStyle(
+                                fontSize: 11, color: AppTheme.textMuted))
+                        : null,
+                    onTap: () => onSelected(c),
+                  );
+                },
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -31,6 +31,12 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
   final _searchCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(customersProvider.notifier).load());
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -39,7 +45,9 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
   Future<void> _handleCustomerAction(BuildContext context, WidgetRef ref,
       dynamic customer, String action) async {
     if (action == 'edit') {
-      context.push('/customers/${customer.id}/edit', extra: customer);
+      context.push('/customers/${customer.id}/edit', extra: customer).then((_) {
+        if (mounted) ref.read(customersProvider.notifier).load();
+      });
     } else if (action == 'delete') {
       final orderCount = customer.orderCount ?? 0;
       final confirm = await showDialog<bool>(
@@ -138,7 +146,9 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
-              onPressed: () => context.push('/customers/new'),
+              onPressed: () => context.push('/customers/new').then((_) {
+                if (mounted) ref.read(customersProvider.notifier).load();
+              }),
               icon: const Icon(Icons.person_add),
               label: const Text('Novo Cliente'),
             )
@@ -211,7 +221,9 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                                   margin: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 6),
                                   child: ListTile(
-                                    onTap: () => context.push('/customers/${c.id}'),
+                                    onTap: () => context.push('/customers/${c.id}').then((_) {
+                                      if (mounted) ref.read(customersProvider.notifier).load();
+                                    }),
                                     leading: CircleAvatar(
                                       backgroundColor:
                                           AppTheme.gold.withOpacity(0.15),
