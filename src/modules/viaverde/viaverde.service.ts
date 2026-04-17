@@ -205,7 +205,7 @@ export async function calcularViaVerde(
     await page.waitForTimeout(5_000)
 
     // ── 8. Extrair km e portagens do texto da página ──────────────────────────
-    const bodyText: string = await page.evaluate(() => document.body.innerText)
+    const bodyText = await page.evaluate('document.body.innerText') as string
 
     // Distância: "125 km" ou "125,3 km" ou "125.3 km"
     const km = parseNum(bodyText, /(\d{1,4}(?:[.,]\d+)?)\s*km/i)
