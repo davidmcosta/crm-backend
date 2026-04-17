@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,8 @@ import '../providers/orders_provider.dart';
 import '../../customers/providers/customers_provider.dart';
 import '../../customers/models/customer_model.dart';
 import '../../products/screens/product_picker_dialog.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/api/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
 
@@ -968,6 +971,21 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             _gap(),
             _section(Icons.drive_eta_outlined, 'Deslocação e Montagem'),
 
+            // ── Botão Via Verde ───────────────────────────────────────────────
+            _ViaVerdeButton(
+              moradaDestino: _cemiterioCtrl.text.trim().isNotEmpty
+                  ? _cemiterioCtrl.text.trim()
+                  : null,
+              onResult: (km, portagens) {
+                setState(() {
+                  _kmCtrl.text        = km.toStringAsFixed(0);
+                  _portagensCtrl.text = portagens.toStringAsFixed(2);
+                });
+                _recalcDeslocacao();
+              },
+            ),
+            const SizedBox(height: 12),
+
             Row(children: [
               Expanded(
                 child: _field(
@@ -1381,6 +1399,201 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
 extension on double {
   double truncate() => truncateToDouble();
+}
+
+// ── Botão Via Verde ───────────────────────────────────────────────────────────
+
+class _ViaVerdeButton extends StatefulWidget {
+  final String?                          moradaDestino;
+  final void Function(double km, double portagens) onResult;
+
+  const _ViaVerdeButton({
+    this.moradaDestino,
+    required this.onResult,
+  });
+
+  @override
+  State<_ViaVerdeButton> createState() => _ViaVerdeButtonState();
+}
+
+class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
+  static const _vvGreen = Color(0xFF007A33);
+
+  Future<void> _calcularComDialogo(BuildContext parentCtx) async {
+    final destCtrl = TextEditingController(text: widget.moradaDestino ?? '');
+    String? errorMsg;
+    bool loading = false;
+
+    await showDialog<void>(
+      context: parentCtx,
+      barrierDismissible: !loading,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: _vvGreen,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('VV',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      letterSpacing: 0.5)),
+            ),
+            const SizedBox(width: 10),
+            const Text('Calcular Via Verde',
+                style: TextStyle(fontSize: 16, color: AppTheme.primary)),
+          ]),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Insere a morada do cemitério de destino para calcular '
+                  'automaticamente os km e as portagens.',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                ),
+                const SizedBox(height: 14),
+                if (errorMsg != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                    ),
+                    child: Text(errorMsg!,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.error)),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                TextField(
+                  controller: destCtrl,
+                  autofocus: true,
+                  enabled: !loading,
+                  decoration: const InputDecoration(
+                    labelText: 'Morada de destino *',
+                    hintText: 'ex: Cemitério de Braga, Braga',
+                    prefixIcon: Icon(Icons.location_on_outlined, size: 18),
+                  ),
+                ),
+                if (loading) ...[
+                  const SizedBox(height: 16),
+                  const Row(children: [
+                    SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: _vvGreen),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'A calcular... pode demorar alguns segundos.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                    ),
+                  ]),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: _vvGreen,
+                  foregroundColor: Colors.white),
+              onPressed: loading
+                  ? null
+                  : () async {
+                      final dest = destCtrl.text.trim();
+                      if (dest.isEmpty) {
+                        setModal(() => errorMsg = 'Insere a morada de destino');
+                        return;
+                      }
+                      setModal(() {
+                        loading    = true;
+                        errorMsg   = null;
+                      });
+                      try {
+                        final response = await ApiClient().dio.post(
+                          ApiEndpoints.viaVerde,
+                          data: {'moradaDestino': dest},
+                        );
+                        final km        = (response.data['km']        as num).toDouble();
+                        final portagens = (response.data['portagens'] as num).toDouble();
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        widget.onResult(km, portagens);
+                      } catch (e) {
+                        setModal(() {
+                          loading  = false;
+                          errorMsg = _extractVvError(e);
+                        });
+                      }
+                    },
+              child: const Text('Calcular'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    destCtrl.dispose();
+  }
+
+  static String _extractVvError(dynamic e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map) {
+        final msg = data['error']?.toString();
+        if (msg != null && msg.isNotEmpty) return msg;
+      }
+    }
+    return 'Não foi possível calcular. Tenta novamente ou preenche manualmente.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 44),
+        side: const BorderSide(color: _vvGreen, width: 1.5),
+        foregroundColor: _vvGreen,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      onPressed: () => _calcularComDialogo(context),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: _vvGreen,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: const Text('VV',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 0.5)),
+        ),
+        const SizedBox(width: 8),
+        const Text('Calcular km e portagens (Via Verde)',
+            style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(width: 8),
+        const Icon(Icons.toll_outlined, size: 16),
+      ]),
+    );
+  }
 }
 
 // ── Autocomplete de cliente ───────────────────────────────────────────────────

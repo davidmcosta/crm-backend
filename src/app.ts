@@ -10,6 +10,7 @@ import { usersRoutes } from './modules/users/users.routes'
 import { productsRoutes } from './modules/products/products.routes'
 import { settingsRoutes } from './modules/settings/settings.routes'
 import { statsRoutes } from './modules/stats/stats.routes'
+import { viaverdeRoutes } from './modules/viaverde/viaverde.routes'
 
 const app = Fastify({
   logger: env.NODE_ENV === 'development'
@@ -65,6 +66,7 @@ app.register(usersRoutes, { prefix: '/api/users' })
 app.register(productsRoutes, { prefix: '/api/products' })
 app.register(settingsRoutes, { prefix: '/api/settings' })
 app.register(statsRoutes,    { prefix: '/api/stats' })
+app.register(viaverdeRoutes, { prefix: '/api/viaverde' })
 
 // Health check
 app.get('/health', async () => ({

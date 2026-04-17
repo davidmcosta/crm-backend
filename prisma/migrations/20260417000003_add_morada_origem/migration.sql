@@ -1,0 +1,1 @@
+ALTER TABLE "Settings" ADD COLUMN "moradaOrigem" TEXT NOT NULL DEFAULT '';

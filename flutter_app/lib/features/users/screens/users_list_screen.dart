@@ -114,7 +114,7 @@ class _UsersListScreenState extends ConsumerState<UsersListScreen> {
                         final iAmMaster   = state.users.any((x) => x.id == authUser?.id && x.isMaster);
                         final roleColor   = u.isMaster ? AppTheme.gold : _roleColor(u.role);
                         // Acções disponíveis conforme quem está a ver
-                        final canEdit         = !u.isMaster && (iAmMaster || !isSelf);
+                        final canEdit         = !u.isMaster && (iAmMaster || isSelf || u.role != 'ADMIN');
                         final canResetPass    = iAmMaster || isSelf || (u.role != 'ADMIN');
                         final canChangeRole   = !u.isMaster && !isSelf && (iAmMaster || u.role != 'ADMIN');
                         final canDeactivate   = !u.isMaster && !isSelf && (iAmMaster || u.role != 'ADMIN');

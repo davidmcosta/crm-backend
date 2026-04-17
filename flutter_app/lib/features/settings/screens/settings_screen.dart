@@ -18,6 +18,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _numeroInicialCtrl  = TextEditingController();
   final _kmCtrl             = TextEditingController();
   final _mealCtrl           = TextEditingController();
+  final _moradaOrigemCtrl   = TextEditingController();
   bool _saving              = false;
   bool _loaded              = false;
   List<int> _anosVisiveis   = [];
@@ -28,6 +29,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _numeroInicialCtrl.dispose();
     _kmCtrl.dispose();
     _mealCtrl.dispose();
+    _moradaOrigemCtrl.dispose();
     super.dispose();
   }
 
@@ -37,6 +39,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _numeroInicialCtrl.text  = s.numeroInicial > 1 ? s.numeroInicial.toString() : '';
     _kmCtrl.text             = s.kmRate.toString();
     _mealCtrl.text           = s.mealCost.toString();
+    _moradaOrigemCtrl.text   = s.moradaOrigem;
     _anosVisiveis            = List<int>.from(s.anosVisiveis);
     _loaded = true;
   }
@@ -61,6 +64,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'numeroInicial': numInicial,
         'kmRate':        km,
         'mealCost':      meal,
+        'moradaOrigem':  _moradaOrigemCtrl.text.trim(),
         'anosVisiveis':  _anosVisiveis,
       });
 
@@ -304,6 +308,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ),
                       ]),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Via Verde ─────────────────────────────────────────────────
+              _sectionHeader(Icons.toll_outlined, 'Via Verde'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Morada de origem para o cálculo automático de km e portagens. '
+                        'Usa o endereço da empresa ou local de partida habitual.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _moradaOrigemCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Morada de origem',
+                          hintText: 'ex: Rua Exemplo 10, Braga',
+                          prefixIcon: Icon(Icons.location_on_outlined, size: 18),
+                          isDense: true,
+                        ),
+                      ),
                     ],
                   ),
                 ),

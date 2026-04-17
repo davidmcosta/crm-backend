@@ -35,4 +35,7 @@ class ApiEndpoints {
 
   // Estatísticas
   static const String stats = '/stats';
+
+  // Via Verde
+  static const String viaVerde = '/viaverde/calcular';
 }

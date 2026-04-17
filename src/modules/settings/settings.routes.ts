@@ -9,6 +9,7 @@ const updateSettingsSchema = z.object({
   numeroInicial: z.number().int().min(1).optional(),
   kmRate:        z.number().min(0).optional(),
   mealCost:      z.number().min(0).optional(),
+  moradaOrigem:  z.string().optional(),
   anosVisiveis:  z.array(z.number().int()).optional(),
 })
 

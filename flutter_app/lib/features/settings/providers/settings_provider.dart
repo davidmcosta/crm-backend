@@ -15,6 +15,7 @@ class AppSettings {
   final int          numeroInicial;
   final double       kmRate;
   final double       mealCost;
+  final String       moradaOrigem;
   final List<int>    anosVisiveis;
 
   const AppSettings({
@@ -22,6 +23,7 @@ class AppSettings {
     this.numeroInicial = 1,
     required this.kmRate,
     required this.mealCost,
+    this.moradaOrigem = '',
     this.anosVisiveis = const [],
   });
 
@@ -30,6 +32,7 @@ class AppSettings {
         numeroInicial: (j['numeroInicial'] as num?)?.toInt() ?? 1,
         kmRate:        _toDouble(j['kmRate'])   ?? 0.36,
         mealCost:      _toDouble(j['mealCost']) ?? 12.0,
+        moradaOrigem:  j['moradaOrigem']   as String? ?? '',
         anosVisiveis:  (j['anosVisiveis'] as List?)
             ?.map((e) => (e as num).toInt())
             .toList() ?? [],
