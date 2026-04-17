@@ -1,13 +1,13 @@
 /**
  * Via Verde toll calculator scraper
  *
- * Fluxo:
- *  1. Abrir calculador
- *  2. Aceitar cookies
- *  3. Preencher origem → clicar 1ª sugestão autocomplete
- *  4. Preencher destino → clicar 1ª sugestão autocomplete
- *  5. Clicar "Calcular"
- *  6. Aguardar rotas → extrair km e portagens da 1ª rota
+ * Página ASP.NET WebForms com jQuery UI autocomplete.
+ *
+ * Selectores confirmados via /debug:
+ *   origem  → #txtStartPos   (.ui-autocomplete-input)
+ *   destino → #txtEndPos     (.ui-autocomplete-input)
+ *   sugest. → .ui-menu-item  (jQuery UI dropdown)
+ *   calcular→ <a> com texto "Calcular"
  */
 
 import puppeteer from 'puppeteer'
@@ -37,50 +37,34 @@ function parseNum(text: string, pattern: RegExp): number {
   return parseFloat((m[1] || m[2] || '0').replace(',', '.'))
 }
 
-// ── Selectores de sugestão de autocomplete (por ordem de preferência) ─────────
-// Google Maps Places usa .pac-item; outros usem li em dropdown/listbox
-const AUTOCOMPLETE_ITEM_SELS = [
-  '.pac-item',                          // Google Maps Places
-  '[class*="suggestion"]',              // genérico
-  '[class*="autocomplete"] li',         // genérico
-  'ul[role="listbox"] li',              // ARIA listbox
-  '[role="option"]',                    // ARIA option
-  '[class*="dropdown"] li',             // dropdown genérico
-  '[class*="result"] li',
-  '[class*="item"]',
-]
-
-// Aguarda que apareça pelo menos uma sugestão e clica na primeira
-async function clickFirstSuggestion(page: any): Promise<boolean> {
-  for (let attempt = 0; attempt < 6; attempt++) {
-    await new Promise(r => setTimeout(r, 600))
-    for (const sel of AUTOCOMPLETE_ITEM_SELS) {
-      try {
-        const items = await page.$$(sel)
-        const visible = []
-        for (const item of items) {
-          const box = await item.boundingBox()
-          if (box && box.width > 0 && box.height > 0) visible.push(item)
-        }
-        if (visible.length > 0) {
-          console.log(`[ViaVerde] Sugestão encontrada com selector "${sel}", a clicar na 1ª`)
-          await visible[0].click()
-          await new Promise(r => setTimeout(r, 600))
-          return true
-        }
-      } catch { /* tenta o próximo */ }
+// Aguarda até 10s que o jQuery UI dropdown tenha pelo menos 1 item visível
+// e clica no primeiro. Fallback para ArrowDown+Enter.
+async function clickFirstAutocomplete(page: any, label: string): Promise<void> {
+  console.log(`[ViaVerde] A aguardar sugestão autocomplete para ${label}...`)
+  for (let i = 0; i < 15; i++) {
+    await new Promise(r => setTimeout(r, 700))
+    const items = await page.$$('.ui-menu-item')
+    const visible: any[] = []
+    for (const item of items) {
+      const box = await item.boundingBox()
+      if (box && box.width > 0 && box.height > 0) visible.push(item)
+    }
+    if (visible.length > 0) {
+      console.log(`[ViaVerde] ${visible.length} sugestão(ões) encontrada(s) para ${label}, a clicar na 1ª`)
+      await visible[0].click()
+      await new Promise(r => setTimeout(r, 600))
+      return
     }
   }
   // fallback teclado
-  console.log('[ViaVerde] Sem sugestão clicável, a tentar ArrowDown+Enter')
+  console.log(`[ViaVerde] Sem sugestão visível para ${label}, fallback ArrowDown+Enter`)
   await page.keyboard.press('ArrowDown')
   await new Promise(r => setTimeout(r, 400))
   await page.keyboard.press('Enter')
   await new Promise(r => setTimeout(r, 600))
-  return false
 }
 
-// ── Debug: devolve info da página ─────────────────────────────────────────────
+// ── Debug ─────────────────────────────────────────────────────────────────────
 export async function debugViaVerde(): Promise<object> {
   const browser = await puppeteer.launch({ headless: true, args: launchArgs() })
   try {
@@ -90,13 +74,14 @@ export async function debugViaVerde(): Promise<object> {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
     )
     await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+    await new Promise(r => setTimeout(r, 3_000))
 
     try {
       const btn = await page.$('#onetrust-accept-btn-handler')
       if (btn) { await btn.click(); await new Promise(r => setTimeout(r, 800)) }
     } catch { /* ignore */ }
 
-    const result = await page.evaluate(`(() => {
+    return await page.evaluate(`(() => {
       const inputs = Array.from(document.querySelectorAll('input,select,textarea')).map(e => ({
         tag: e.tagName, type: e.getAttribute('type') || '',
         name: e.getAttribute('name') || '', id: e.getAttribute('id') || '',
@@ -110,14 +95,18 @@ export async function debugViaVerde(): Promise<object> {
         id: e.getAttribute('id') || '',
         className: (e.className || '').substring(0,80)
       }));
+      const links = Array.from(document.querySelectorAll('a')).map(e => ({
+        text: (e.textContent || '').trim().substring(0,60),
+        href: (e.getAttribute('href') || '').substring(0,80),
+        id: e.getAttribute('id') || '',
+        className: (e.className || '').substring(0,60)
+      })).filter(l => l.text.length > 0);
       return {
         url: location.href, title: document.title,
-        inputs, buttons,
+        inputs, buttons, links,
         bodyText: document.body.innerText.substring(0, 2000)
       };
     })()`) as object
-
-    return result
   } finally {
     await browser.close()
   }
@@ -150,170 +139,105 @@ export async function calcularViaVerde(
     // ── 1. Navegar ────────────────────────────────────────────────────────────
     console.log('[ViaVerde] A navegar...')
     await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })
-    console.log('[ViaVerde] Título:', await page.title())
-
-    // Deixa o JS da página terminar de renderizar os campos
     await new Promise(r => setTimeout(r, 3_000))
+    console.log('[ViaVerde] Página carregada:', await page.title())
 
     // ── 2. Cookies ────────────────────────────────────────────────────────────
     try {
       const cookieSels = [
         '#onetrust-accept-btn-handler',
         'button[id*="accept"]',
-        'button[class*="accept"]',
-        'button[aria-label*="accept" i]',
         '[class*="cookie"] button',
       ]
       for (const s of cookieSels) {
         const b = await page.$(s)
         if (b) {
-          console.log('[ViaVerde] Cookie banner:', s)
+          console.log('[ViaVerde] Cookie banner aceite:', s)
           await b.click()
-          await new Promise(r => setTimeout(r, 1000))
+          await new Promise(r => setTimeout(r, 1_000))
           break
         }
       }
     } catch { /* sem banner */ }
 
-    // ── 3. Campo de origem ────────────────────────────────────────────────────
-    const originSels = [
-      'input[name="origin"]', 'input[id*="origin" i]', 'input[id*="from" i]',
-      'input[placeholder*="origem" i]', 'input[placeholder*="partida" i]',
-      'input[placeholder*="local de partida" i]',
-      'input[aria-label*="origem" i]', 'input[aria-label*="partida" i]',
-      'input[name*="from" i]', 'input[name*="origem" i]',
-    ]
-
-    let originEl: any = null
-    for (const s of originSels) {
-      originEl = await page.$(s)
-      if (originEl) { console.log('[ViaVerde] Origem selector:', s); break }
-    }
-    if (!originEl) {
-      const all = await page.$$('input[type="text"], input:not([type])')
-      if (all.length === 0) throw new Error('Sem campos de texto na página. Usa GET /api/viaverde/debug para diagnosticar.')
-      originEl = all[0]
-      console.log('[ViaVerde] Origem: fallback 1º input')
-    }
-
-    await originEl.click({ clickCount: 3 })
+    // ── 3. Preencher origem (#txtStartPos) ────────────────────────────────────
+    await page.waitForSelector('#txtStartPos', { timeout: 10_000 })
+    await page.click('#txtStartPos', { clickCount: 3 })
     await new Promise(r => setTimeout(r, 200))
-    await page.keyboard.type(moradaOrigem, { delay: 60 })
-    console.log('[ViaVerde] Origem digitada, a aguardar sugestões...')
-    await clickFirstSuggestion(page)
+    await page.type('#txtStartPos', moradaOrigem, { delay: 60 })
+    console.log('[ViaVerde] Origem digitada:', moradaOrigem)
+    await clickFirstAutocomplete(page, 'origem')
 
-    // ── 4. Campo de destino ───────────────────────────────────────────────────
-    const destSels = [
-      'input[name="destination"]', 'input[id*="destination" i]', 'input[id*="dest" i]',
-      'input[id*="to" i]',
-      'input[placeholder*="destino" i]', 'input[placeholder*="chegada" i]',
-      'input[placeholder*="local de chegada" i]',
-      'input[aria-label*="destino" i]', 'input[aria-label*="chegada" i]',
-      'input[name*="to" i]', 'input[name*="destino" i]',
-    ]
-
-    let destEl: any = null
-    for (const s of destSels) {
-      destEl = await page.$(s)
-      if (destEl) { console.log('[ViaVerde] Destino selector:', s); break }
-    }
-    if (!destEl) {
-      const all = await page.$$('input[type="text"], input:not([type])')
-      if (all.length < 2) throw new Error('Sem campo de destino. Usa GET /api/viaverde/debug.')
-      destEl = all[1]
-      console.log('[ViaVerde] Destino: fallback 2º input')
-    }
-
-    await destEl.click({ clickCount: 3 })
+    // ── 4. Preencher destino (#txtEndPos) ─────────────────────────────────────
+    await page.click('#txtEndPos', { clickCount: 3 })
     await new Promise(r => setTimeout(r, 200))
-    await page.keyboard.type(moradaDestino, { delay: 60 })
-    console.log('[ViaVerde] Destino digitado, a aguardar sugestões...')
-    await clickFirstSuggestion(page)
+    await page.type('#txtEndPos', moradaDestino, { delay: 60 })
+    console.log('[ViaVerde] Destino digitado:', moradaDestino)
+    await clickFirstAutocomplete(page, 'destino')
 
     // ── 5. Clicar "Calcular" ──────────────────────────────────────────────────
-    const submitSels = [
-      'button[type="submit"]',
-      'button[class*="calcular" i]',
-      'button[class*="calcul" i]',
-      'button[class*="search" i]',
-      'button[class*="pesquis" i]',
-      'input[type="submit"]',
-    ]
+    // Na Via Verde é um <a> com texto "Calcular" (ASP.NET WebForms)
+    const clicked = await page.evaluate(`(() => {
+      const links = Array.from(document.querySelectorAll('a'));
+      const btn = links.find(l => l.textContent.trim().toLowerCase() === 'calcular');
+      if (btn) { btn.click(); return true; }
+      // fallback: procura button com texto calcular
+      const btns = Array.from(document.querySelectorAll('button'));
+      const b2 = btns.find(b => b.textContent.trim().toLowerCase().includes('calcul'));
+      if (b2) { b2.click(); return true; }
+      return false;
+    })()`) as boolean
 
-    let submitted = false
-    for (const s of submitSels) {
-      const btn = await page.$(s)
-      if (btn) {
-        const txt = await btn.evaluate((e: any) => e.textContent?.trim())
-        console.log('[ViaVerde] Botão calcular:', s, '|', txt)
-        await btn.click()
-        submitted = true
-        break
-      }
-    }
-    if (!submitted) {
-      // tenta encontrar botão com texto "calcular"
-      const allBtns = await page.$$('button')
-      for (const btn of allBtns) {
-        const txt: string = await btn.evaluate((e: any) => (e.textContent || '').toLowerCase().trim())
-        if (txt.includes('calcul') || txt.includes('pesquis') || txt.includes('search')) {
-          console.log('[ViaVerde] Botão por texto:', txt)
-          await btn.click()
-          submitted = true
-          break
-        }
-      }
-    }
-    if (!submitted) {
-      console.log('[ViaVerde] Sem botão, a usar Enter')
+    if (clicked) {
+      console.log('[ViaVerde] Botão Calcular clicado')
+    } else {
+      console.log('[ViaVerde] Botão Calcular não encontrado, a submeter com Enter')
       await page.keyboard.press('Enter')
     }
 
-    // ── 6. Aguardar rotas ─────────────────────────────────────────────────────
+    // ── 6. Aguardar resultados ────────────────────────────────────────────────
+    // ASP.NET pode fazer postback completo ou UpdatePanel (AJAX parcial)
     console.log('[ViaVerde] A aguardar resultados...')
-    await new Promise(r => setTimeout(r, 7_000))
+    await new Promise(r => setTimeout(r, 8_000))
 
-    // ── 7. Extrair dados da 1ª rota ───────────────────────────────────────────
-    // Tenta selectores específicos de resultado primeiro; fallback para regex no texto
-    const resultText: string = await page.evaluate(`(() => {
-      // Tenta pegar só o 1º bloco de resultado (card/row de rota)
-      const routeSelectors = [
-        '[class*="route"]:first-child',
-        '[class*="rota"]:first-child',
-        '[class*="result"]:first-child',
-        '[class*="card"]:first-child',
-        '[class*="item"]:first-child',
-        'tr:nth-child(2)',  // tabela de rotas
+    // ── 7. Extrair 1ª rota ────────────────────────────────────────────────────
+    const resultData = await page.evaluate(`(() => {
+      const body = document.body.innerText;
+
+      // Tenta encontrar o 1º bloco de resultado de rota
+      // Selectores típicos de resultado na Via Verde
+      const routeSels = [
+        '.route-result:first-child',
+        '.route-item:first-child',
+        '.result-item:first-child',
+        '.route:first-child',
+        '.rota:first-child',
+        'tr.route:first-child',
+        '.routes-list > *:first-child',
+        '.results > *:first-child',
       ];
-      for (const sel of routeSelectors) {
+      for (const sel of routeSels) {
         try {
           const el = document.querySelector(sel);
-          if (el && el.textContent && el.textContent.trim().length > 10) {
-            return el.textContent.trim();
+          if (el && el.textContent && el.textContent.trim().length > 5) {
+            return { text: el.textContent.trim(), selector: sel };
           }
         } catch(e) {}
       }
-      // fallback: texto completo
-      return document.body.innerText;
-    })()`) as string
+      return { text: body, selector: 'body' };
+    })()`) as { text: string; selector: string }
 
-    console.log('[ViaVerde] Texto resultado (500 chars):', resultText.substring(0, 500))
+    console.log('[ViaVerde] Selector usado:', resultData.selector)
+    console.log('[ViaVerde] Texto resultado (600 chars):', resultData.text.substring(0, 600))
 
-    // Extrai km (ex: "125 km", "125,3 km", "125.3km")
-    const km = parseNum(resultText, /(\d{1,4}(?:[.,]\d+)?)\s*km/i)
+    const km = parseNum(resultData.text, /(\d{1,4}(?:[.,]\d+)?)\s*km/i)
+    const portagens = parseNum(resultData.text, /(\d+[.,]\d{2})\s*€|€\s*(\d+[.,]\d{2})/i)
 
-    // Extrai portagens (ex: "12,50 €", "€12,50", "EUR 12.50")
-    // Apanha o PRIMEIRO valor monetário encontrado (= 1ª rota)
-    const portagens = parseNum(resultText, /(\d+[.,]\d{2})\s*€|€\s*(\d+[.,]\d{2})/i)
-
-    console.log('[ViaVerde] Resultado final:', { km, portagens })
+    console.log('[ViaVerde] Resultado:', { km, portagens })
 
     if (km === 0 && portagens === 0) {
-      // Devolve o texto da página para ajudar no diagnóstico
-      const bodySnippet = (await page.evaluate('document.body.innerText') as string).substring(0, 800)
-      throw new Error(
-        `Via Verde não devolveu resultados. Texto da página: ${bodySnippet}`,
-      )
+      const snippet = (await page.evaluate('document.body.innerText') as string).substring(0, 1000)
+      throw new Error(`Via Verde não devolveu resultados.\nTexto da página: ${snippet}`)
     }
 
     return { km, portagens }
