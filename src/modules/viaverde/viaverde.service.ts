@@ -1,14 +1,15 @@
 /**
  * Via Verde toll calculator scraper
  *
- * Página ASP.NET WebForms com jQuery UI autocomplete.
- * Campos confirmados: #txtStartPos (origem), #txtEndPos (destino)
- * Botão: <a> com texto "Calcular"
+ * Estratégia: geocodifica as moradas via HERE Geocoding API (mesma chave
+ * usada pelo site), injeta as coordenadas directamente nos campos e chama
+ * CalculateRoute() — sem depender do autocomplete do browser em headless.
  */
 
 import puppeteer from 'puppeteer'
 
-const VV_URL = 'https://www.viaverde.pt/ferramentas/calculador-de-portagens'
+const VV_URL     = 'https://www.viaverde.pt/ferramentas/calculador-de-portagens'
+const HERE_KEY   = 'KLRL1l8y-1d-oBuCWTOQRRGCUL4tL3yThEPf9tXdW8s'
 
 export interface ViaverdeResult {
   km: number
@@ -33,7 +34,55 @@ function parseNum(text: string, pattern: RegExp): number {
   return parseFloat((m[1] || m[2] || '0').replace(',', '.'))
 }
 
-// Aceita cookies se aparecer banner (tenta várias vezes)
+// ── Geocodifica via HERE Geocoding API ────────────────────────────────────────
+async function geocodeHere(address: string): Promise<[number, number] | null> {
+  try {
+    const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(address)}&in=countryCode:PRT&apikey=${HERE_KEY}`
+    console.log(`[ViaVerde] Geocoding: "${address}"`)
+    const res  = await fetch(url)
+    const json = await res.json() as any
+    if (json.items?.length > 0) {
+      const { lat, lng } = json.items[0].position
+      console.log(`[ViaVerde] Geocoded "${address}" → [${lat},${lng}]`)
+      return [lat, lng]
+    }
+    console.log(`[ViaVerde] Geocoding sem resultados para "${address}":`, JSON.stringify(json).substring(0, 200))
+  } catch (e: any) {
+    console.log(`[ViaVerde] Geocoding error para "${address}":`, e.message)
+  }
+  return null
+}
+
+// Fallback: Nominatim (OpenStreetMap) — sem API key
+async function geocodeNominatim(address: string): Promise<[number, number] | null> {
+  try {
+    const q   = encodeURIComponent(address + ', Portugal')
+    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`
+    console.log(`[ViaVerde] Nominatim fallback: "${address}"`)
+    const res  = await fetch(url, { headers: { 'User-Agent': 'ViaVerde-CRM/1.0' } })
+    const json = await res.json() as any[]
+    if (json.length > 0) {
+      const lat = parseFloat(json[0].lat)
+      const lng = parseFloat(json[0].lon)
+      console.log(`[ViaVerde] Nominatim "${address}" → [${lat},${lng}]`)
+      return [lat, lng]
+    }
+    console.log(`[ViaVerde] Nominatim sem resultados para "${address}"`)
+  } catch (e: any) {
+    console.log(`[ViaVerde] Nominatim error para "${address}":`, e.message)
+  }
+  return null
+}
+
+async function geocode(address: string): Promise<[number, number]> {
+  const here = await geocodeHere(address)
+  if (here) return here
+  const nom  = await geocodeNominatim(address)
+  if (nom) return nom
+  throw new Error(`Não foi possível geocodificar: "${address}". Verifique a morada.`)
+}
+
+// Aceita cookies se aparecer banner
 async function acceptCookies(page: any): Promise<void> {
   const sels = [
     '#onetrust-accept-btn-handler',
@@ -58,72 +107,6 @@ async function acceptCookies(page: any): Promise<void> {
     }
     await new Promise(r => setTimeout(r, 1_000))
   }
-}
-
-// Preenche campo de endereço e selecciona a 1ª sugestão do jQuery UI autocomplete.
-// Os campos usam oninput="ValidateKeyPress()" para disparar o autocomplete,
-// e guardam as coordenadas em data-position após selecção.
-async function fillAddressAndSelect(page: any, fieldId: string, address: string, label: string): Promise<void> {
-  console.log(`[ViaVerde] A preencher ${label}: "${address}"`)
-
-  // Guardar data-position inicial para detectar quando muda (= selecção feita)
-  const posBefore = await page.evaluate(`document.getElementById('${fieldId}')?.getAttribute('data-position') || ''`) as string
-
-  // 1. Focar e limpar o campo
-  await page.click('#' + fieldId, { clickCount: 3 })
-  await new Promise(r => setTimeout(r, 200))
-  await page.keyboard.press('Backspace')
-
-  // 2. Digitar o endereço caractere a caractere (dispara keypress + oninput = ValidateKeyPress)
-  await page.type('#' + fieldId, address, { delay: 120 })
-  await new Promise(r => setTimeout(r, 500))
-
-  // 3. Chamar ValidateKeyPress() explicitamente para garantir que o autocomplete arranca
-  await page.evaluate(`
-    (function() {
-      var el = document.getElementById('${fieldId}');
-      if (!el) return;
-      // Dispara oninput nativo
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      // Chama a função do site directamente
-      if (typeof ValidateKeyPress === 'function') ValidateKeyPress();
-      // Garante que o jQuery UI autocomplete também faz search
-      var jq = window.jQuery || window.$;
-      if (jq && jq('#${fieldId}').autocomplete) {
-        try { jq('#${fieldId}').autocomplete('search', el.value); } catch(e) {}
-      }
-    })()
-  `)
-
-  // 4. Aguardar .ui-menu-item e clicar no 1º (sem verificar bounding rect —
-  //    em headless/sem-GPU as dimensões podem ser 0 mesmo com o item presente)
-  console.log(`[ViaVerde] A aguardar sugestões para ${label}...`)
-  let clicked = false
-  for (let i = 0; i < 25; i++) {
-    await new Promise(r => setTimeout(r, 800))
-    const count = await page.evaluate(`document.querySelectorAll('.ui-menu-item').length`) as number
-    console.log(`[ViaVerde] tentativa ${i+1}: ${count} .ui-menu-item para ${label}`)
-    if (count > 0) {
-      console.log(`[ViaVerde] ${count} sugestão(ões) para ${label}, a clicar na 1ª`)
-      await page.evaluate(`document.querySelector('.ui-menu-item a, .ui-menu-item').click()`)
-      await new Promise(r => setTimeout(r, 1000))
-      clicked = true
-      break
-    }
-  }
-
-  if (!clicked) {
-    console.log(`[ViaVerde] Sem sugestões para ${label}, fallback ArrowDown+Enter`)
-    await page.keyboard.press('ArrowDown')
-    await new Promise(r => setTimeout(r, 600))
-    await page.keyboard.press('Enter')
-    await new Promise(r => setTimeout(r, 1000))
-  }
-
-  // 5. Verificar se data-position mudou (indica que a selecção actualizou as coordenadas)
-  const posAfter = await page.evaluate(`document.getElementById('${fieldId}')?.getAttribute('data-position') || ''`) as string
-  const valAfter = await page.evaluate(`document.getElementById('${fieldId}')?.value || ''`) as string
-  console.log(`[ViaVerde] ${fieldId} | value="${valAfter}" | data-position mudou: ${posAfter !== posBefore} (${posAfter})`)
 }
 
 // ── Debug ─────────────────────────────────────────────────────────────────────
@@ -175,6 +158,12 @@ export async function calcularViaVerde(
     throw Object.assign(new Error('Morada de destino em branco.'), { statusCode: 400 })
   }
 
+  // ── 1. Geocodificar ANTES de abrir o browser ──────────────────────────────
+  const [origCoords, destCoords] = await Promise.all([
+    geocode(moradaOrigem.trim()),
+    geocode(moradaDestino.trim()),
+  ])
+
   const browser = await puppeteer.launch({ headless: true, args: launchArgs() })
 
   try {
@@ -182,93 +171,58 @@ export async function calcularViaVerde(
     await page.setViewport({ width: 1280, height: 900 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36')
 
-    // ── Capturar console.log da página ───────────────────────────────────────
-    page.on('console', (msg: any) => {
-      const txt = msg.text()
-      if (txt.startsWith('[VKP]') || /autocomplete|geocod|suggest/i.test(txt)) {
-        console.log('[PAGE]', msg.type().toUpperCase(), txt)
-      }
-    })
-
-    // ── Monitorar TODOS os requests XHR/Fetch (excluindo assets estáticos) ───
-    await page.setRequestInterception(true)
-    page.on('request', req => {
-      const url = req.url()
-      const type = req.resourceType()
-      // Logar apenas requests de dados (não imagens/fontes/css/js de terceiros)
-      if (['xhr', 'fetch', 'websocket'].includes(type) ||
-          /autocomplete|geocod|suggest|hereapi|here\.com/i.test(url)) {
-        console.log('[ViaVerde] REQ:', type, req.method(), url.substring(0, 300))
-      }
-      req.continue()
-    })
-    page.on('response', async res => {
-      const url = res.url()
-      const type = res.request().resourceType()
-      if (['xhr', 'fetch'].includes(type) ||
-          /autocomplete|geocod|suggest|hereapi|here\.com/i.test(url)) {
-        try {
-          const text = await res.text()
-          console.log('[ViaVerde] RES', res.status(), url.substring(0, 200), '→', text.substring(0, 400))
-        } catch { /* ignore */ }
-      }
-    })
-
-    // ── 1. Navegar e aguardar campo de origem ─────────────────────────────────
+    // ── 2. Navegar e aguardar campo de origem ─────────────────────────────────
     console.log('[ViaVerde] A navegar...')
     await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })
     await page.waitForSelector('#txtStartPos', { timeout: 20_000 })
     console.log('[ViaVerde] Página carregada:', await page.title())
 
-    // ── 2. Aceitar cookies ────────────────────────────────────────────────────
+    // ── 3. Aceitar cookies ────────────────────────────────────────────────────
     await acceptCookies(page)
+    await new Promise(r => setTimeout(r, 500))
 
-    // ── 3. Seleccionar Classe 2 (Ligeiros) ───────────────────────────────────
-    // Selector confirmado: <a title="Classe 2" onclick="setClass(this,2)">
+    // ── 4. Seleccionar Classe 2 ───────────────────────────────────────────────
     const classeClicked = await page.evaluate(`(() => {
       const el = document.querySelector('a[title="Classe 2"]');
       if (el) { el.click(); return 'a[title=Classe 2]'; }
-      // fallback: chamar setClass directamente se existir
       if (typeof window.setClass === 'function') {
         window.setClass(null, 2);
         return 'setClass(2) direct';
       }
       return null;
     })()`) as string | null
-    console.log('[ViaVerde] Classe 2 seleccionada:', classeClicked)
+    console.log('[ViaVerde] Classe 2:', classeClicked)
     await new Promise(r => setTimeout(r, 500))
 
-    // ── Patch ValidateKeyPress para confirmar se é chamada ────────────────────
+    // ── 5. Injectar coordenadas directamente nos campos ───────────────────────
+    // Evita dependência do autocomplete (que não funciona em headless)
+    const origPos = `[${origCoords[0]},${origCoords[1]}]`
+    const destPos = `[${destCoords[0]},${destCoords[1]}]`
+    const origVal = moradaOrigem.trim().replace(/'/g, "\\'")
+    const destVal = moradaDestino.trim().replace(/'/g, "\\'")
+
     await page.evaluate(`
-      (function() {
-        var orig = window.ValidateKeyPress;
-        window.ValidateKeyPress = function() {
-          var el = document.activeElement;
-          var val = el ? el.value : '?';
-          console.log('[VKP] chamada, activeElement.value="' + val + '"');
-          return orig && orig.apply(this, arguments);
-        };
-        console.log('[VKP] patch instalado, orig existe:', typeof orig !== 'undefined');
-        // Também inspecionar a inicialização do autocomplete
-        var jq = window.jQuery || window.$;
-        if (jq) {
-          var inst1 = jq('#txtStartPos').autocomplete('instance');
-          var inst2 = jq('#txtEndPos').autocomplete('instance');
-          console.log('[VKP] autocomplete txtStartPos:', inst1 ? 'OK' : 'N/A');
-          console.log('[VKP] autocomplete txtEndPos:', inst2 ? 'OK' : 'N/A');
+      (function(ov, op, dv, dp) {
+        var orig = document.getElementById('txtStartPos');
+        if (orig) {
+          orig.value = ov;
+          orig.setAttribute('data-position', op);
+          orig.dispatchEvent(new Event('change', { bubbles: true }));
         }
-      })()
+        var dest = document.getElementById('txtEndPos');
+        if (dest) {
+          dest.value = dv;
+          dest.setAttribute('data-position', dp);
+          dest.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        console.log('[VV] campos injectados: orig=' + op + ' dest=' + dp);
+      })('${origVal}', '${origPos}', '${destVal}', '${destPos}')
     `)
+    console.log(`[ViaVerde] Campos injectados: orig=${origPos} dest=${destPos}`)
+    await new Promise(r => setTimeout(r, 500))
 
-    // ── 4. Preencher origem ───────────────────────────────────────────────────
-    await fillAddressAndSelect(page, 'txtStartPos', moradaOrigem, 'origem')
-
-    // ── 4. Preencher destino ──────────────────────────────────────────────────
-    await fillAddressAndSelect(page, 'txtEndPos', moradaDestino, 'destino')
-
-    // ── 5. Clicar "Calcular" ──────────────────────────────────────────────────
-    // Chama CalculateRoute() directamente (é o onclick do #btnCalculate)
-    console.log('[ViaVerde] A clicar Calcular...')
+    // ── 6. Chamar CalculateRoute() ────────────────────────────────────────────
+    console.log('[ViaVerde] A chamar CalculateRoute()...')
     const clicked = await page.evaluate(`(() => {
       if (typeof window.CalculateRoute === 'function') {
         window.CalculateRoute();
@@ -278,7 +232,6 @@ export async function calcularViaVerde(
       if (el) { el.click(); return '#btnCalculate click'; }
       return null;
     })()`) as string | null
-
     console.log('[ViaVerde] Calcular:', clicked)
 
     if (!clicked) {
@@ -286,7 +239,7 @@ export async function calcularViaVerde(
       await page.keyboard.press('Enter')
     }
 
-    // ── 6. Aguardar .route-info aparecer ─────────────────────────────────────
+    // ── 7. Aguardar .route-info ───────────────────────────────────────────────
     console.log('[ViaVerde] A aguardar .route-info...')
     try {
       await page.waitForSelector('.route-info', { timeout: 40_000 })
@@ -295,23 +248,13 @@ export async function calcularViaVerde(
       console.log('[ViaVerde] Timeout a aguardar .route-info')
     }
 
-    // ── 7. Extrair 1ª rota (.route-info:first-child) ─────────────────────────
-    // Estrutura confirmada:
-    //   <div class="route-info">
-    //     <div class="left-content">
-    //       <span class="km">51.3Km</span>
-    //     </div>
-    //     <div class="right-content">
-    //       <span class="value destak">5.45€</span>
-    //     </div>
-    //   </div>
+    // ── 8. Extrair 1ª rota ────────────────────────────────────────────────────
     const result = await page.evaluate(`(() => {
       const first = document.querySelector('.route-info');
       if (!first) {
-        // Sem resultados — devolver texto da página para diagnóstico
         return { km: null, portagens: null, debug: document.body.innerText.substring(0, 800) };
       }
-      const kmText  = (first.querySelector('.km')          || {}).textContent || '';
+      const kmText  = (first.querySelector('.km')           || {}).textContent || '';
       const valText = (first.querySelector('.value.destak') || {}).textContent || '';
       return { km: kmText.trim(), portagens: valText.trim(), debug: null };
     })()`) as { km: string | null; portagens: string | null; debug: string | null }
@@ -322,8 +265,7 @@ export async function calcularViaVerde(
       throw new Error('Via Verde não devolveu resultados.\nTexto da página: ' + (result.debug || ''))
     }
 
-    // "51.3Km" → 51.3   |   "5.45€" → 5.45
-    const km       = parseNum(result.km,       /(\d+[.,]?\d*)/)
+    const km        = parseNum(result.km,             /(\d+[.,]?\d*)/)
     const portagens = parseNum(result.portagens || '', /(\d+[.,]\d+)/)
 
     return { km, portagens }
