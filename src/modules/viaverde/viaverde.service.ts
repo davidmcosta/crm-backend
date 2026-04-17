@@ -227,36 +227,32 @@ export async function calcularViaVerde(
     await fillAddressAndSelect(page, 'txtEndPos', moradaDestino, 'destino')
 
     // ── 5. Clicar "Calcular" ──────────────────────────────────────────────────
-    // Selector confirmado: <a id="btnCalculate" onclick="CalculateRoute()">
+    // Chama CalculateRoute() directamente (é o onclick do #btnCalculate)
+    console.log('[ViaVerde] A clicar Calcular...')
     const clicked = await page.evaluate(`(() => {
-      var el = document.getElementById('btnCalculate');
-      if (el) { el.click(); return '#btnCalculate'; }
-      // fallback: chamar CalculateRoute() directamente
       if (typeof window.CalculateRoute === 'function') {
         window.CalculateRoute();
         return 'CalculateRoute() direct';
       }
+      var el = document.getElementById('btnCalculate');
+      if (el) { el.click(); return '#btnCalculate click'; }
       return null;
     })()`) as string | null
 
-    console.log('[ViaVerde] Calcular clicado:', clicked)
+    console.log('[ViaVerde] Calcular:', clicked)
 
     if (!clicked) {
-      console.log('[ViaVerde] #btnCalculate não encontrado, a usar Enter')
+      console.log('[ViaVerde] Sem Calcular, a usar Enter')
       await page.keyboard.press('Enter')
     }
 
-    // ── 6. Aguardar resultados ────────────────────────────────────────────────
-    // Aguarda até 40 segundos que apareça um valor em km na página
-    console.log('[ViaVerde] A aguardar resultados...')
+    // ── 6. Aguardar .route-info aparecer ─────────────────────────────────────
+    console.log('[ViaVerde] A aguardar .route-info...')
     try {
-      await page.waitForFunction(
-        '() => /\\d+[,.]?\\d*\\s*km/i.test(document.body.innerText)',
-        { timeout: 40_000 },
-      )
-      console.log('[ViaVerde] Resultados detectados!')
+      await page.waitForSelector('.route-info', { timeout: 40_000 })
+      console.log('[ViaVerde] .route-info detectado!')
     } catch {
-      console.log('[ViaVerde] Timeout a aguardar km nos resultados, a tentar ler o que há...')
+      console.log('[ViaVerde] Timeout a aguardar .route-info')
     }
 
     // ── 7. Extrair 1ª rota (.route-info:first-child) ─────────────────────────

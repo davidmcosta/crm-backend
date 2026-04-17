@@ -1423,6 +1423,7 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
     final destCtrl = TextEditingController(text: widget.moradaDestino ?? '');
     String? errorMsg;
     bool loading = false;
+    bool dialogOpen = true;   // flag para evitar setModal após o diálogo fechar
 
     await showDialog<void>(
       context: parentCtx,
@@ -1540,10 +1541,12 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
                         if (ctx.mounted) Navigator.pop(ctx);
                         widget.onResult(km, portagens);
                       } catch (e) {
-                        setModal(() {
-                          loading  = false;
-                          errorMsg = _extractVvError(e);
-                        });
+                        if (dialogOpen && ctx.mounted) {
+                          setModal(() {
+                            loading  = false;
+                            errorMsg = _extractVvError(e);
+                          });
+                        }
                       }
                     },
               child: const Text('Calcular'),
@@ -1553,6 +1556,7 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
       ),
     );
 
+    dialogOpen = false;
     destCtrl.dispose();
   }
 
