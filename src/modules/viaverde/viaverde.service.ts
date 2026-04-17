@@ -22,13 +22,13 @@ async function fillAddress(page: any, address: string): Promise<void> {
   await page.keyboard.type(address, { delay: 45 })
 
   // Aguarda sugestões do autocomplete (Google Maps Places ou nativo)
-  await page.waitForTimeout(1800)
+  await new Promise(r => setTimeout(r, 1800))
 
   // Selecciona a primeira sugestão com ArrowDown + Enter
   await page.keyboard.press('ArrowDown')
-  await page.waitForTimeout(400)
+  await new Promise(r => setTimeout(r, 400))
   await page.keyboard.press('Enter')
-  await page.waitForTimeout(700)
+  await new Promise(r => setTimeout(r, 700))
 }
 
 // ── Helper: extrai número de texto  (ex: "125,3 km" → 125.3) ─────────────────
@@ -84,7 +84,7 @@ export async function calcularViaVerde(
         const btn = await page.$(sel)
         if (btn) {
           await btn.click()
-          await page.waitForTimeout(600)
+          await new Promise(r => setTimeout(r, 600))
           break
         }
       }
@@ -101,14 +101,14 @@ export async function calcularViaVerde(
       for (const sel of classeSelectors) {
         const el = await page.$(sel)
         if (el) {
-          const tag = await page.evaluate((e: Element) => e.tagName, el)
+          const tag = await el.evaluate((e) => (e as HTMLElement).tagName)
           if (tag === 'SELECT') {
             // Tenta seleccionar classe 1 (Ligeiro)
             await page.select(sel, '1').catch(() => {})
           } else {
             await el.click()
           }
-          await page.waitForTimeout(400)
+          await new Promise(r => setTimeout(r, 400))
           break
         }
       }
@@ -202,7 +202,7 @@ export async function calcularViaVerde(
     }
 
     // ── 7. Aguardar resultados ────────────────────────────────────────────────
-    await page.waitForTimeout(5_000)
+    await new Promise(r => setTimeout(r, 5_000))
 
     // ── 8. Extrair km e portagens do texto da página ──────────────────────────
     const bodyText = await page.evaluate('document.body.innerText') as string
