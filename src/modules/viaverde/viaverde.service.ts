@@ -101,7 +101,7 @@ export async function calcularViaVerde(
       for (const sel of classeSelectors) {
         const el = await page.$(sel)
         if (el) {
-          const tag = await el.evaluate((e) => (e as HTMLElement).tagName)
+          const tag = await el.evaluate((e) => (e as any).tagName as string)
           if (tag === 'SELECT') {
             // Tenta seleccionar classe 1 (Ligeiro)
             await page.select(sel, '1').catch(() => {})
