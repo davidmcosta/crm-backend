@@ -182,21 +182,34 @@ export async function calcularViaVerde(
     await page.setViewport({ width: 1280, height: 900 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36')
 
-    // ── Monitorar requests de autocomplete/geocoding ──────────────────────────
+    // ── Capturar console.log da página ───────────────────────────────────────
+    page.on('console', (msg: any) => {
+      const txt = msg.text()
+      if (txt.startsWith('[VKP]') || /autocomplete|geocod|suggest/i.test(txt)) {
+        console.log('[PAGE]', msg.type().toUpperCase(), txt)
+      }
+    })
+
+    // ── Monitorar TODOS os requests XHR/Fetch (excluindo assets estáticos) ───
     await page.setRequestInterception(true)
     page.on('request', req => {
       const url = req.url()
-      if (/autocomplete|geocod|suggest|here\.com|viaverde/i.test(url)) {
-        console.log('[ViaVerde] REQ:', req.method(), url.substring(0, 250))
+      const type = req.resourceType()
+      // Logar apenas requests de dados (não imagens/fontes/css/js de terceiros)
+      if (['xhr', 'fetch', 'websocket'].includes(type) ||
+          /autocomplete|geocod|suggest|hereapi|here\.com/i.test(url)) {
+        console.log('[ViaVerde] REQ:', type, req.method(), url.substring(0, 300))
       }
       req.continue()
     })
     page.on('response', async res => {
       const url = res.url()
-      if (/autocomplete|geocod|suggest|here\.com/i.test(url)) {
+      const type = res.request().resourceType()
+      if (['xhr', 'fetch'].includes(type) ||
+          /autocomplete|geocod|suggest|hereapi|here\.com/i.test(url)) {
         try {
           const text = await res.text()
-          console.log('[ViaVerde] RES', res.status(), url.substring(0, 150), '→', text.substring(0, 300))
+          console.log('[ViaVerde] RES', res.status(), url.substring(0, 200), '→', text.substring(0, 400))
         } catch { /* ignore */ }
       }
     })
@@ -224,6 +237,28 @@ export async function calcularViaVerde(
     })()`) as string | null
     console.log('[ViaVerde] Classe 2 seleccionada:', classeClicked)
     await new Promise(r => setTimeout(r, 500))
+
+    // ── Patch ValidateKeyPress para confirmar se é chamada ────────────────────
+    await page.evaluate(`
+      (function() {
+        var orig = window.ValidateKeyPress;
+        window.ValidateKeyPress = function() {
+          var el = document.activeElement;
+          var val = el ? el.value : '?';
+          console.log('[VKP] chamada, activeElement.value="' + val + '"');
+          return orig && orig.apply(this, arguments);
+        };
+        console.log('[VKP] patch instalado, orig existe:', typeof orig !== 'undefined');
+        // Também inspecionar a inicialização do autocomplete
+        var jq = window.jQuery || window.$;
+        if (jq) {
+          var inst1 = jq('#txtStartPos').autocomplete('instance');
+          var inst2 = jq('#txtEndPos').autocomplete('instance');
+          console.log('[VKP] autocomplete txtStartPos:', inst1 ? 'OK' : 'N/A');
+          console.log('[VKP] autocomplete txtEndPos:', inst2 ? 'OK' : 'N/A');
+        }
+      })()
+    `)
 
     // ── 4. Preencher origem ───────────────────────────────────────────────────
     await fillAddressAndSelect(page, 'txtStartPos', moradaOrigem, 'origem')
