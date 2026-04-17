@@ -75,7 +75,8 @@ async function fillAddressAndSelect(page: any, fieldId: string, address: string,
   await page.keyboard.press('Backspace')
 
   // 2. Digitar o endereço caractere a caractere (dispara keypress + oninput = ValidateKeyPress)
-  await page.type('#' + fieldId, address, { delay: 80 })
+  await page.type('#' + fieldId, address, { delay: 120 })
+  await new Promise(r => setTimeout(r, 500))
 
   // 3. Chamar ValidateKeyPress() explicitamente para garantir que o autocomplete arranca
   await page.evaluate(`
@@ -94,44 +95,29 @@ async function fillAddressAndSelect(page: any, fieldId: string, address: string,
     })()
   `)
 
-  // 4. Aguardar .ui-menu-item visível e clicar por selector (evita "Node detached")
+  // 4. Aguardar .ui-menu-item e clicar no 1º (sem verificar bounding rect —
+  //    em headless/sem-GPU as dimensões podem ser 0 mesmo com o item presente)
   console.log(`[ViaVerde] A aguardar sugestões para ${label}...`)
   let clicked = false
-  for (let i = 0; i < 20; i++) {
-    await new Promise(r => setTimeout(r, 700))
-    // Verifica via evaluate se existe item visível — sem guardar handles
-    const hasVisible = await page.evaluate(`(() => {
-      const items = document.querySelectorAll('.ui-menu-item');
-      for (const el of items) {
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) return true;
-      }
-      return false;
-    })()`) as boolean
-
-    if (hasVisible) {
-      const count = await page.evaluate(`document.querySelectorAll('.ui-menu-item').length`) as number
+  for (let i = 0; i < 25; i++) {
+    await new Promise(r => setTimeout(r, 800))
+    const count = await page.evaluate(`document.querySelectorAll('.ui-menu-item').length`) as number
+    console.log(`[ViaVerde] tentativa ${i+1}: ${count} .ui-menu-item para ${label}`)
+    if (count > 0) {
       console.log(`[ViaVerde] ${count} sugestão(ões) para ${label}, a clicar na 1ª`)
-      // Clicar directamente via evaluate — sem handle que possa ficar stale
-      await page.evaluate(`(() => {
-        const items = document.querySelectorAll('.ui-menu-item');
-        for (const el of items) {
-          const r = el.getBoundingClientRect();
-          if (r.width > 0 && r.height > 0) { el.click(); return; }
-        }
-      })()`)
-      await new Promise(r => setTimeout(r, 800))
+      await page.evaluate(`document.querySelector('.ui-menu-item a, .ui-menu-item').click()`)
+      await new Promise(r => setTimeout(r, 1000))
       clicked = true
       break
     }
   }
 
   if (!clicked) {
-    console.log(`[ViaVerde] Sem sugestão visível para ${label}, fallback ArrowDown+Enter`)
+    console.log(`[ViaVerde] Sem sugestões para ${label}, fallback ArrowDown+Enter`)
     await page.keyboard.press('ArrowDown')
-    await new Promise(r => setTimeout(r, 500))
+    await new Promise(r => setTimeout(r, 600))
     await page.keyboard.press('Enter')
-    await new Promise(r => setTimeout(r, 800))
+    await new Promise(r => setTimeout(r, 1000))
   }
 
   // 5. Verificar se data-position mudou (indica que a selecção actualizou as coordenadas)
@@ -195,6 +181,25 @@ export async function calcularViaVerde(
     const page = await browser.newPage()
     await page.setViewport({ width: 1280, height: 900 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36')
+
+    // ── Monitorar requests de autocomplete/geocoding ──────────────────────────
+    await page.setRequestInterception(true)
+    page.on('request', req => {
+      const url = req.url()
+      if (/autocomplete|geocod|suggest|here\.com|viaverde/i.test(url)) {
+        console.log('[ViaVerde] REQ:', req.method(), url.substring(0, 250))
+      }
+      req.continue()
+    })
+    page.on('response', async res => {
+      const url = res.url()
+      if (/autocomplete|geocod|suggest|here\.com/i.test(url)) {
+        try {
+          const text = await res.text()
+          console.log('[ViaVerde] RES', res.status(), url.substring(0, 150), '→', text.substring(0, 300))
+        } catch { /* ignore */ }
+      }
+    })
 
     // ── 1. Navegar e aguardar campo de origem ─────────────────────────────────
     console.log('[ViaVerde] A navegar...')
