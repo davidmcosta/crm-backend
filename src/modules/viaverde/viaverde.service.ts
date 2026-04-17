@@ -94,22 +94,32 @@ async function fillAddressAndSelect(page: any, fieldId: string, address: string,
     })()
   `)
 
-  // 4. Aguardar .ui-menu-item visível (até ~14 segundos)
+  // 4. Aguardar .ui-menu-item visível e clicar por selector (evita "Node detached")
   console.log(`[ViaVerde] A aguardar sugestões para ${label}...`)
   let clicked = false
   for (let i = 0; i < 20; i++) {
     await new Promise(r => setTimeout(r, 700))
-    const items = await page.$$('.ui-menu-item')
-    const visibleItems: any[] = []
-    for (const item of items) {
-      try {
-        const box = await item.boundingBox()
-        if (box && box.width > 0 && box.height > 0) visibleItems.push(item)
-      } catch { /* ignore */ }
-    }
-    if (visibleItems.length > 0) {
-      console.log(`[ViaVerde] ${visibleItems.length} sugestão(ões) para ${label}, a clicar na 1ª`)
-      await visibleItems[0].click()
+    // Verifica via evaluate se existe item visível — sem guardar handles
+    const hasVisible = await page.evaluate(`(() => {
+      const items = document.querySelectorAll('.ui-menu-item');
+      for (const el of items) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) return true;
+      }
+      return false;
+    })()`) as boolean
+
+    if (hasVisible) {
+      const count = await page.evaluate(`document.querySelectorAll('.ui-menu-item').length`) as number
+      console.log(`[ViaVerde] ${count} sugestão(ões) para ${label}, a clicar na 1ª`)
+      // Clicar directamente via evaluate — sem handle que possa ficar stale
+      await page.evaluate(`(() => {
+        const items = document.querySelectorAll('.ui-menu-item');
+        for (const el of items) {
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) { el.click(); return; }
+        }
+      })()`)
       await new Promise(r => setTimeout(r, 800))
       clicked = true
       break
