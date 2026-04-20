@@ -1,26 +1,30 @@
 /**
- * Via Verde toll calculator — via HERE Maps APIs
+ * Via Verde toll calculator
  *
- * Fluxo (sem browser/Puppeteer):
+ * Fluxo:
  *  1. Geocodifica as moradas via HERE Geocoding API
- *  2. Calcula a rota + portagens via HERE Routing API v8
- *
- * Resultado em ~1-2 segundos (vs 15-20s com Puppeteer).
+ *  2. Calcula rota via HERE Routing API (timeout 6s)
+ *     → fallback: OSRM (OpenStreetMap, gratuito, sem key)
+ *  3. Para portagens: interceta o XHR que CalculateRoute() faz
+ *     para encontrar o endpoint interno da Via Verde (debugFindVvApi)
  */
 
+import puppeteer from 'puppeteer'
+
 const HERE_KEY = 'KLRL1l8y-1d-oBuCWTOQRRGCUL4tL3yThEPf9tXdW8s'
+const VV_URL   = 'https://www.viaverde.pt/ferramentas/calculador-de-portagens'
 
 export interface ViaverdeResult {
   km: number
   portagens: number
 }
 
-// ── Geocodificação ────────────────────────────────────────────────────────────
+// ── Geocodificação ─────────────────────────────────────────────────────────────
 
 async function geocodeHere(address: string): Promise<[number, number] | null> {
   try {
     const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(address)}&in=countryCode:PRT&apikey=${HERE_KEY}`
-    const res  = await fetch(url)
+    const res  = await fetch(url, { signal: AbortSignal.timeout(8_000) })
     const json = await res.json() as any
     if (json.items?.length > 0) {
       const { lat, lng } = json.items[0].position
@@ -38,7 +42,10 @@ async function geocodeNominatim(address: string): Promise<[number, number] | nul
   try {
     const q   = encodeURIComponent(address + ', Portugal')
     const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`
-    const res  = await fetch(url, { headers: { 'User-Agent': 'ViaVerde-CRM/1.0' } })
+    const res  = await fetch(url, {
+      headers: { 'User-Agent': 'ViaVerde-CRM/1.0' },
+      signal: AbortSignal.timeout(8_000),
+    })
     const json = await res.json() as any[]
     if (json.length > 0) {
       const lat = parseFloat(json[0].lat)
@@ -63,72 +70,84 @@ async function geocode(address: string): Promise<[number, number]> {
   )
 }
 
-// ── Routing + portagens ───────────────────────────────────────────────────────
+// ── Routing: HERE (com timeout) + fallback OSRM ────────────────────────────────
 
 async function routeHere(
   orig: [number, number],
   dest: [number, number],
-): Promise<ViaverdeResult> {
-  const url = new URL('https://router.hereapi.com/v8/routes')
-  url.searchParams.set('transportMode', 'car')
-  url.searchParams.set('origin',      `${orig[0]},${orig[1]}`)
-  url.searchParams.set('destination', `${dest[0]},${dest[1]}`)
-  url.searchParams.set('return',      'summary,tolls')
-  url.searchParams.set('apikey',      HERE_KEY)
+): Promise<ViaverdeResult | null> {
+  try {
+    const url = new URL('https://router.hereapi.com/v8/routes')
+    url.searchParams.set('transportMode', 'car')
+    url.searchParams.set('origin',      `${orig[0]},${orig[1]}`)
+    url.searchParams.set('destination', `${dest[0]},${dest[1]}`)
+    url.searchParams.set('return',      'summary,tolls')
+    url.searchParams.set('apikey',      HERE_KEY)
 
-  console.log('[ViaVerde] HERE Routing...')
-  const res  = await fetch(url.toString())
-  const json = await res.json() as any
+    console.log('[ViaVerde] HERE Routing...')
+    const res  = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000) })
+    const json = await res.json() as any
 
-  if (!res.ok || !json.routes?.length) {
-    const msg = json.title || json.error || JSON.stringify(json).substring(0, 200)
-    throw new Error(`HERE Routing falhou (${res.status}): ${msg}`)
-  }
+    if (!res.ok || !json.routes?.length) {
+      console.log(`[ViaVerde] HERE Routing falhou (${res.status}):`, JSON.stringify(json).substring(0, 200))
+      return null
+    }
 
-  // Agregar todas as secções da primeira rota
-  let totalMeters    = 0
-  let totalPortagens = 0
+    let totalMeters    = 0
+    let totalPortagens = 0
 
-  for (const section of json.routes[0].sections ?? []) {
-    totalMeters += section.summary?.length ?? 0
+    for (const section of json.routes[0].sections ?? []) {
+      totalMeters += section.summary?.length ?? 0
 
-    for (const toll of section.tolls ?? []) {
-      const fares: any[] = toll.fares ?? []
+      for (const toll of section.tolls ?? []) {
+        const fares: any[] = toll.fares ?? []
 
-      // Log raw para diagnóstico na 1ª praça
-      if (totalPortagens === 0 && fares.length > 0) {
-        console.log('[ViaVerde] Toll fares sample:', JSON.stringify(fares).substring(0, 500))
-      }
+        if (totalPortagens === 0 && fares.length > 0) {
+          console.log('[ViaVerde] Toll fares sample:', JSON.stringify(fares).substring(0, 500))
+        }
 
-      // Escolher apenas UMA tarifa por praça — preferir transponder (Via Verde)
-      // evitando somar cash + transponder + outras categorias
-      let fare = fares.find((f: any) =>
-        f.paymentMethods?.some((m: string) =>
-          /transponder|electronic|via.verde/i.test(String(m))
+        // Uma tarifa por praça — preferir transponder (Via Verde), fallback ao menor preço
+        let fare = fares.find((f: any) =>
+          f.paymentMethods?.some((m: string) =>
+            /transponder|electronic|via.verde/i.test(String(m))
+          )
         )
-      )
-      // Fallback: menor preço (evita tomar a mais cara como default)
-      if (!fare && fares.length > 0) {
-        fare = fares.reduce((min: any, f: any) =>
-          (f.price?.value ?? Infinity) < (min.price?.value ?? Infinity) ? f : min
-        )
-      }
-
-      if (fare?.price?.value) {
-        totalPortagens += fare.price.value
+        if (!fare && fares.length > 0) {
+          fare = fares.reduce((min: any, f: any) =>
+            (f.price?.value ?? Infinity) < (min.price?.value ?? Infinity) ? f : min
+          )
+        }
+        if (fare?.price?.value) totalPortagens += fare.price.value
       }
     }
+
+    const km = Math.round((totalMeters / 1000) * 10) / 10
+    console.log(`[ViaVerde] HERE: ${km} km, €${totalPortagens.toFixed(2)} portagens`)
+    return { km, portagens: Math.round(totalPortagens * 100) / 100 }
+
+  } catch (e: any) {
+    console.log('[ViaVerde] HERE Routing error:', e.message)
+    return null
   }
-
-  const km = Math.round((totalMeters / 1000) * 10) / 10
-
-  console.log(`[ViaVerde] Rota: ${km} km, portagens: €${totalPortagens.toFixed(2)}`)
-  return { km, portagens: Math.round(totalPortagens * 100) / 100 }
 }
 
-// ── API pública ───────────────────────────────────────────────────────────────
+async function routeOsrm(
+  orig: [number, number],
+  dest: [number, number],
+): Promise<number> {
+  // OSRM usa (lng,lat) ao contrário do HERE que usa (lat,lng)
+  const url = `https://router.project-osrm.org/route/v1/driving/${orig[1]},${orig[0]};${dest[1]},${dest[0]}?overview=false`
+  console.log('[ViaVerde] OSRM fallback...')
+  const res  = await fetch(url, { signal: AbortSignal.timeout(8_000) })
+  const json = await res.json() as any
+  if (!json.routes?.length) throw new Error('OSRM sem rota')
+  const km = Math.round((json.routes[0].distance / 1000) * 10) / 10
+  console.log(`[ViaVerde] OSRM: ${km} km`)
+  return km
+}
 
-/** Calcula km e portagens entre dois endereços (sem browser). */
+// ── API pública ────────────────────────────────────────────────────────────────
+
 export async function calcularViaVerde(
   moradaOrigem: string,
   moradaDestino: string,
@@ -148,29 +167,75 @@ export async function calcularViaVerde(
     geocode(moradaDestino.trim()),
   ])
 
-  return routeHere(origCoords, destCoords)
+  // Tentar HERE primeiro; fallback para OSRM (km apenas, portagens = 0)
+  const hereResult = await routeHere(origCoords, destCoords)
+  if (hereResult) return hereResult
+
+  console.log('[ViaVerde] HERE indisponível — a usar OSRM (sem portagens)')
+  const km = await routeOsrm(origCoords, destCoords)
+  return { km, portagens: 0 }
 }
 
-/** Endpoint de diagnóstico — devolve as coordenadas geocodificadas e a rota raw. */
+// ── Debug: intercepta o XHR que CalculateRoute() faz ──────────────────────────
+// Corre GET /api/viaverde/debug para descobrir o endpoint interno da Via Verde
+
+function launchArgs() {
+  return [
+    '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+    '--disable-gpu', '--single-process', '--no-zygote', '--window-size=1280,900',
+  ]
+}
+
 export async function debugViaVerde(): Promise<object> {
-  const testOrig = 'Lisboa, Portugal'
-  const testDest = 'Porto, Portugal'
+  const browser = await puppeteer.launch({ headless: true, args: launchArgs() })
+  try {
+    const page = await browser.newPage()
+    await page.setViewport({ width: 1280, height: 900 })
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36')
 
-  const [orig, dest] = await Promise.all([
-    geocodeHere(testOrig),
-    geocodeHere(testDest),
-  ])
+    const xhrCalls: any[] = []
 
-  if (!orig || !dest) return { error: 'Geocoding falhou' }
+    await page.setRequestInterception(true)
+    page.on('request', req => {
+      const rt  = req.resourceType()
+      const url = req.url()
+      if (['image', 'font', 'media'].includes(rt) ||
+          /evgnet|evergage|onetrust|cookielaw|geolocation\.onetrust/i.test(url)) {
+        req.abort(); return
+      }
+      if (['xhr', 'fetch'].includes(rt)) {
+        xhrCalls.push({ method: req.method(), url, postData: req.postData()?.substring(0, 300) })
+      }
+      req.continue()
+    })
 
-  const url = new URL('https://router.hereapi.com/v8/routes')
-  url.searchParams.set('transportMode', 'car')
-  url.searchParams.set('origin',      `${orig[0]},${orig[1]}`)
-  url.searchParams.set('destination', `${dest[0]},${dest[1]}`)
-  url.searchParams.set('return',      'summary,tolls')
-  url.searchParams.set('apikey',      HERE_KEY)
+    await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    await page.waitForSelector('#txtStartPos', { timeout: 15_000 })
 
-  const res  = await fetch(url.toString())
-  const json = await res.json() as any
-  return { status: res.status, orig, dest, routes: json.routes?.length, raw: json }
+    // Injectar Lisboa → Porto directamente (sem autocomplete)
+    await page.evaluate(`
+      (function() {
+        var orig = document.getElementById('txtStartPos');
+        orig.value = 'Lisboa';
+        orig.setAttribute('data-position', '[38.71667,-9.13333]');
+        var dest = document.getElementById('txtEndPos');
+        dest.value = 'Porto';
+        dest.setAttribute('data-position', '[41.14961,-8.61099]');
+        // Classe 2
+        var c2 = document.querySelector('a[title="Classe 2"]');
+        if (c2) c2.click();
+      })()
+    `)
+    await new Promise(r => setTimeout(r, 500))
+
+    // Chamar CalculateRoute e aguardar XHR
+    const xhrBefore = xhrCalls.length
+    await page.evaluate(`typeof CalculateRoute === 'function' && CalculateRoute()`)
+    await new Promise(r => setTimeout(r, 8_000))
+
+    const newXhr = xhrCalls.slice(xhrBefore)
+    return { xhrAfterCalculate: newXhr, allXhr: xhrCalls }
+  } finally {
+    await browser.close()
+  }
 }
