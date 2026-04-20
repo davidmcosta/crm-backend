@@ -86,18 +86,36 @@ async function routeHere(
   }
 
   // Agregar todas as secções da primeira rota
-  let totalMeters   = 0
+  let totalMeters    = 0
   let totalPortagens = 0
 
   for (const section of json.routes[0].sections ?? []) {
     totalMeters += section.summary?.length ?? 0
 
-    // Portagens — extrai o preço de cada praça (prefere Via Verde/transponder)
     for (const toll of section.tolls ?? []) {
-      for (const fare of toll.fares ?? []) {
-        // Prefere o preço de transponder electrónico; fallback para cash
-        const preco = fare.price?.value ?? 0
-        totalPortagens += preco
+      const fares: any[] = toll.fares ?? []
+
+      // Log raw para diagnóstico na 1ª praça
+      if (totalPortagens === 0 && fares.length > 0) {
+        console.log('[ViaVerde] Toll fares sample:', JSON.stringify(fares).substring(0, 500))
+      }
+
+      // Escolher apenas UMA tarifa por praça — preferir transponder (Via Verde)
+      // evitando somar cash + transponder + outras categorias
+      let fare = fares.find((f: any) =>
+        f.paymentMethods?.some((m: string) =>
+          /transponder|electronic|via.verde/i.test(String(m))
+        )
+      )
+      // Fallback: menor preço (evita tomar a mais cara como default)
+      if (!fare && fares.length > 0) {
+        fare = fares.reduce((min: any, f: any) =>
+          (f.price?.value ?? Infinity) < (min.price?.value ?? Infinity) ? f : min
+        )
+      }
+
+      if (fare?.price?.value) {
+        totalPortagens += fare.price.value
       }
     }
   }
