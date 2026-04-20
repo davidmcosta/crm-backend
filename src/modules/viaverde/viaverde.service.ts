@@ -171,6 +171,20 @@ export async function calcularViaVerde(
     await page.setViewport({ width: 1280, height: 900 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36')
 
+    // ── Bloquear recursos desnecessários para acelerar o carregamento ─────────
+    await page.setRequestInterception(true)
+    page.on('request', req => {
+      const rt  = req.resourceType()
+      const url = req.url()
+      // Bloquear imagens, fontes, media e scripts de analytics/tracking
+      if (['image', 'font', 'media'].includes(rt) ||
+          /evgnet|evergage|onetrust|cookielaw|geolocation\.onetrust|beacon|analytics|tracking/i.test(url)) {
+        req.abort()
+        return
+      }
+      req.continue()
+    })
+
     // ── 2. Navegar e aguardar campo de origem ─────────────────────────────────
     console.log('[ViaVerde] A navegar...')
     await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 })

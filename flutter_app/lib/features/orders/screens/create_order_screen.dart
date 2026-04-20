@@ -18,6 +18,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/api/api_endpoints.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 // ── Falecido entry ────────────────────────────────────────────────────────────
 
@@ -122,11 +123,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   List<_ExtraRow> _extras   = [];
 
   // Calculados
-  double _refeicoes        = 0;
-  double _deslocacao       = 0;
-  bool   _precisaRefeicao  = false;
-  double _kmRateCurrent    = 0.40;
-  double _mealCostCurrent  = 15.0;
+  double _refeicoes           = 0;
+  double _deslocacao          = 0;
+  bool   _precisaRefeicao     = false;
+  double _kmRateCurrent       = 0.36;
+  double _mealCostCurrent     = 12.0;
+  double _desgasteKmCurrent   = 0.0;
+  double _combustivelKmCurrent = 0.0;
 
   final _currency = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
@@ -231,18 +234,26 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   double get _valorTotal => _baseIVA + _ivaValor;
 
-  void _recalcDeslocacao({double kmRate = 0.40, double mealCost = 15.0}) {
+  void _recalcDeslocacao({
+    double kmRate        = 0.36,
+    double mealCost      = 12.0,
+    double desgasteKm    = 0.0,
+    double combustivelKm = 0.0,
+  }) {
     final km        = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))        ?? 0;
     final portagens = double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0;
 
-    final custokm     = km * 2 * kmRate;
+    final taxaTotal   = kmRate + desgasteKm + combustivelKm;
+    final custokm     = km * 2 * taxaTotal;
     final portagensRT = portagens * 2;          // ida + volta
     final horasViagem = (km * 2) / 80;
     _precisaRefeicao  = horasViagem > 4.0;
     _refeicoes        = _precisaRefeicao ? 2 * mealCost : 0;  // 2 col. × mealCost
     _deslocacao       = custokm + portagensRT + _refeicoes;
-    _kmRateCurrent    = kmRate;
-    _mealCostCurrent  = mealCost;
+    _kmRateCurrent        = kmRate;
+    _mealCostCurrent      = mealCost;
+    _desgasteKmCurrent    = desgasteKm;
+    _combustivelKmCurrent = combustivelKm;
 
     setState(() {});
   }
@@ -531,9 +542,17 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final customersState  = ref.watch(customersProvider);
     // Apply settings-based travel rates whenever settings load/change
     ref.watch(settingsProvider).whenData((s) {
-      if (s.kmRate != _kmRateCurrent || s.mealCost != _mealCostCurrent) {
+      if (s.kmRate        != _kmRateCurrent        ||
+          s.mealCost      != _mealCostCurrent      ||
+          s.desgasteKm    != _desgasteKmCurrent    ||
+          s.combustivelKm != _combustivelKmCurrent) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _recalcDeslocacao(kmRate: s.kmRate, mealCost: s.mealCost);
+          if (mounted) _recalcDeslocacao(
+            kmRate:        s.kmRate,
+            mealCost:      s.mealCost,
+            desgasteKm:    s.desgasteKm,
+            combustivelKm: s.combustivelKm,
+          );
         });
       }
     });
@@ -1028,8 +1047,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           color: AppTheme.success)),
                   const SizedBox(height: 6),
                   _calcRow(
-                      'Veículo  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €${_kmRateCurrent.toStringAsFixed(2)}',
-                      (double.tryParse(_kmCtrl.text) ?? 0) * 2 * _kmRateCurrent),
+                      'Veículo  ×  ${(double.tryParse(_kmCtrl.text) ?? 0) * 2} km × €${(_kmRateCurrent + _desgasteKmCurrent + _combustivelKmCurrent).toStringAsFixed(3)}/km',
+                      (double.tryParse(_kmCtrl.text) ?? 0) * 2 * (_kmRateCurrent + _desgasteKmCurrent + _combustivelKmCurrent)),
                   _calcRow('Portagens (ida + volta)',
                       (double.tryParse(_portagensCtrl.text.replaceAll(',', '.')) ?? 0) * 2),
                   if (_precisaRefeicao)
@@ -1433,17 +1452,17 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Row(children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
                 color: _vvGreen,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text('VV',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      letterSpacing: 0.5)),
+              child: SvgPicture.asset(
+                'assets/images/viaverde_logo.svg',
+                width: 42,
+                height: 22,
+                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
             ),
             const SizedBox(width: 10),
             const Text('Calcular Via Verde',
@@ -1590,17 +1609,17 @@ class _ViaVerdeButtonState extends State<_ViaVerdeButton> {
       onPressed: () => _calcularComDialogo(context),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           decoration: BoxDecoration(
             color: _vvGreen,
             borderRadius: BorderRadius.circular(5),
           ),
-          child: const Text('VV',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 0.5)),
+          child: SvgPicture.asset(
+            'assets/images/viaverde_logo.svg',
+            width: 36,
+            height: 18,
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          ),
         ),
         const SizedBox(width: 8),
         const Text('Calcular km e portagens (Via Verde)',

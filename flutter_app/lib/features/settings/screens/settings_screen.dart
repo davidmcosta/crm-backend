@@ -18,6 +18,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _numeroInicialCtrl  = TextEditingController();
   final _kmCtrl             = TextEditingController();
   final _mealCtrl           = TextEditingController();
+  final _desgasteKmCtrl     = TextEditingController();
+  final _combustivelKmCtrl  = TextEditingController();
   final _moradaOrigemCtrl   = TextEditingController();
   bool _saving              = false;
   bool _loaded              = false;
@@ -29,6 +31,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _numeroInicialCtrl.dispose();
     _kmCtrl.dispose();
     _mealCtrl.dispose();
+    _desgasteKmCtrl.dispose();
+    _combustivelKmCtrl.dispose();
     _moradaOrigemCtrl.dispose();
     super.dispose();
   }
@@ -39,6 +43,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _numeroInicialCtrl.text  = s.numeroInicial > 1 ? s.numeroInicial.toString() : '';
     _kmCtrl.text             = s.kmRate.toString();
     _mealCtrl.text           = s.mealCost.toString();
+    _desgasteKmCtrl.text     = s.desgasteKm > 0 ? s.desgasteKm.toString() : '';
+    _combustivelKmCtrl.text  = s.combustivelKm > 0 ? s.combustivelKm.toString() : '';
     _moradaOrigemCtrl.text   = s.moradaOrigem;
     _anosVisiveis            = List<int>.from(s.anosVisiveis);
     _loaded = true;
@@ -56,14 +62,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final numIniText  = _numeroInicialCtrl.text.trim();
       final ano         = anoText.isEmpty    ? 0 : int.tryParse(anoText)    ?? 0;
       final numInicial  = numIniText.isEmpty ? 1 : int.tryParse(numIniText) ?? 1;
-      final km          = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))   ?? 0.36;
-      final meal        = double.tryParse(_mealCtrl.text.replaceAll(',', '.')) ?? 12.0;
+      final km           = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))          ?? 0.36;
+      final meal         = double.tryParse(_mealCtrl.text.replaceAll(',', '.'))         ?? 12.0;
+      final desgaste     = double.tryParse(_desgasteKmCtrl.text.replaceAll(',', '.'))   ?? 0.0;
+      final combustivel  = double.tryParse(_combustivelKmCtrl.text.replaceAll(',', '.')) ?? 0.0;
 
       await ApiClient().dio.put(ApiEndpoints.settings, data: {
         'anoAtual':      ano,
         'numeroInicial': numInicial,
         'kmRate':        km,
         'mealCost':      meal,
+        'desgasteKm':    desgaste,
+        'combustivelKm': combustivel,
         'moradaOrigem':  _moradaOrigemCtrl.text.trim(),
         'anosVisiveis':  _anosVisiveis,
       });
@@ -288,7 +298,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: TextField(
                             controller: _kmCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Custo por km (€/km)',
+                              labelText: 'Taxa IRS/km (€/km)',
+                              hintText: 'ex: 0.36',
                               prefixIcon: Icon(Icons.route_outlined, size: 18),
                               isDense: true,
                             ),
@@ -302,6 +313,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             decoration: const InputDecoration(
                               labelText: 'Custo por refeição (€)',
                               prefixIcon: Icon(Icons.restaurant_outlined, size: 18),
+                              isDense: true,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _desgasteKmCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Desgaste viatura (€/km)',
+                              hintText: 'ex: 0.05',
+                              prefixIcon: Icon(Icons.build_outlined, size: 18),
+                              isDense: true,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _combustivelKmCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Combustível (€/km)',
+                              hintText: 'ex: 0.08',
+                              prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18),
                               isDense: true,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),

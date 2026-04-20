@@ -15,6 +15,8 @@ class AppSettings {
   final int          numeroInicial;
   final double       kmRate;
   final double       mealCost;
+  final double       desgasteKm;
+  final double       combustivelKm;
   final String       moradaOrigem;
   final List<int>    anosVisiveis;
 
@@ -23,6 +25,8 @@ class AppSettings {
     this.numeroInicial = 1,
     required this.kmRate,
     required this.mealCost,
+    this.desgasteKm   = 0,
+    this.combustivelKm = 0,
     this.moradaOrigem = '',
     this.anosVisiveis = const [],
   });
@@ -30,8 +34,10 @@ class AppSettings {
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
         anoAtual:      (j['anoAtual']      as num?)?.toInt() ?? 0,
         numeroInicial: (j['numeroInicial'] as num?)?.toInt() ?? 1,
-        kmRate:        _toDouble(j['kmRate'])   ?? 0.36,
-        mealCost:      _toDouble(j['mealCost']) ?? 12.0,
+        kmRate:        _toDouble(j['kmRate'])        ?? 0.36,
+        mealCost:      _toDouble(j['mealCost'])      ?? 12.0,
+        desgasteKm:    _toDouble(j['desgasteKm'])    ?? 0.0,
+        combustivelKm: _toDouble(j['combustivelKm']) ?? 0.0,
         moradaOrigem:  j['moradaOrigem']   as String? ?? '',
         anosVisiveis:  (j['anosVisiveis'] as List?)
             ?.map((e) => (e as num).toInt())
