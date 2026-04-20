@@ -18,8 +18,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _numeroInicialCtrl  = TextEditingController();
   final _kmCtrl             = TextEditingController();
   final _mealCtrl           = TextEditingController();
-  final _desgasteKmCtrl     = TextEditingController();
-  final _combustivelKmCtrl  = TextEditingController();
+  final _desgasteKmCtrl       = TextEditingController();
+  final _precoCombustivelCtrl = TextEditingController();
+  final _consumoViaturaCtrl   = TextEditingController();
   final _moradaOrigemCtrl   = TextEditingController();
   bool _saving              = false;
   bool _loaded              = false;
@@ -32,7 +33,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _kmCtrl.dispose();
     _mealCtrl.dispose();
     _desgasteKmCtrl.dispose();
-    _combustivelKmCtrl.dispose();
+    _precoCombustivelCtrl.dispose();
+    _consumoViaturaCtrl.dispose();
     _moradaOrigemCtrl.dispose();
     super.dispose();
   }
@@ -43,8 +45,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _numeroInicialCtrl.text  = s.numeroInicial > 1 ? s.numeroInicial.toString() : '';
     _kmCtrl.text             = s.kmRate.toString();
     _mealCtrl.text           = s.mealCost.toString();
-    _desgasteKmCtrl.text     = s.desgasteKm > 0 ? s.desgasteKm.toString() : '';
-    _combustivelKmCtrl.text  = s.combustivelKm > 0 ? s.combustivelKm.toString() : '';
+    _desgasteKmCtrl.text       = s.desgasteKm > 0       ? s.desgasteKm.toString()       : '';
+    _precoCombustivelCtrl.text = s.precoCombustivel > 0 ? s.precoCombustivel.toString() : '';
+    _consumoViaturaCtrl.text   = s.consumoViatura > 0   ? s.consumoViatura.toString()   : '';
     _moradaOrigemCtrl.text   = s.moradaOrigem;
     _anosVisiveis            = List<int>.from(s.anosVisiveis);
     _loaded = true;
@@ -64,16 +67,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final numInicial  = numIniText.isEmpty ? 1 : int.tryParse(numIniText) ?? 1;
       final km           = double.tryParse(_kmCtrl.text.replaceAll(',', '.'))          ?? 0.36;
       final meal         = double.tryParse(_mealCtrl.text.replaceAll(',', '.'))         ?? 12.0;
-      final desgaste     = double.tryParse(_desgasteKmCtrl.text.replaceAll(',', '.'))   ?? 0.0;
-      final combustivel  = double.tryParse(_combustivelKmCtrl.text.replaceAll(',', '.')) ?? 0.0;
+      final desgaste       = double.tryParse(_desgasteKmCtrl.text.replaceAll(',', '.'))       ?? 0.0;
+      final precoCombust   = double.tryParse(_precoCombustivelCtrl.text.replaceAll(',', '.')) ?? 0.0;
+      final consumoViatura = double.tryParse(_consumoViaturaCtrl.text.replaceAll(',', '.'))   ?? 0.0;
 
       await ApiClient().dio.put(ApiEndpoints.settings, data: {
-        'anoAtual':      ano,
-        'numeroInicial': numInicial,
-        'kmRate':        km,
-        'mealCost':      meal,
-        'desgasteKm':    desgaste,
-        'combustivelKm': combustivel,
+        'anoAtual':          ano,
+        'numeroInicial':     numInicial,
+        'kmRate':            km,
+        'mealCost':          meal,
+        'desgasteKm':        desgaste,
+        'precoCombustivel':  precoCombust,
+        'consumoViatura':    consumoViatura,
         'moradaOrigem':  _moradaOrigemCtrl.text.trim(),
         'anosVisiveis':  _anosVisiveis,
       });
@@ -333,14 +338,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           ),
                         ),
+                      ]),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _precoCombustivelCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Preço combustível (€/litro)',
+                              hintText: 'ex: 1.65',
+                              prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18),
+                              isDense: true,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
-                            controller: _combustivelKmCtrl,
+                            controller: _consumoViaturaCtrl,
                             decoration: const InputDecoration(
-                              labelText: 'Combustível (€/km)',
-                              hintText: 'ex: 0.08',
-                              prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18),
+                              labelText: 'Consumo viatura (l/100km)',
+                              hintText: 'ex: 8.5',
+                              prefixIcon: Icon(Icons.speed_outlined, size: 18),
                               isDense: true,
                             ),
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),

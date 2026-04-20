@@ -17,14 +17,15 @@ export async function updateSettings(data: {
   numeroInicial?: number
   kmRate?:        number
   mealCost?:      number
-  desgasteKm?:    number
-  combustivelKm?: number
+  desgasteKm?:       number
+  precoCombustivel?: number
+  consumoViatura?:   number
   moradaOrigem?:  string
   anosVisiveis?:  number[]
 }) {
   return prisma.settings.upsert({
     where:  { id: 'global' },
-    create: { id: 'global', anoAtual: 0, numeroInicial: 1, kmRate: 0.36, mealCost: 12, desgasteKm: 0, combustivelKm: 0, moradaOrigem: '', anosVisiveis: [], ...data },
+    create: { id: 'global', anoAtual: 0, numeroInicial: 1, kmRate: 0.36, mealCost: 12, desgasteKm: 0, precoCombustivel: 0, consumoViatura: 0, moradaOrigem: '', anosVisiveis: [], ...data },
     update: { ...data, updatedAt: new Date() },
   })
 }

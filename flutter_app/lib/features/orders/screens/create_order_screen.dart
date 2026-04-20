@@ -126,10 +126,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   double _refeicoes           = 0;
   double _deslocacao          = 0;
   bool   _precisaRefeicao     = false;
-  double _kmRateCurrent       = 0.36;
-  double _mealCostCurrent     = 12.0;
-  double _desgasteKmCurrent   = 0.0;
-  double _combustivelKmCurrent = 0.0;
+  double _kmRateCurrent        = 0.36;
+  double _mealCostCurrent      = 12.0;
+  double _desgasteKmCurrent    = 0.0;
+  double _combustivelKmCurrent = 0.0; // calculado: consumoViatura/100 * precoCombustivel
 
   final _currency = NumberFormat.currency(locale: 'pt_PT', symbol: '€');
 
@@ -551,7 +551,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             kmRate:        s.kmRate,
             mealCost:      s.mealCost,
             desgasteKm:    s.desgasteKm,
-            combustivelKm: s.combustivelKm,
+            combustivelKm: s.combustivelKm, // já calculado no getter
           );
         });
       }
