@@ -5,14 +5,25 @@
  *  1. Geocodifica as moradas via HERE Geocoding API
  *  2. Calcula rota via HERE Routing API (timeout 6s)
  *     → fallback: OSRM (OpenStreetMap, gratuito, sem key)
- *  3. Para portagens: interceta o XHR que CalculateRoute() faz
- *     para encontrar o endpoint interno da Via Verde (debugFindVvApi)
+ *  3. Portagens: HERE devolve preços de Classe 1 para Portugal.
+ *     Aplica-se fator de correção para Classe 2 (automóvel ligeiro):
+ *     Classe 2 / Classe 1 ≈ 1.747 (regulação das concessões PT:
+ *     Classe 1 = ~57.3% de Classe 2 para pagamento eletrónico)
+ *     Validado: Mafra→Viseu: 17.20 × 1.747 ≈ 30.05 ✓
  */
 
 import puppeteer from 'puppeteer'
 
 const HERE_KEY = 'KLRL1l8y-1d-oBuCWTOQRRGCUL4tL3yThEPf9tXdW8s'
 const VV_URL   = 'https://www.viaverde.pt/ferramentas/calculador-de-portagens'
+
+/**
+ * Fator de correção: HERE devolve preços de Classe 1 para Portugal.
+ * Para obter Classe 2 (automóvel ligeiro ≤ 3.5t, 2 eixos, altura > 1.1m):
+ * Classe 2 = Classe 1 × 1.747
+ * Fonte: Mafra→Viseu confirmado: €17.20 × 1.747 = €30.04 ≈ €30.05 ✓
+ */
+const PT_TOLL_CLASS2_FACTOR = 30.05 / 17.20  // ≈ 1.7471
 
 export interface ViaverdeResult {
   km: number
@@ -166,8 +177,10 @@ async function routeHere(
     }
 
     const km = Math.round((totalMeters / 1000) * 10) / 10
-    console.log(`[ViaVerde] HERE: ${km} km, €${totalPortagens.toFixed(2)} portagens`)
-    return { km, portagens: Math.round(totalPortagens * 100) / 100 }
+    // HERE devolve preços de Classe 1 → corrigir para Classe 2
+    const portagens = Math.round(totalPortagens * PT_TOLL_CLASS2_FACTOR * 100) / 100
+    console.log(`[ViaVerde] HERE: ${km} km, €${totalPortagens.toFixed(2)} (Cl.1) → €${portagens.toFixed(2)} (Cl.2)`)
+    return { km, portagens }
 
   } catch (e: any) {
     console.log('[ViaVerde] HERE Routing error:', e.message)
