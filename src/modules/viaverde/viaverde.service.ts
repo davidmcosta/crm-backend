@@ -72,6 +72,55 @@ async function geocode(address: string): Promise<[number, number]> {
 
 // ── Routing: HERE (com timeout) + fallback OSRM ────────────────────────────────
 
+/**
+ * Seleciona a tarifa correcta para Classe 2 (automóvel ligeiro) num array de fares.
+ * Estratégia:
+ *   1. Preferir fare com vehicleCategory.type == automobile/car/light
+ *   2. Dentro dessa categoria, preferir transponder (Via Verde)
+ *   3. Se não houver categoria de veículo, preferir transponder
+ *   4. Fallback: fare do meio (nem a mais barata/moto nem a mais cara/camião)
+ */
+function selectFareClasse2(fares: any[]): any | undefined {
+  if (!fares.length) return undefined
+
+  // Palavras-chave que identificam Classe 2 (ligeiro)
+  const isLightCar = (f: any): boolean => {
+    const cat = f.vehicleCategory ?? f.vehicleType ?? {}
+    const type = String(cat.type ?? cat.name ?? '').toLowerCase()
+    return /automobile|car|light|passenger|classe.?2|class.?2|2axle/i.test(type) &&
+           !/motorcycle|moto|scooter|truck|heavy/i.test(type)
+  }
+
+  const isTransponder = (f: any): boolean =>
+    f.paymentMethods?.some((m: string) =>
+      /transponder|electronic|via.verde/i.test(String(m))
+    ) ?? false
+
+  // 1. Ligeiro + transponder
+  const carTransponder = fares.find(f => isLightCar(f) && isTransponder(f))
+  if (carTransponder) return carTransponder
+
+  // 2. Ligeiro (qualquer método de pagamento)
+  const carAny = fares.find(f => isLightCar(f))
+  if (carAny) return carAny
+
+  // 3. Sem categoria: se há vehicleCategory presente em qualquer fare, não sabemos — log apenas
+  const hasCategories = fares.some(f => f.vehicleCategory ?? f.vehicleType)
+  if (hasCategories) {
+    // Há categorias mas nenhuma bateu como Classe 2 — log e usar transponder ou médio
+    console.log('[ViaVerde] AVISO: sem fare de Classe 2 para praça, categorias:', JSON.stringify(fares.map(f => f.vehicleCategory ?? f.vehicleType)))
+  }
+
+  // 4. Transponder (sem filtro de categoria)
+  const transponder = fares.find(f => isTransponder(f))
+  if (transponder) return transponder
+
+  // 5. Mediana de preço (excluir extremos de moto e camião)
+  const sorted = [...fares].sort((a, b) => (a.price?.value ?? 0) - (b.price?.value ?? 0))
+  const midIdx = Math.floor(sorted.length / 2)
+  return sorted[midIdx]
+}
+
 async function routeHere(
   orig: [number, number],
   dest: [number, number],
@@ -82,6 +131,8 @@ async function routeHere(
     url.searchParams.set('origin',      `${orig[0]},${orig[1]}`)
     url.searchParams.set('destination', `${dest[0]},${dest[1]}`)
     url.searchParams.set('return',      'summary,tolls')
+    // Altura 160cm sinaliza veículo ligeiro (> 110cm = não moto, Classe 2)
+    url.searchParams.set('vehicle[height]', '160')
     url.searchParams.set('apikey',      HERE_KEY)
 
     console.log('[ViaVerde] HERE Routing...')
@@ -95,6 +146,7 @@ async function routeHere(
 
     let totalMeters    = 0
     let totalPortagens = 0
+    let firstTollLogged = false
 
     for (const section of json.routes[0].sections ?? []) {
       totalMeters += section.summary?.length ?? 0
@@ -102,21 +154,13 @@ async function routeHere(
       for (const toll of section.tolls ?? []) {
         const fares: any[] = toll.fares ?? []
 
-        if (totalPortagens === 0 && fares.length > 0) {
-          console.log('[ViaVerde] Toll fares sample:', JSON.stringify(fares).substring(0, 500))
+        // Log completo da primeira praça para diagnóstico
+        if (!firstTollLogged && fares.length > 0) {
+          firstTollLogged = true
+          console.log('[ViaVerde] Primeira praça — fares completo:', JSON.stringify(fares, null, 2).substring(0, 3000))
         }
 
-        // Uma tarifa por praça — preferir transponder (Via Verde), fallback ao menor preço
-        let fare = fares.find((f: any) =>
-          f.paymentMethods?.some((m: string) =>
-            /transponder|electronic|via.verde/i.test(String(m))
-          )
-        )
-        if (!fare && fares.length > 0) {
-          fare = fares.reduce((min: any, f: any) =>
-            (f.price?.value ?? Infinity) < (min.price?.value ?? Infinity) ? f : min
-          )
-        }
+        const fare = selectFareClasse2(fares)
         if (fare?.price?.value) totalPortagens += fare.price.value
       }
     }
@@ -235,7 +279,7 @@ export async function debugViaVerde(): Promise<object> {
     await new Promise(r => setTimeout(r, 2_000))
 
     // Snapshot antes de calcular
-    const beforeCount: number = await page.evaluate(`window.__capturedRequests.length`)
+    const beforeCount = await page.evaluate(`window.__capturedRequests.length`) as number
 
     // Injectar Lisboa → Porto + Classe 2
     await page.evaluate(`
@@ -255,7 +299,7 @@ export async function debugViaVerde(): Promise<object> {
     // Aguardar 15 segundos para capturar tudo
     await new Promise(r => setTimeout(r, 15_000))
 
-    const allReqs: any[] = await page.evaluate(`window.__capturedRequests`)
+    const allReqs = await page.evaluate(`window.__capturedRequests`) as any[]
     const afterReqs = allReqs.slice(beforeCount)
 
     // Filtrar apenas chamadas relevantes (não map tiles)
