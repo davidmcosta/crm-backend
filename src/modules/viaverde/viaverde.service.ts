@@ -193,7 +193,31 @@ export async function debugViaVerde(): Promise<object> {
     await page.setViewport({ width: 1280, height: 900 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36')
 
-    const xhrCalls: any[] = []
+    // Interceptar XMLHttpRequest e fetch AO NÍVEL DO JS antes de qualquer script correr
+    await page.evaluateOnNewDocument(`
+      window.__capturedRequests = [];
+      const _xhrOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        window.__capturedRequests.push({ via: 'XHR', method, url: String(url) });
+        return _xhrOpen.apply(this, arguments);
+      };
+      const _xhrSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.send = function(body) {
+        const last = window.__capturedRequests[window.__capturedRequests.length - 1];
+        if (last && body) last.body = String(body).substring(0, 400);
+        return _xhrSend.apply(this, arguments);
+      };
+      const _fetch = window.fetch;
+      window.fetch = function(input, opts) {
+        window.__capturedRequests.push({
+          via: 'fetch',
+          method: (opts && opts.method) || 'GET',
+          url: String(typeof input === 'string' ? input : input.url),
+          body: opts && opts.body ? String(opts.body).substring(0, 400) : undefined
+        });
+        return _fetch.apply(this, arguments);
+      };
+    `)
 
     await page.setRequestInterception(true)
     page.on('request', req => {
@@ -203,38 +227,43 @@ export async function debugViaVerde(): Promise<object> {
           /evgnet|evergage|onetrust|cookielaw|geolocation\.onetrust/i.test(url)) {
         req.abort(); return
       }
-      if (['xhr', 'fetch'].includes(rt)) {
-        xhrCalls.push({ method: req.method(), url, postData: req.postData()?.substring(0, 300) })
-      }
       req.continue()
     })
 
     await page.goto(VV_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 })
     await page.waitForSelector('#txtStartPos', { timeout: 15_000 })
+    await new Promise(r => setTimeout(r, 2_000))
 
-    // Injectar Lisboa → Porto directamente (sem autocomplete)
+    // Snapshot antes de calcular
+    const beforeCount: number = await page.evaluate(`window.__capturedRequests.length`)
+
+    // Injectar Lisboa → Porto + Classe 2
     await page.evaluate(`
       (function() {
         var orig = document.getElementById('txtStartPos');
-        orig.value = 'Lisboa';
-        orig.setAttribute('data-position', '[38.71667,-9.13333]');
+        orig.value = 'Lisboa'; orig.setAttribute('data-position', '[38.71667,-9.13333]');
         var dest = document.getElementById('txtEndPos');
-        dest.value = 'Porto';
-        dest.setAttribute('data-position', '[41.14961,-8.61099]');
-        // Classe 2
+        dest.value = 'Porto'; dest.setAttribute('data-position', '[41.14961,-8.61099]');
         var c2 = document.querySelector('a[title="Classe 2"]');
         if (c2) c2.click();
       })()
     `)
     await new Promise(r => setTimeout(r, 500))
 
-    // Chamar CalculateRoute e aguardar XHR
-    const xhrBefore = xhrCalls.length
     await page.evaluate(`typeof CalculateRoute === 'function' && CalculateRoute()`)
-    await new Promise(r => setTimeout(r, 8_000))
 
-    const newXhr = xhrCalls.slice(xhrBefore)
-    return { xhrAfterCalculate: newXhr, allXhr: xhrCalls }
+    // Aguardar 15 segundos para capturar tudo
+    await new Promise(r => setTimeout(r, 15_000))
+
+    const allReqs: any[] = await page.evaluate(`window.__capturedRequests`)
+    const afterReqs = allReqs.slice(beforeCount)
+
+    // Filtrar apenas chamadas relevantes (não map tiles)
+    const relevant = afterReqs.filter((r: any) =>
+      !/vectortiles|omv\?|yaml$|woff|png|svg|gif/i.test(r.url)
+    )
+
+    return { relevant, afterCalculate: afterReqs.length, total: allReqs.length }
   } finally {
     await browser.close()
   }
